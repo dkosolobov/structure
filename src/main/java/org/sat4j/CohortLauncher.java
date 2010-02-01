@@ -2,10 +2,12 @@ package org.sat4j;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.FileInputStream;
 import java.util.Queue;
 import java.util.Vector;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Properties;
 import java.util.Stack;
 
 import org.sat4j.core.VecInt;
@@ -93,7 +95,7 @@ public class CohortLauncher {
                 Logger.log("Using MULTITHREADED(" + threads + ") Cohort implementation");
             } else if (args[index].equals("-dist")) {
                 index++;
-                cohort = new DistributedCohort(null);
+                cohort = new DistributedCohort(new Properties());
                 Logger.log("Using DISTRIBUTED Cohort implementation");
             } else {
                 System.out.println("Unknown Cohort implementation selected!");
