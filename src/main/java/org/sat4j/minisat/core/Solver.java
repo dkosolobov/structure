@@ -1246,14 +1246,11 @@ public class Solver<D extends DataStructureFactory> implements ISolver,
 		learnedConstraintsDeletionStrategy = lcds;
 	}
 
-	public boolean isSatisfiable(IVecInt assumps, boolean global)
-			throws TimeoutException {
-		Lbool status = Lbool.UNDEFINED;
-
+    public void init() {
 		final int howmany = voc.nVars();
-		if (mseen.length <= howmany) {
+		if (mseen.length <= howmany)
 			mseen = new boolean[howmany + 1];
-		}
+
 		trail.ensure(howmany);
 		trailLim.ensure(howmany);
 		learnedLiterals.ensure(howmany);
@@ -1263,6 +1260,13 @@ public class Solver<D extends DataStructureFactory> implements ISolver,
 		fullmodel = null;
 		order.init();
 		learnedConstraintsDeletionStrategy.init();
+    }
+
+	public boolean isSatisfiable(IVecInt assumps, boolean global)
+			throws TimeoutException {
+
+		Lbool status = Lbool.UNDEFINED;
+        init();
 
 		int learnedLiteralsLimit = trail.size();
 
