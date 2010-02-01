@@ -69,7 +69,14 @@ public class CohortLauncher {
         Logger.log("Number of processors \t" + runtime.availableProcessors());
     }
 
+    /**
+     * if arguments are parsed correctly sets `problemName` to the
+     * path of the problem to solve otherwise `problemName` is null.
+     *
+     * FIXME: ugly trick
+     */
     public void configure(String[] args) {
+        problemName = null;
 
         try {
             int index = 0;
@@ -90,12 +97,8 @@ public class CohortLauncher {
                 Logger.log("Using DISTRIBUTED Cohort implementation");
             } else {
                 System.out.println("Unknown Cohort implementation selected!");
-                System.exit(1);
+                return;
             }
-
-            // defaults to multihreaded COHORT
-            if (cohort == null)
-                cohort = new MTCohort(0);;
 
             // reads number of jobs
             if (args[index].equals("-jobs")) {
@@ -105,6 +108,8 @@ public class CohortLauncher {
 
             // reads the problem name
             problemName = args[index++];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            /* ignore lack of parameters */
         } catch (Exception e) {
             /* TODO: better handle the error */
             e.printStackTrace();
@@ -112,7 +117,7 @@ public class CohortLauncher {
     }
 
     public void usage() {
-        Logger.log("java -jar org.sat4j.core.jar [-seq | -mt num_threads | -dist] [-jobs num_jobs] <cnffile>");
+        Logger.log("java -jar structure.jar [-seq | -mt num_threads | -dist] [-jobs num_jobs] <cnffile>");
     }
 
     public void run() {
