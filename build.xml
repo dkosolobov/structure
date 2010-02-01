@@ -26,7 +26,7 @@
         <mkdir dir="${lib.dir}" />
 
         <copy todir="${lib.dir}">
-            <path refid="classpath" />
+            <fileset dir="${external.dir}" includes="*.jar" />
         </copy>
 
         <property name="mf.main-class" value="${main-class}" />
