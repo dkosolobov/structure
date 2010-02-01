@@ -3,14 +3,13 @@
     <property file="build.properties"/>
 
     <path id="classpath">
-        <fileset dir="${lib.dir}" includes="cohort-0.3.2.jar"/>
+        <fileset dir="${external.dir}" includes="*.jar"/>
     </path>
 
     <target name="clean">
-        <delete dir="${build.dir}"/>
-        <delete dir="${lib.dir}/${ant.project.name}.jar"/>
+        <delete dir="${build.dir}" />
+        <delete dir="${lib.dir}" />
     </target>
-
 
     <target name="init" depends="clean">
     </target>
@@ -24,11 +23,15 @@
 
     <target name="build" depends="compile">
         <echo>Creating ${ant.project.name}.jar</echo>
+        <mkdir dir="${lib.dir}" />
+
+        <copy todir="${lib.dir}">
+            <path refid="classpath" />
+        </copy>
 
         <property name="mf.main-class" value="${main-class}" />
         <pathconvert property="mf.classpath" pathsep=" ">
             <path refid="classpath" />
-            <flattenmapper />
         </pathconvert>
 
         <jar destfile="${lib.dir}/${ant.project.name}.jar" basedir="${build.dir}">
