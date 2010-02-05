@@ -107,7 +107,12 @@ public class CohortLauncher {
     }
 
     public void usage() {
-        Logger.log("java -jar structure.jar [-seq | -mt num_threads | -dist] [-jobs num_jobs] <cnffile>");
+        Logger.log("Usage:");
+        Logger.log("\tjava -Dibis.cohort.impl=IMPL -jar lib/structure.jar -jobs [JOBS] INPUT");
+        Logger.log("");
+        Logger.log("where IMPL can be mt for multithreaded Cohort or dist for distributed Cohort");
+        Logger.log("      JOBS is the maximum number of jobs to be created");
+        Logger.log("      INPUT is the path to the problem to be solved");
     }
 
     public void run() {
