@@ -29,10 +29,8 @@ import ibis.cohort.Cohort;
 import ibis.cohort.Event;
 import ibis.cohort.MessageEvent;
 import ibis.cohort.MultiEventCollector;
+import ibis.cohort.CohortFactory;
 
-import ibis.cohort.impl.distributed.DistributedCohort;
-import ibis.cohort.impl.multithreaded.MTCohort;
-import ibis.cohort.impl.sequential.Sequential;
 
 
 /**
@@ -74,35 +72,21 @@ public class CohortLauncher {
     /**
      * if arguments are parsed correctly sets `problemName` to the
      * path of the problem to solve otherwise `problemName` is null.
-     *
-     * FIXME: ugly trick
      */
-    public void configure(String[] args) {
+    public boolean configure(String[] args) {
         problemName = null;
 
         try {
             int index = 0;
 
-            // selects COHORT implementation
-            if (args[index].equals("-seq")) {
-                index++;
-                cohort = new Sequential();
-                Logger.log("Using SEQUENTIAL Cohort implementation");
-            } else if (args[index].equals("-mt")) {
-                index++;
-                int threads = Integer.parseInt(args[index++]);
-                cohort = new MTCohort(threads);
-                Logger.log("Using MULTITHREADED(" + threads + ") Cohort implementation");
-            } else if (args[index].equals("-dist")) {
-                index++;
-                cohort = new DistributedCohort(new Properties());
-                Logger.log("Using DISTRIBUTED Cohort implementation");
-            } else {
-                System.out.println("Unknown Cohort implementation selected!");
-                return;
+            // creates the cohort
+            cohort = CohortFactory.createCohort();
+            if (cohort == null) {
+                Logger.log("Unknown Cohort implementation");
+                return false;
             }
 
-            // reads number of jobs
+            // reads the number of jobs
             if (args[index].equals("-jobs")) {
                 index++;
                 maxJobs = Integer.parseInt(args[index++]);
@@ -110,12 +94,16 @@ public class CohortLauncher {
 
             // reads the problem name
             problemName = args[index++];
+            cohort.activate();
+            return true;
         } catch (ArrayIndexOutOfBoundsException e) {
-            /* ignore lack of parameters */
         } catch (Exception e) {
             /* TODO: better handle the error */
             e.printStackTrace();
         }
+
+        // error occured
+        return false;
     }
 
     public void usage() {
@@ -156,7 +144,7 @@ public class CohortLauncher {
 
                 // finds next unassigned variable
                 int next = assumps.isEmpty() ? 0 : (assumps.peek() | 1) + 1;
-                while (next <= 2 * order.size()) {
+                while (next < 2 * order.size()) {
                     int lit = order.get(next >> 1);
                     if (solver.getVocabulary().isUnassigned(lit))
                         break;
@@ -165,7 +153,7 @@ public class CohortLauncher {
 
                 if (next == 2 * order.size()) {
                     // TODO, just solved
-                    Logger.log("**** solved *****");
+                    Logger.log("**** solved (but I won't tell you the answer) *****");
                 } else {
                     // branch job
                     int lit = order.get(next >> 1);
@@ -230,8 +218,7 @@ public class CohortLauncher {
     public static void main(final String[] args) {
         CohortLauncher launcher = new CohortLauncher();
 
-        launcher.configure(args);
-        if (launcher.problemName == null) {
+        if (!launcher.configure(args)) {
             /* wrong arguments */
             launcher.usage();
         } else if (launcher.cohort().isMaster()) {

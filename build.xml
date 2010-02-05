@@ -18,7 +18,7 @@
         <echo>Compiling the source files</echo>
         <mkdir dir="${build.dir}" />
 
-        <javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="classpath" />
+        <javac srcdir="${src.dir}" destdir="${build.dir}" debug="on" classpathref="classpath" />
     </target>
 
     <target name="build" depends="compile">
