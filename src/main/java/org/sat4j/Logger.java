@@ -1,3 +1,7 @@
+/**
+ * TODO: This class is rather primitive and needs expansion
+ */
+
 package org.sat4j;
 
 import java.io.PrintWriter;

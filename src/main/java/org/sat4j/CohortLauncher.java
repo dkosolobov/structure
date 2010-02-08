@@ -42,7 +42,7 @@ import ibis.cohort.CohortFactory;
  */
 public class CohortLauncher {
     private static final long serialVersionUID = 1L;
-    private static final int DEFAULT_MAX_JOBS = 32;   /* TODO: INCREASE */
+    private static final int DEFAULT_MAX_JOBS = 1024;
 
     private ExitCode exitCode = ExitCode.UNKNOWN;
     private Cohort cohort;
@@ -70,8 +70,9 @@ public class CohortLauncher {
     }
 
     /**
-     * if arguments are parsed correctly sets `problemName` to the
-     * path of the problem to solve otherwise `problemName` is null.
+     * Parses command line arguments and setups cohort and problem name
+     *
+     * @return true if no error occured
      */
     public boolean configure(String[] args) {
         problemName = null;
@@ -108,7 +109,7 @@ public class CohortLauncher {
 
     public void usage() {
         Logger.log("Usage:");
-        Logger.log("\tjava -Dibis.cohort.impl=IMPL -jar lib/structure.jar -jobs [JOBS] INPUT");
+        Logger.log("\tjava -Dibis.cohort.impl=IMPL -jar lib/structure.jar [-jobs JOBS] INPUT");
         Logger.log("");
         Logger.log("where IMPL can be mt for multithreaded Cohort or dist for distributed Cohort");
         Logger.log("      JOBS is the maximum number of jobs to be created");
@@ -119,11 +120,13 @@ public class CohortLauncher {
         displayHeader();
 
         try {
+            long startTime = System.currentTimeMillis();
+
             // creates the solver
             Solver<?> solver = (Solver<?>)CohortJob.readProblem(problemName);
             Logger.log("solving " + problemName);
-            Logger.log("#vars     " + solver.nVars()); //$NON-NLS-1$
-            Logger.log("#constraints  " + solver.nConstraints()); //$NON-NLS-1$
+            Logger.log("#vars     " + solver.nVars());
+            Logger.log("#constraints  " + solver.nConstraints());
 
             // creates a random order
             Vector<Integer> order = new Vector<Integer>();
@@ -157,7 +160,7 @@ public class CohortLauncher {
                 }
 
                 if (next == 2 * order.size()) {
-                    // TODO, just solved
+                    // TODO, just solved but the solution is slightly harder to generate
                     Logger.log("**** solved (but I won't tell you the answer) *****");
                 } else {
                     // branch job
@@ -176,6 +179,8 @@ public class CohortLauncher {
                 }
             }
 
+            long generationTime = System.currentTimeMillis();
+
             /* submits jobs */
             MultiEventCollector root = new MultiEventCollector(queue.size());
             cohort.submit(root);
@@ -189,6 +194,16 @@ public class CohortLauncher {
 
             /* waits jobs */
             Event[] events = root.waitForEvents();
+
+            /* prints some useful statistics */
+            long endTime = System.currentTimeMillis();
+            Logger.log("Queue generation took " + (generationTime - startTime) +
+                    " millisecond(s) (marker: byuaynhxamgepnwizbnkyaix)");
+            Logger.log("Processing the queue took " + (endTime - generationTime) +
+                    " millisecond(s) (marker: dvalixdwwyupxhhworcwnikq)");
+            Logger.log("Elapsed time " + (endTime - startTime) +
+                    " millisecond(s) (marker: mtsrwhdutmvnelwyajizogkf)");
+
             boolean solved = false;
             for (Event event: events) {
                 int[] model = ((MessageEvent<int[]>)event).message;
