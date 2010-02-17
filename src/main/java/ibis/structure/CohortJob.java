@@ -1,11 +1,10 @@
-package org.sat4j;
+package ibis.structure;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 
 import org.sat4j.core.VecInt;
-
 import org.sat4j.minisat.SolverFactory;
 import org.sat4j.minisat.core.Solver;
 import org.sat4j.reader.InstanceReader;
@@ -21,9 +20,11 @@ import ibis.cohort.Activity;
 import ibis.cohort.Event;
 import ibis.cohort.Context;
 
+
 public class CohortJob extends Activity {
     private static final long serialVersionUID = 1L;
-    private static final String COMMENT_PREFIX = "c ";   /* TODO, move from here */
+
+    private static StructureLogger logger = StructureLogger.getLogger(CohortJob.class);
 
     private ActivityIdentifier parent;
     private String problemName;
@@ -38,7 +39,7 @@ public class CohortJob extends Activity {
 
     @Override
     public void initialize() throws Exception {
-        Logger.log(toString());
+        logger.debug("running " + toString());
 
         IProblem problem = null;
         try { problem = readProblem(problemName); }
