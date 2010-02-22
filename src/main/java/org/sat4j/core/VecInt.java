@@ -265,6 +265,7 @@ public final class VecInt implements IVecInt {
 	public void growTo(int newsize, final int pad) {
 		// assert newsize > size();
 		ensure(newsize);
+        newsize -= nbelem;
 		while (--newsize >= 0) {
 			myarray[nbelem++] = pad;
 		}
