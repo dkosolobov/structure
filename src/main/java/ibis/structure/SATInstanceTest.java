@@ -46,17 +46,4 @@ public final class SATInstanceTest {
         Assert.assertTrue(SATInstance.fromDimacs(3) == 6);
         Assert.assertTrue(SATInstance.fromDimacs(-3) == 7);
     }
-
-    @Test
-    public void simpleCopycat()
-            throws Exception {
-        instance.copycat(clause());
-        instance.copycat(clause(1));
-    }
-
-    @Test(expected=ContradictionException.class)
-    public void failedCopycat()
-            throws Exception {
-        instance.copycat(clause(-1));
-    }
 }

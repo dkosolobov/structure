@@ -2,8 +2,11 @@ package ibis.structure;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.util.Vector;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Iterator;
 
 import org.sat4j.reader.InstanceReader;
 import org.sat4j.reader.Reader;
@@ -13,6 +16,7 @@ import org.sat4j.specs.IConstr;
 import org.sat4j.specs.ISolver;
 import org.sat4j.specs.IVec;
 import org.sat4j.specs.IVecInt;
+import org.sat4j.specs.IteratorInt;
 import org.sat4j.specs.SearchListener;
 import org.sat4j.core.VecInt;
 
@@ -21,11 +25,30 @@ import org.sat4j.core.VecInt;
  * SATInstance.
  *
  */
-public final class SATInstance implements ISolver {
-    public final static int FALSE = 0;
-    public final static int TRUE = 1;
-    public final static int UNKNOWN = 2;
+public final class SATInstance implements ISolver, Serializable {
+    private static final long serialVersionUID = 10275539472837495L;
+    private static final StructureLogger logger = StructureLogger.getLogger(CohortJob.class);
 
+    enum Value {
+        FALSE(0), TRUE(1), UNKNOWN(2);
+
+        private final int intValue;
+
+        private Value(int intValue) {
+            this.intValue = intValue;        
+        }
+
+        public int intValue() {
+            return intValue;
+        }
+
+        public static Value fromInt(int intValue) {
+            if (intValue == 0) return FALSE;
+            if (intValue == 1) return TRUE;
+            if (intValue == 2) return UNKNOWN;
+            throw new IllegalArgumentException();
+        }
+    }
     
     /*
      * All clauses read from the problem to be solved
@@ -42,13 +65,14 @@ public final class SATInstance implements ISolver {
      * 0 is false (positive false)
      * 1 is true  (negative false)
      */
-    private int[][] clauses;  /* all clauses w/o any variables set */
-    private int[][] copycat;  /* clauses with some variables set */
-    private int nClauses;     /* number of clauses added */
-    private int nVars;        /* number of variables */
+    private int numVariables;          /* number of variables */
+    private Vector<Clause> watches[];
+    private Value[] values;
+    private int[] counts;              /* count of each literal */
+
 
     public SATInstance() {
-        this.reset();
+        reset();
     }
 
     /**
@@ -78,107 +102,219 @@ public final class SATInstance implements ISolver {
     }
 
     /**
-     * Checks if a literal can be made true
+     * Sets a literal to true and propagates resulted assignments.
      *
-     * @param vars values of the variables (indexed from 1 to nVars)
-     * @param l literal to be made true
-     * @param true if literal is already true
-     * @throws ContradictionException if assigning `l` leads to trivial contradiction
+     * @param literal literal to set true
+     * @param units a vector to store propagated literals
+     * @return true if the propagation returned in a contradiction
      */
-    static boolean check(int[] vars, int l)
-            throws ContradictionException {
-        if (vars[l >> 1] == FALSE)
-            if ((l & 1) == 0)
-                throw new ContradictionException();
-        if (vars[l >> 1] == TRUE)
-            if ((l & 1) == 1)
-                throw new ContradictionException();
-        return vars[l >> 1] != UNKNOWN;
+    boolean propagate(int literal, VecInt units) {
+        boolean contradiction = false;
 
-    }
+        VecInt toTry = new VecInt();
+        toTry.push(literal);
 
-    /**
-     * Builds a copy of clauses considering assumptions and
-     * unit clauses propagations
-     */
-    void copycat(VecInt assumps_)
-            throws ContradictionException {
-        VecInt assumps = new VecInt();
-        assumps_.copyTo(assumps);
-                
-        /* makes a deep copy of the clauses */
-        copycat = new int[nClauses][];
-        for (int c = 0; c < nClauses; ++c)
-            copycat[c] = clauses[c].clone();
-
-        /* builds watches list */
-        Vector<int[]>[] watches = new Vector[nVars + 1];
-        for (int v = 1; v <= nVars; ++v)
-            watches[v] = new Vector<int[]>();
-
-        for (int c = 0; c < nClauses; ++c) {
-            int[] clause = clauses[c];
-            for (int l = 0; l < clause.length; ++l)
-                watches[clause[l] >> 1].add(clause);
-        }
-
-        /* first, all variables value are unknown */
-        int[] vars = new int[nVars + 1];
-        for (int v = 1; v <= nVars; ++v)
-            vars[v] = UNKNOWN;
-
-        for (int a = 0; a < assumps.size(); ++a) {
-            int v = fromDimacs(assumps.get(a));
-
-            /* checks if the truth value of this variable is already known */
-            if (check(vars, v))
+        while (!contradiction && !toTry.isEmpty()) {
+            literal = toTry.last();
+            toTry.pop();
+            
+            int variable = literal >> 1;
+            if (values[variable] != Value.UNKNOWN) {
+                /* variable is already assigned */
+                if (values[variable] != Value.fromInt(literal & 1))
+                    /* assigning variable leads to contradiction */
+                    contradiction = true;
                 continue;
+            }
+            
+            /* assigns variable */
+            if (units != null)
+                units.push(literal);
+            values[variable] = Value.fromInt(literal & 1);
 
-            /* variable is unknown, propagate */
-            assert vars[v >> 1] == UNKNOWN;
-            vars[v >> 1] = (v & 1) == 0 ? TRUE : FALSE;
-
-            for (int[] clause: watches[v >> 1]) {
-                boolean tautology = false;
-                int unit = -1;  /* -1 not found, -2 at least two literals */
-
-                for (int l = 0; l < clause.length; ++l) {
-                    if ((clause[l] >> 1) == (v >> 1))
-                        clause[l] = clause[l] == v ? TRUE : FALSE;
-                    if (clause[l] == TRUE)
-                        /* clause already marked true */
-                        tautology = true;
-                    else if (clause[l] >= 2)
-                        /* literal might be a unit */
-                        unit = unit == -1 ? clause[l] : -2;
-                }
-
-                if (!tautology) {
-                    /* if this clause is not already true */
-                    if (unit == -1) {
-                        /* i don't have any literal to assign => contradiction */
-                        throw new ContradictionException();
-                    } else if (unit != -2) {
-                        /* only one literal left which must be true */
-                        if (!check(vars, unit))
-                            assumps.push(unit);
+            /* literal is true */
+            for (Clause clause: watches[literal ^ 0]) {
+                if (!clause.isSatisfied()) {
+                    for (int l: clause) {
+                        --counts[l];
+                        if (counts[l] == 0 && values[l >> 1] == Value.UNKNOWN)
+                            /*
+                             * literal is missing from formula;
+                             * therefore non literal must be true
+                             */
+                            toTry.push(l ^ 1);
                     }
                 }
 
+                clause.setLiteral(true);    
+            }
+            
+            /* non literal is false */
+            for (Clause clause: watches[literal ^ 1]) {
+                clause.setLiteral(false);
+
+                if (clause.isContradiction()) {
+                    contradiction = true;
+                } else if (clause.isUnit()) {
+                    for (int l: clause)
+                        if (values[l >> 1] == Value.UNKNOWN)
+                            /* left literal must be true */
+                            toTry.push(l);
+                }
+            }
+        } 
+
+        check();
+        return contradiction;
+    }
+
+    /**
+     * Undoes some previous assignments done using propagate(...)
+     *
+     * @param literals literals to undo
+     */
+    void undo(VecInt literals) {
+        IteratorInt iterator = literals.iterator();
+        while (iterator.hasNext()) {
+            int literal = iterator.next();
+            for (Clause clause: watches[literal ^ 0]) {
+                clause.undoLiteral(true);
+                if (!clause.isSatisfied())
+                    for (int l: clause)
+                        ++counts[l];
+            }
+
+            for (Clause clause: watches[literal ^ 1])
+                clause.undoLiteral(false);
+        }
+
+        check();
+    }
+
+    /**
+     * Checks the current object for correctens.
+     *
+     * TODO: throw a more meaningful exception.
+     *
+     * @throws RuntimeException if the object is inconsistent
+     */
+    void check() {
+        for (int v = 1; v <= numVariables; ++v) {
+            if (values[v] != Value.UNKNOWN) {
+                int literal = v * 2 + values[v].intValue();
+                for (Clause clause: watches[literal])
+                    if (!clause.isSatisfied())
+                        throw new RuntimeException("Clause not satisfied");
+            }
+
+
+            for (int i = 0; i < 2; ++i) {
+                int literal = v * 2 + i;
+                int count = 0;
+
+                for (Clause clause: watches[literal])
+                    if (!clause.isSatisfied())
+                        ++count;
+                if (count != counts[literal])
+                    throw new RuntimeException("Invalid count for literal " +
+                                               literal + " (variable " + v + ")");
             }
         }
     }
 
+    public int lookahead()
+            throws ContradictionException {
+        VecInt candidates = select();
 
-    public void expand(VecInt assumps) {
-        /* makes all assumps and reduces clauses */
-        try {
-            copycat(assumps);
-        } catch (Exception e) {
-            e.printStackTrace();
+        for (int c = 0; c < candidates.size(); ++c) {
+            int variable = candidates.get(c);
+            if (values[variable] != Value.UNKNOWN)
+                continue;
+
+            /* set variable to *t*rue */
+            VecInt tUnits = new VecInt();
+            boolean tContradiction = propagate(variable * 2 + 0, tUnits);
+            undo(tUnits);
+
+            /* set variable to *f*alse */
+            VecInt fUnits = new VecInt();
+            boolean fContradiction = propagate(variable * 2 + 1, fUnits);
+            undo(fUnits);
+
+            /* analyzes conflicts */
+            /* TODO: at most two propagations are needed */
+
+            if (fContradiction && tContradiction)
+                /* contradiction for both true and false */
+                throw new ContradictionException();
+
+            if (tContradiction) {
+                /* variable must be false */
+                propagate(variable, null);
+                continue;
+            }
+
+            if (fContradiction) {
+                /* variable must be true */
+                propagate(variable, null);
+                continue;
+            }
+
+            /*
+             * Based on the units propagated there are three cases to analyzes
+             *
+             * Ia. Constant propagation
+             * variable == false => other = false
+             * variable == true  => other = false
+             *
+             * Ib. Constant propagation
+             * variable == false => other = true
+             * variable == true  => other = true
+             *
+             * II. Copy propagation (TODO: replace other with variable)
+             * variable == false => other = false
+             * variable == true  => other = true
+             *
+             * III. Reverse propagation (TODO: replace other with !variable)
+             * variable == false => other = true
+             * variable == true  => other = false
+             */
+
+            /* constant propagation */
+            tUnits.sort();
+            fUnits.sort();
+
+            int tIndex = 0, fIndex = 0;
+            while (tIndex < tUnits.size() && fIndex < fUnits.size()) {
+                if (tUnits.get(tIndex) < fUnits.get(fIndex)) tIndex++;
+                else if (tUnits.get(tIndex) > fUnits.get(fIndex)) fIndex++;
+                else {
+                    /* setting current variable true or false leads
+                     * to same the assignment */
+                    int literal = tUnits.get(tIndex);
+                    boolean contradiction = propagate(literal, null);
+                    assert !contradiction;
+                }
+            }
+
+            /* TODO: euristics */
+            return variable;
         }
+
+        return 0;
     }
-    
+
+    /**
+     * Selects some possible variables for lookahead.
+     *
+     * NB: simplest implementation is to select all variables
+     */
+    private VecInt select() {
+        VecInt candidates = new VecInt(numVariables);
+        for (int v = 1; v <= numVariables; ++v)
+            candidates.push(v);
+        return candidates;
+    }
 
     /*** ISolver methods ***/
 
@@ -188,10 +324,21 @@ public final class SATInstance implements ISolver {
     }
 
     public int newVar(int howMany) {
-        assert howMany > 0 && nVars == 0;
+        if (numVariables != 0)
+            throw new UnsupportedOperationException(
+                    "Only one call to newVar(...) allowed");
 
-        nVars = howMany;
-        return nVars;
+        numVariables = howMany;
+        watches = new Vector[(numVariables + 1) * 2];
+        values = new Value[numVariables + 1];
+        counts = new int[(numVariables + 1) * 2];
+
+        for (int v = 1; v <= numVariables; ++v) {
+            watches[2 * v + 0] = new Vector<Clause>();
+            watches[2 * v + 1] = new Vector<Clause>();
+        }
+
+        return numVariables;
     }
 
 	public int nextFreeVarId(boolean reserve) {
@@ -199,22 +346,14 @@ public final class SATInstance implements ISolver {
     }
 
     public void setExpectedNumberOfClauses(int numClauses) {
-        assert clauses == null;
-        clauses = new int[numClauses][];
+        /* ignored */
     }
     
 	public IConstr addClause(IVecInt literals)
             throws ContradictionException {
-        int[] clause = new int[literals.size()];
-
-        int[] literals_ = literals.toArray();
-        for (int l = literals.size(); l-- > 0;) {
-            int literal = fromDimacs(literals_[l]);
-            clause[l] = literal;
-        }
-
-        assert nClauses < clauses.length;
-        clauses[nClauses++] = clause;
+        Clause clause = new Clause(literals);
+        for (int l = 0; l < clause.size(); ++l)
+            watches[clause.get(l)].add(clause);
 
         return null;  /* intended because removeConstr(...) is not implemented */
     }
@@ -272,8 +411,10 @@ public final class SATInstance implements ISolver {
     }
 
 	public void reset() {
-        clauses = null;
-        nVars = 0;
+        numVariables = 0;
+        watches = null;
+        values = null;
+        counts = null;
     }
 
 	@Deprecated
@@ -371,14 +512,104 @@ public final class SATInstance implements ISolver {
     }
 
     public int nConstraints() {
-        return clauses.length;
+        throw new UnsupportedOperationException();
     }
 
     public int nVars() {
-        return nVars;
+        return numVariables;
     }
 
     public void printInfos(PrintWriter out, String prefix) {
         throw new UnsupportedOperationException();
     }
+}
+
+
+final class Clause implements Iterable<Integer> {
+    private final int[] literals;
+    private int satisfied, unsatisfied;
+
+    public Clause(IVecInt literals) {
+        this.literals = new int[literals.size()];
+        for (int l = 0; l < this.literals.length; ++l)
+            this.literals[l] = SATInstance.fromDimacs(literals.get(l));
+        this.satisfied = this.unsatisfied = 0;
+    }
+
+    /**
+     * Checks if this clause was satisfied by at least one literal.
+     */
+    public boolean isSatisfied() {
+        return satisfied > 0;
+    }
+
+    /**
+     * Returns true if all literals are false.
+     */
+    public boolean isContradiction() {
+        return unsatisfied == size();
+    }
+
+    /**
+     * Returns true if all literals are false except one which is UNKNOWN.
+     * To satisfy the clause the left literal must be set to true.
+     */
+    public boolean isUnit() {
+        return satisfied == 0 && unsatisfied == size() - 1;
+    }
+
+    /**
+     * Marks that one literal was set true or false.
+     */
+    public void setLiteral(boolean isSatisfied) {
+        if (isSatisfied)
+            satisfied += 1;
+        else
+            unsatisfied += 1;
+        assert satisfied + unsatisfied < size();
+    }
+
+    /**
+     * Undoes an assignement.
+     */
+    public void undoLiteral(boolean isSatisfied) {
+        if (isSatisfied)
+            satisfied -= 1;
+        else
+            unsatisfied -= 1;
+        assert satisfied + unsatisfied >= 0;
+    }
+
+    /**
+     * Returns the number of literals in this clause
+     */
+    public int size() {
+        return literals.length;
+    }
+
+    public int get(int index) {
+        return literals[index];
+    }
+
+
+    public Iterator<Integer> iterator() {
+        return new Iterator<Integer>() {
+            private int index = 0;
+
+            public boolean hasNext() {
+                return index < literals.length;
+            }
+
+            public Integer next() {
+                if (index == literals.length)
+                    throw new NoSuchElementException();
+                return literals[index];
+            }
+
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
 }
