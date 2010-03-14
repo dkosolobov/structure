@@ -7,9 +7,6 @@ import java.util.Arrays;
 import org.sat4j.core.VecInt;
 import org.sat4j.minisat.SolverFactory;
 import org.sat4j.minisat.core.Solver;
-import org.sat4j.reader.InstanceReader;
-import org.sat4j.reader.ParseFormatException;
-import org.sat4j.reader.Reader;
 import org.sat4j.specs.ContradictionException;
 import org.sat4j.specs.IProblem;
 import org.sat4j.specs.ISolver;
@@ -17,65 +14,88 @@ import org.sat4j.specs.IVecInt;
 
 import ibis.cohort.ActivityIdentifier;
 import ibis.cohort.Activity;
+import ibis.cohort.MessageEvent;
 import ibis.cohort.Event;
 import ibis.cohort.Context;
 
 
 public class CohortJob extends Activity {
     private static final long serialVersionUID = 1L;
+    private static final StructureLogger logger = StructureLogger.getLogger(CohortJob.class);
 
-    private static StructureLogger logger = StructureLogger.getLogger(CohortJob.class);
+    private final ActivityIdentifier counter;
+    private final ActivityIdentifier listener;
+    private final SATInstance instance;
+    private final int decision;
 
-    private ActivityIdentifier parent;
-    private String problemName;
-    private IVecInt assumps;
-
-    public CohortJob(ActivityIdentifier parent, String problemName, IVecInt assumps) {
+    public CohortJob(
+            ActivityIdentifier counter, ActivityIdentifier listener,
+            SATInstance instance, int decision) {
         super(Context.ANY);
-        this.parent = parent;
-        this.problemName = problemName;
-        this.assumps = assumps;
+
+        this.counter = counter;
+        this.listener = listener;
+        this.instance = instance;
+        this.decision = decision;
     }
 
-    @Override
-    public void initialize() throws Exception {
-        logger.debug("running " + toString());
+    public void initialize()
+            throws Exception {
+        /* makes the decision first */
+        if (decision != 0) {
+            boolean contradiction = instance.propagate(decision, null);
+            if (contradiction) {
+                /* TODO: this is an error an should be treated as such */
+                logger.error("Propagation of " + SATInstance.toDimacs(decision) +
+                             " returned in contradiction");
+            }
+        }
 
-        IProblem problem = null;
-        try { problem = readProblem(problemName); }
-        catch (Exception e) { e.printStackTrace(); }
+        logger.debug("solving formula " + instance);
+        int lookahead = instance.lookahead();
 
-        int[] model = problem.findModel(assumps);
-        cohort.send(identifier(), parent, model);
+        if (lookahead == 0) {
+            if (instance.isSatisfied()) {
+                logger.info("instance is satisfiable");
+                cohort.send(identifier(), listener, instance.model());
+            } else if (instance.isContradiction()) {
+                logger.info("instance is a contradiction");
+            } else {
+                logger.error(
+                        "Instance was not satisfied and is not a " +
+                        "contradiction, but lookahead didn't find any " +
+                        "variable to branch on.");
+            }
+        } else {
+            logger.debug("branching on " + SATInstance.toDimacs(lookahead));
+            cohort.send(identifier(), counter, 2);
+
+            cohort.submit(new CohortJob(
+                    counter, listener, instance, lookahead * 2 + 0));
+            cohort.submit(new CohortJob(
+                    counter, listener, instance, lookahead * 2 + 1));
+        }
+
+        /* job finished, decrease counter */
         finish();
+        cohort.send(identifier(), counter, -1);
     }
 
-    @Override public void process(Event arg0) throws Exception {
+    public void process(Event arg0)
+            throws Exception {
     }
 
-    @Override
-    public void cleanup() throws Exception {
+    public void cleanup()
+            throws Exception {
     }
 
-    @Override
-    public void cancel() throws Exception {
+    public void cancel()
+            throws Exception {
     }
 
     public String toString() {
-        StringBuffer buffer = new StringBuffer();
-        buffer.append("COHORT identifier " + identifier() + ", job:");
-        for (int i = 0; i < assumps.size(); ++i)
-            buffer.append(" " + assumps.get(i));
-        return buffer.toString();
-    }
-
-    public static IProblem readProblem(String problemName)
-            throws FileNotFoundException, ParseFormatException, IOException, ContradictionException {
-        SolverFactory factory = SolverFactory.instance();
-        Solver<?> solver = (Solver<?>)factory.defaultSolver();
-        Reader reader = new InstanceReader(solver);
-        IProblem problem = reader.parseInstance(problemName);
-        return problem;
+        return "CohortJob: instance = " + instance +
+               (decision == 0 ? "" : ", decision = " + SATInstance.toDimacs(decision));
     }
 }
 
