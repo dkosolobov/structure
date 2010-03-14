@@ -60,14 +60,15 @@ public final class SATInstance implements ISolver, Serializable {
      *      * negative: 2*variable + 1
      * Note that negating a literal is as simple as ^ 1
      *
-     * A variable is numbered from 1 to nVars.
+     * A variable is numbered from 1 to numVariables.
      *
      * 0 is false (positive false)
      * 1 is true  (negative false)
      */
     private int numVariables;          /* number of variables */
-    private Vector<Clause> watches[];
-    private Value[] values;
+    private int numUnknowns;           /* number of unknown variables */
+    private Vector<Clause> watches[];  /* clauses containing each literal */
+    private Value[] values;            /* variable of values (1-index based) */
     private int[] counts;              /* count of each literal */
 
 
@@ -108,7 +109,7 @@ public final class SATInstance implements ISolver, Serializable {
      * @param units a vector to store propagated literals
      * @return true if the propagation returned in a contradiction
      */
-    boolean propagate(int literal, VecInt units) {
+    public boolean propagate(int literal, VecInt units) {
         boolean contradiction = false;
 
         VecInt toTry = new VecInt();
@@ -130,6 +131,7 @@ public final class SATInstance implements ISolver, Serializable {
             /* assigns variable */
             if (units != null)
                 units.push(literal);
+            --numUnknowns;
             values[variable] = Value.fromInt(literal & 1);
 
             /* literal is true */
@@ -169,64 +171,18 @@ public final class SATInstance implements ISolver, Serializable {
     }
 
     /**
-     * Undoes some previous assignments done using propagate(...)
+     * Searches a new variable to branch on.
      *
-     * @param literals literals to undo
+     * @return 0 if the formula is a contradiction
+     *         1...numVariables the variable to branch on
      */
-    void undo(VecInt literals) {
-        IteratorInt iterator = literals.iterator();
-        while (iterator.hasNext()) {
-            int literal = iterator.next();
-            for (Clause clause: watches[literal ^ 0]) {
-                clause.undoLiteral(true);
-                if (!clause.isSatisfied())
-                    for (int l: clause)
-                        ++counts[l];
-            }
+    public int lookahead() {
+        assert numUnknowns > 0;
 
-            for (Clause clause: watches[literal ^ 1])
-                clause.undoLiteral(false);
-        }
-
-        check();
-    }
-
-    /**
-     * Checks the current object for correctens.
-     *
-     * TODO: throw a more meaningful exception.
-     *
-     * @throws RuntimeException if the object is inconsistent
-     */
-    void check() {
-        for (int v = 1; v <= numVariables; ++v) {
-            if (values[v] != Value.UNKNOWN) {
-                int literal = v * 2 + values[v].intValue();
-                for (Clause clause: watches[literal])
-                    if (!clause.isSatisfied())
-                        throw new RuntimeException("Clause not satisfied");
-            }
-
-
-            for (int i = 0; i < 2; ++i) {
-                int literal = v * 2 + i;
-                int count = 0;
-
-                for (Clause clause: watches[literal])
-                    if (!clause.isSatisfied())
-                        ++count;
-                if (count != counts[literal])
-                    throw new RuntimeException("Invalid count for literal " +
-                                               literal + " (variable " + v + ")");
-            }
-        }
-    }
-
-    public int lookahead()
-            throws ContradictionException {
+        boolean isContradiction = false;
         VecInt candidates = select();
 
-        for (int c = 0; c < candidates.size(); ++c) {
+        for (int c = 0; c < candidates.size() && !isContradiction; ++c) {
             int variable = candidates.get(c);
             if (values[variable] != Value.UNKNOWN)
                 continue;
@@ -244,9 +200,11 @@ public final class SATInstance implements ISolver, Serializable {
             /* analyzes conflicts */
             /* TODO: at most two propagations are needed */
 
-            if (fContradiction && tContradiction)
+            if (fContradiction && tContradiction) {
                 /* contradiction for both true and false */
-                throw new ContradictionException();
+                isContradiction = true;
+                continue;
+            }
 
             if (tContradiction) {
                 /* variable must be false */
@@ -290,7 +248,7 @@ public final class SATInstance implements ISolver, Serializable {
                 else if (tUnits.get(tIndex) > fUnits.get(fIndex)) fIndex++;
                 else {
                     /* setting current variable true or false leads
-                     * to same the assignment */
+                     * to the same assignment */
                     int literal = tUnits.get(tIndex);
                     boolean contradiction = propagate(literal, null);
                     assert !contradiction;
@@ -301,8 +259,67 @@ public final class SATInstance implements ISolver, Serializable {
             return variable;
         }
 
+        assert isContradiction;  /* TODO: remove */
         return 0;
     }
+
+    /**
+     * Undoes some previous assignments done using propagate(...)
+     *
+     * @param literals literals to undo
+     */
+    void undo(VecInt literals) {
+        IteratorInt iterator = literals.iterator();
+        while (iterator.hasNext()) {
+            int literal = iterator.next();
+            for (Clause clause: watches[literal ^ 0]) {
+                clause.undoLiteral(true);
+                if (!clause.isSatisfied())
+                    for (int l: clause)
+                        ++counts[l];
+            }
+
+            for (Clause clause: watches[literal ^ 1])
+                clause.undoLiteral(false);
+
+            values[literal >> 1] = Value.UNKNOWN;
+            ++numUnknowns;
+        }
+
+        check();
+    }
+
+    /**
+     * Checks the current object for correctens.
+     *
+     * TODO: throw a more meaningful exception.
+     *
+     * @throws RuntimeException if the object is inconsistent
+     */
+    void check() {
+        for (int v = 1; v <= numVariables; ++v) {
+            if (values[v] != Value.UNKNOWN) {
+                int literal = v * 2 + values[v].intValue();
+                for (Clause clause: watches[literal])
+                    if (!clause.isSatisfied())
+                        throw new RuntimeException("Clause not satisfied");
+            }
+
+
+            for (int i = 0; i < 2; ++i) {
+                int literal = v * 2 + i;
+                int count = 0;
+
+                for (Clause clause: watches[literal])
+                    if (!clause.isSatisfied())
+                        ++count;
+                if (count != counts[literal])
+                    throw new RuntimeException("Invalid count for literal " +
+                                               literal + " (variable " + v + ")");
+            }
+        }
+    }
+
 
     /**
      * Selects some possible variables for lookahead.
@@ -315,6 +332,8 @@ public final class SATInstance implements ISolver, Serializable {
             candidates.push(v);
         return candidates;
     }
+
+
 
     /*** ISolver methods ***/
 
@@ -329,6 +348,7 @@ public final class SATInstance implements ISolver, Serializable {
                     "Only one call to newVar(...) allowed");
 
         numVariables = howMany;
+        numUnknowns = howMany;
         watches = new Vector[(numVariables + 1) * 2];
         values = new Value[numVariables + 1];
         counts = new int[(numVariables + 1) * 2];
@@ -412,6 +432,7 @@ public final class SATInstance implements ISolver, Serializable {
 
 	public void reset() {
         numVariables = 0;
+        numUnknowns = 0;
         watches = null;
         values = null;
         counts = null;
@@ -474,8 +495,14 @@ public final class SATInstance implements ISolver, Serializable {
     /*** IProblem methods ***/
 
     public int[] model() {
-        throw new UnsupportedOperationException();
-    }
+        if (numUnknowns != 0)
+            return null;
+
+        int[] model = new int[numVariables];
+        for (int v = 0; v < numVariables; ++v)
+            model[v] = values[v + 1].intValue();
+        return model;
+    } 
 
     public boolean model(int var) {
         throw new UnsupportedOperationException();
