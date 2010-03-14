@@ -85,7 +85,7 @@ public interface IProblem {
             throws TimeoutException;
 
     /**
-     * Check the satisfiability of the set of constr:e aints contained inside the
+     * Check the satisfiability of the set of constraints contained inside the
      * solver.
      * 
      * @param globalTimeout
