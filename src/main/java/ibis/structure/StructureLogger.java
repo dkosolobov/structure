@@ -10,7 +10,7 @@ import org.sat4j.ExitCode;
 
 
 public class StructureLogger extends Logger {
-	private static final String SOLUTION_PREFIX = "v ";
+	private static final String SOLUTION_PREFIX = "v";
     private static final String ANSWER_PREFIX = "s ";
     private static final String COMMENT_PREFIX = "c ";
 
