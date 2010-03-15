@@ -1,31 +1,37 @@
 package ibis.structure;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
-import java.util.Vector;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Iterator;
+import java.util.Vector;
 
+import org.sat4j.core.VecInt;
 import org.sat4j.reader.InstanceReader;
 import org.sat4j.reader.Reader;
 import org.sat4j.specs.ContradictionException;
-import org.sat4j.specs.TimeoutException;
 import org.sat4j.specs.IConstr;
 import org.sat4j.specs.ISolver;
+import org.sat4j.specs.IteratorInt;
 import org.sat4j.specs.IVec;
 import org.sat4j.specs.IVecInt;
-import org.sat4j.specs.IteratorInt;
 import org.sat4j.specs.SearchListener;
-import org.sat4j.core.VecInt;
+import org.sat4j.specs.TimeoutException;
 
 
 /**
  * SATInstance.
  *
  */
-public final class SATInstance implements ISolver, Serializable {
+public final class SATInstance implements ISolver, Serializable, Cloneable {
     private static final long serialVersionUID = 10275539472837495L;
     private static final StructureLogger logger = StructureLogger.getLogger(CohortJob.class);
 
@@ -66,6 +72,7 @@ public final class SATInstance implements ISolver, Serializable {
      * 1 is true  (negative false)
      */
     private int numVariables;          /* number of variables */
+    private int numClauses;            /* number of clauses */
     private int numUnknowns;           /* number of unknown variables */
     private Vector<Clause> watches[];  /* clauses containing each literal */
     private Value[] values;            /* variable of values (1-index based) */
@@ -74,6 +81,35 @@ public final class SATInstance implements ISolver, Serializable {
 
     public SATInstance() {
         reset();
+    }
+
+    /**
+     * Returns a deep copy of this instance.
+     *
+     * Code adapted from: http://javatechniques.com/blog/faster-deep-copies-of-java-objects/
+     */
+    public SATInstance deepCopy() {
+        try {
+            /*
+             * write the object out to a byte array
+             */
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream out = new ObjectOutputStream(bos);
+            out.writeObject(this);
+            out.flush();
+            out.close();
+
+            /*
+             * Make an input stream from the byte array and read
+             * a copy of the object back in.
+             */
+            ObjectInputStream in = new ObjectInputStream(
+                    new ByteArrayInputStream(bos.toByteArray()));
+            return (SATInstance)in.readObject();
+        } catch (Exception e) {
+            logger.error("Cannot create a deep copy of the sat instance", e);
+            return null;
+        }
     }
 
     /**
@@ -103,6 +139,22 @@ public final class SATInstance implements ISolver, Serializable {
     }
 
     /**
+     * Returns true if the formula is satisfied
+     * using the current assignments.
+     */
+    public boolean isSatisfied() {
+        return values[0] == Value.FALSE;
+    }
+
+    /**
+     * Returns true if the formula is a contradiction
+     * using the current assignments.
+     */
+    public boolean isContradiction() {
+        return values[0] == Value.TRUE;
+    }
+
+    /**
      * Sets a literal to true and propagates resulted assignments.
      *
      * @param literal literal to set true
@@ -110,6 +162,7 @@ public final class SATInstance implements ISolver, Serializable {
      * @return true if the propagation returned in a contradiction
      */
     public boolean propagate(int literal, VecInt units) {
+        // logger.debug("propagation starting at " + toDimacs(literal));
         boolean contradiction = false;
 
         VecInt toTry = new VecInt();
@@ -118,15 +171,20 @@ public final class SATInstance implements ISolver, Serializable {
         while (!contradiction && !toTry.isEmpty()) {
             literal = toTry.last();
             toTry.pop();
-            
+
             int variable = literal >> 1;
             if (values[variable] != Value.UNKNOWN) {
                 /* variable is already assigned */
-                if (values[variable] != Value.fromInt(literal & 1))
+                if (values[variable] != Value.fromInt(literal & 1)) {
                     /* assigning variable leads to contradiction */
+                    // logger.error("variable " + variable + " = " +
+                            // values[variable] + " versus " + Value.fromInt(literal & 1));
                     contradiction = true;
+                }
                 continue;
             }
+
+            // logger.debug("propagating literal " + toDimacs(literal));
             
             /* assigns variable */
             if (units != null)
@@ -139,12 +197,16 @@ public final class SATInstance implements ISolver, Serializable {
                 if (!clause.isSatisfied()) {
                     for (int l: clause) {
                         --counts[l];
-                        if (counts[l] == 0 && values[l >> 1] == Value.UNKNOWN)
+                        if (counts[l] == 0 && counts[l ^ 1] != 0 &&
+                                values[l >> 1] == Value.UNKNOWN) {
                             /*
-                             * literal is missing from formula;
-                             * therefore non literal must be true
+                             * if literal is missing from formula then
+                             * therefore non literal must be true if it
+                             * appears at least once in the formula.
                              */
+                            // logger.debug("missing literal " + toDimacs(l));
                             toTry.push(l ^ 1);
+                        }
                     }
                 }
 
@@ -159,12 +221,16 @@ public final class SATInstance implements ISolver, Serializable {
                     contradiction = true;
                 } else if (clause.isUnit()) {
                     for (int l: clause)
-                        if (values[l >> 1] == Value.UNKNOWN)
+                        if (values[l >> 1] == Value.UNKNOWN) {
                             /* left literal must be true */
+                            // logger.debug("found unit " + toDimacs(l));
                             toTry.push(l);
+                        }
                 }
             }
         } 
+
+        // logger.debug("propagation ended: " + contradiction + " --- " + units);
 
         check();
         return contradiction;
@@ -177,24 +243,36 @@ public final class SATInstance implements ISolver, Serializable {
      *         1...numVariables the variable to branch on
      */
     public int lookahead() {
-        assert numUnknowns > 0;
+        assert !isSatisfied() && !isContradiction();
 
-        boolean isContradiction = false;
         VecInt candidates = select();
+        // logger.debug("Selected variables are " + candidates);
 
-        for (int c = 0; c < candidates.size() && !isContradiction; ++c) {
+        for (int c = 0; c < candidates.size() && values[0] == Value.UNKNOWN; ++c) {
             int variable = candidates.get(c);
             if (values[variable] != Value.UNKNOWN)
                 continue;
 
+            // logger.debug("evaluating " + variable);
+
             /* set variable to *t*rue */
             VecInt tUnits = new VecInt();
             boolean tContradiction = propagate(variable * 2 + 0, tUnits);
+            if (!tContradiction && numUnknowns == 0) {
+                /* solution discovered */
+                values[0] = Value.FALSE;
+                continue;
+            }
             undo(tUnits);
 
             /* set variable to *f*alse */
             VecInt fUnits = new VecInt();
             boolean fContradiction = propagate(variable * 2 + 1, fUnits);
+            if (!fContradiction && numUnknowns == 0) {
+                /* solution discovered */
+                values[0] = Value.FALSE;
+                continue;
+            }
             undo(fUnits);
 
             /* analyzes conflicts */
@@ -202,24 +280,26 @@ public final class SATInstance implements ISolver, Serializable {
 
             if (fContradiction && tContradiction) {
                 /* contradiction for both true and false */
-                isContradiction = true;
+                values[0] = Value.TRUE;
                 continue;
             }
 
             if (tContradiction) {
                 /* variable must be false */
-                propagate(variable, null);
+                // logger.debug("variable " + variable + " must be false");
+                propagate(2 * variable + 1, null);
                 continue;
             }
 
             if (fContradiction) {
                 /* variable must be true */
-                propagate(variable, null);
+                // logger.debug("variable " + variable + " must be true");
+                propagate(2 * variable + 0, null);
                 continue;
             }
 
             /*
-             * Based on the units propagated there are three cases to analyzes
+             * Based on the units propagated there are three cases to analyze
              *
              * Ia. Constant propagation
              * variable == false => other = false
@@ -238,7 +318,7 @@ public final class SATInstance implements ISolver, Serializable {
              * variable == true  => other = false
              */
 
-            /* constant propagation */
+            /* I. Constant propagation */
             tUnits.sort();
             fUnits.sort();
 
@@ -250,17 +330,45 @@ public final class SATInstance implements ISolver, Serializable {
                     /* setting current variable true or false leads
                      * to the same assignment */
                     int literal = tUnits.get(tIndex);
+                    // logger.debug("copy propagation of " + toDimacs(literal) +
+                                 // " for " + this);
                     boolean contradiction = propagate(literal, null);
                     assert !contradiction;
+
+                    ++tIndex;
+                    ++fIndex;
                 }
             }
 
             /* TODO: euristics */
+            // logger.debug("decided on " + variable);
             return variable;
         }
 
-        assert isContradiction;  /* TODO: remove */
+        // logger.debug("isSatisfied() == " + isSatisfied());
+        // logger.debug("isContradiction() == " + isContradiction());
         return 0;
+    }
+
+    public String toString() {
+        StringBuffer result = new StringBuffer();
+        HashSet<Clause> clauses = new HashSet<Clause>();
+
+        for (int v = 1; v < numVariables; ++v) {
+            for (int i = 0; i < 2; ++i) 
+                for (Clause clause: watches[v * 2 + i]) {
+                    if (clauses.contains(clause))
+                        continue;
+                    clauses.add(clause);
+
+                    String tmp = clause.toString(values);
+                    if (!tmp.equals("") && result.length() != 0)
+                        result.append(" & ");
+                    result.append(tmp);
+                }
+        }
+
+        return result.toString();
     }
 
     /**
@@ -353,7 +461,9 @@ public final class SATInstance implements ISolver, Serializable {
         values = new Value[numVariables + 1];
         counts = new int[(numVariables + 1) * 2];
 
+        values[0] = Value.UNKNOWN;
         for (int v = 1; v <= numVariables; ++v) {
+            values[v] = Value.UNKNOWN;
             watches[2 * v + 0] = new Vector<Clause>();
             watches[2 * v + 1] = new Vector<Clause>();
         }
@@ -366,14 +476,16 @@ public final class SATInstance implements ISolver, Serializable {
     }
 
     public void setExpectedNumberOfClauses(int numClauses) {
-        /* ignored */
+        this.numClauses = numClauses;
     }
     
 	public IConstr addClause(IVecInt literals)
             throws ContradictionException {
         Clause clause = new Clause(literals);
-        for (int l = 0; l < clause.size(); ++l)
-            watches[clause.get(l)].add(clause);
+        for (int l: clause) {
+            watches[l].add(clause);
+            ++counts[l];
+        }
 
         return null;  /* intended because removeConstr(...) is not implemented */
     }
@@ -495,12 +607,12 @@ public final class SATInstance implements ISolver, Serializable {
     /*** IProblem methods ***/
 
     public int[] model() {
-        if (numUnknowns != 0)
+        if (!isSatisfied())
             return null;
 
         int[] model = new int[numVariables];
-        for (int v = 0; v < numVariables; ++v)
-            model[v] = values[v + 1].intValue();
+        for (int v = 1; v <= numVariables; ++v)
+            model[v - 1] = v * (2 * values[v].intValue() - 1);
         return model;
     } 
 
@@ -539,7 +651,7 @@ public final class SATInstance implements ISolver, Serializable {
     }
 
     public int nConstraints() {
-        throw new UnsupportedOperationException();
+        return numClauses;
     }
 
     public int nVars() {
@@ -552,7 +664,9 @@ public final class SATInstance implements ISolver, Serializable {
 }
 
 
-final class Clause implements Iterable<Integer> {
+final class Clause implements Iterable<Integer>, Serializable {
+    private static final long serialVersionUID = -3868323690628118329L;
+
     private final int[] literals;
     private int satisfied, unsatisfied;
 
@@ -593,7 +707,7 @@ final class Clause implements Iterable<Integer> {
             satisfied += 1;
         else
             unsatisfied += 1;
-        assert satisfied + unsatisfied < size();
+        assert satisfied + unsatisfied <= size();
     }
 
     /**
@@ -618,6 +732,34 @@ final class Clause implements Iterable<Integer> {
         return literals[index];
     }
 
+    public String toString(SATInstance.Value[] values) {
+        if (isSatisfied())
+            return "";
+        if (isContradiction())
+            return "0";
+
+        StringBuffer result = new StringBuffer();
+
+        boolean first = true;
+        for (int l: literals) {
+            if (values[l >> 1] != SATInstance.Value.UNKNOWN)
+                continue;
+
+            if (first)
+                result.append('(');
+            else
+                result.append(" | ");
+            first = false;
+
+            if ((l & 1) != 0)
+                result.append('-');
+            result.append("" + (l >> 1));
+        }
+
+        if (!first)
+            result.append(')');
+        return result.toString();
+    }
 
     public Iterator<Integer> iterator() {
         return new Iterator<Integer>() {
@@ -630,7 +772,7 @@ final class Clause implements Iterable<Integer> {
             public Integer next() {
                 if (index == literals.length)
                     throw new NoSuchElementException();
-                return literals[index];
+                return literals[index++];
             }
 
             public void remove() {
