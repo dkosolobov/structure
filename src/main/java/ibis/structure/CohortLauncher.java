@@ -17,6 +17,7 @@ import org.sat4j.ExitCode;
 import org.sat4j.minisat.core.IOrder;
 import org.sat4j.minisat.core.Solver;
 import org.sat4j.minisat.SolverFactory;
+import org.sat4j.reader.Reader;
 import org.sat4j.reader.InstanceReader;
 import org.sat4j.reader.ParseFormatException;
 import org.sat4j.specs.ContradictionException;
@@ -29,10 +30,12 @@ import org.apache.log4j.Logger;
 import ibis.cohort.Activity;
 import ibis.cohort.ActivityIdentifier;
 import ibis.cohort.Cohort;
+import ibis.cohort.Context;
 import ibis.cohort.CohortFactory;
 import ibis.cohort.Event;
 import ibis.cohort.MessageEvent;
 import ibis.cohort.MultiEventCollector;
+import ibis.cohort.SingleEventCollector;
 
 
 
@@ -52,10 +55,6 @@ public class CohortLauncher {
     private int maxJobs = DEFAULT_MAX_JOBS;
 
     private static StructureLogger logger = StructureLogger.getLogger(CohortLauncher.class);
-
-    public Cohort cohort() {
-        return this.cohort;
-    }
 
     private static void displayLicense() {
         logger.info("SAT4J: a SATisfiability library for Java (c) 2004-2008 Daniel Le Berre"); //$NON-NLS-1$
@@ -123,143 +122,145 @@ public class CohortLauncher {
         logger.info("      INPUT is the path to the problem to be solved");
     }
 
-    public ExitCode run() {
-        displayHeader();
+    public void start()
+            throws FileNotFoundException, ParseFormatException, IOException, ContradictionException {
+        System.err.println("starting " + cohort);
+        if (cohort.isMaster()) {
+            displayHeader();
 
-        try {
-            long startTime = System.currentTimeMillis();
-
-            // creates the solver
-            Solver<?> solver = (Solver<?>)CohortJob.readProblem(problemName);
+            SATInstance instance = readProblem(problemName);
             logger.debug("solving " + problemName);
-            logger.debug("#vars     " + solver.nVars());
-            logger.debug("#constraints  " + solver.nConstraints());
+            logger.debug("#vars     " + instance.nVars());
+            logger.debug("#constraints  " + instance.nConstraints());
 
-            // creates a random order
-            Vector<Integer> order = new Vector<Integer>();
-            for (int i = solver.nVars(); i > 0; --i)
-                order.add(i << 1);
-            Collections.shuffle(order, new Random(1));
+            JobsCounter counter = new JobsCounter(1);
+            SolutionListener listener = new SolutionListener();
 
-            /* creates MAX_JOBS jobs */
-            Queue<Stack<Integer>> queue = new LinkedList<Stack<Integer>>();
-            queue.add(new Stack<Integer>());
-            while (!queue.isEmpty() && queue.size() < maxJobs) {
-                Stack<Integer> assumps = queue.remove();
+            /* starts the first job */
+            cohort.submit(counter);
+            cohort.submit(listener);
+            cohort.submit(new CohortJob(
+                    counter.identifier(), listener.identifier(), instance, 0));
 
-                // makes all the assumptions
-                solver.reset();
-                solver.init();
-                solver.propagate();
-                for (Integer lit_: assumps) {
-                    int lit = order.get(lit_ >> 1) | (lit_ & 1);
-                    solver.assume(lit);
-                    solver.propagate();
-                }
-
-                // finds next unassigned variable
-                int next = assumps.isEmpty() ? 0 : (assumps.peek() | 1) + 1;
-                while (next < 2 * order.size()) {
-                    int lit = order.get(next >> 1);
-                    if (solver.getVocabulary().isUnassigned(lit))
-                        break;
-                    next += 2;
-                }
-
-                if (next == 2 * order.size()) {
-                    // TODO, just solved but the solution is slightly harder to generate
-                    logger.warn("**** solved (but I won't tell you the answer) *****");
-                } else {
-                    // branch job
-                    int lit = order.get(next >> 1);
-                    Stack<Integer> temp;
-
-                    for (int i = 0; i < 2; ++i) {
-                        solver.assume(lit | i);
-                        if (solver.propagate() == null) {
-                            temp = (Stack<Integer>)assumps.clone();
-                            temp.push(next | i);
-                            queue.add(temp);
-                        }
-                        solver.unset(lit | i);
-                    }
+            /* waits for all jobs to finish */
+            synchronized(counter) {
+                while (counter.counter() > 0) {
+                    try { counter.wait(); }
+                    catch (InterruptedException e) { /* ignored */ }
                 }
             }
-
-            long generationTime = System.currentTimeMillis();
-
-            /* submits jobs */
-            MultiEventCollector root = new MultiEventCollector(queue.size());
-            cohort.submit(root);
-
-            for (Stack<Integer> assumps: queue) {
-                IVecInt temp = new VecInt();
-                for (Integer l: assumps)  // transforms to DIMACS representation
-                    temp.push(((l & 1) == 1 ? -1 : 1) * (order.get(l >> 1) >> 1));
-                cohort.submit(new CohortJob(root.identifier(), problemName, temp));
-            }
-
-            /* waits jobs */
-            Event[] events = root.waitForEvents();
-
-            /* prints some useful statistics */
-            long endTime = System.currentTimeMillis();
-            logger.info("Queue generation took " + (generationTime - startTime) +
-                    " millisecond(s) (marker: byuaynhxamgepnwizbnkyaix)");
-            logger.info("Processing the queue took " + (endTime - generationTime) +
-                    " millisecond(s) (marker: dvalixdwwyupxhhworcwnikq)");
-            logger.info("Elapsed time " + (endTime - startTime) +
-                    " millisecond(s) (marker: mtsrwhdutmvnelwyajizogkf)");
-
-            boolean solved = false;
-            for (Event event: events) {
-                int[] model = ((MessageEvent<int[]>)event).message;
-                if (model != null) {
-                    solved = true;
-                    logger.solution(model);
-                }
-            }
-
-            if (!solved) {
-                logger.answer(ExitCode.UNSATISFIABLE);
-                return ExitCode.UNSATISFIABLE;
-            } else {
-                logger.answer(ExitCode.SATISFIABLE);
-                return ExitCode.SATISFIABLE;
-            }
-        } catch (FileNotFoundException e) {
-            logger.fatal("Cannot open input file", e);
-        } catch (IOException e) {
-            logger.fatal("Cannot read input file", e);
-        } catch (ParseFormatException e) {
-            logger.fatal("Error while interpreting the input file", e);
-        } catch (ContradictionException e) {
-            logger.info("(trivial inconsistency)");
-            logger.answer(ExitCode.UNSATISFIABLE);
-            return ExitCode.UNSATISFIABLE;
+            listener.finish();
         }
 
-        return ExitCode.UNKNOWN;
+        cohort.done();
     }
 
+    /**
+     * Reads the SATInstance from problemName
+     */
+    public static SATInstance readProblem(String problemName)
+            throws FileNotFoundException, ParseFormatException, IOException, ContradictionException {
+        SATInstance satInstance = new SATInstance();
+        Reader reader = new InstanceReader(satInstance);
+        reader.parseInstance(problemName);
+        return satInstance;
+    }
 
     public static void main(final String[] args) {
         CohortLauncher launcher = new CohortLauncher();
         ExitCode exitCode = ExitCode.UNKNOWN;
 
-        if (!launcher.configure(args)) {
-            /* wrong arguments, or error occured */
-        } else if (launcher.cohort().isMaster()) {
-            /* master */
-            System.out.println("Starting as master!");
-            exitCode = launcher.run();
-            launcher.cohort.done();
-        } else {
-            /* slave */
-            System.out.println("Starting as slave!");
-            launcher.cohort.done();
+        try {
+            if (!launcher.configure(args)) {
+                /* wrong arguments, or error occured */
+            } else {
+                /* good to go */
+                launcher.start();
+            }
+        } catch (FileNotFoundException e) {
+            logger.fatal("Cannot open input file", e);
+        } catch (ParseFormatException e) {
+            logger.fatal("Error while interpreting the input file", e);
+        } catch (IOException e) {
+            logger.fatal("Cannot read input file", e);
+        } catch (ContradictionException e) {
+            logger.info("(trivial inconsistency)");
+            logger.answer(ExitCode.UNSATISFIABLE);
+            exitCode = ExitCode.UNSATISFIABLE;
+        } catch (Exception e) {
+            /* FIXME: never throw Exception */
+            logger.fatal("Unexpected error received (FIXME)", e);
         }
 
         System.exit(exitCode.value());
     }
 }
+
+
+class SolutionListener extends Activity {
+    private static StructureLogger logger = StructureLogger.getLogger(SolutionListener.class);
+
+    public SolutionListener() {
+        super(Context.ANY);
+    }
+
+    public void initialize()
+            throws Exception {
+        suspend();
+    }
+
+    public void process(Event e)
+            throws Exception {
+        int[] model = ((MessageEvent<int[]>)e).message;
+        logger.solution(model);
+        suspend();
+    }
+
+    public void cleanup()
+            throws Exception {
+    }
+
+    public void cancel()
+            throws Exception {
+    }
+}
+
+
+class JobsCounter extends Activity {
+    private int counter;
+
+    public JobsCounter(int counter) {
+        super(Context.ANY);
+        this.counter = counter;
+    }
+
+    public synchronized int counter() {
+        return counter;
+    }
+
+    public void initialize()
+            throws Exception {
+        suspend();
+    }
+
+    public synchronized void process(Event e)
+            throws Exception {
+        counter += ((MessageEvent<Integer>)e).message;
+
+        if (counter == 0) {
+            notifyAll();
+            finish();
+        } else {
+            suspend();
+        }
+    }
+
+    public void cleanup()
+            throws Exception {
+    }
+
+    public void cancel()
+            throws Exception {
+    }
+}
+
