@@ -43,6 +43,8 @@ public class CohortJob extends Activity {
             throws Exception {
         /* makes the decision first */
         if (decision != 0) {
+            // logger.debug("decision " + SATInstance.toDimacs(decision) + " on " +
+                         // "instance " + instance);
             boolean contradiction = instance.propagate(decision, null);
             if (contradiction) {
                 /* TODO: this is an error an should be treated as such */
@@ -51,15 +53,15 @@ public class CohortJob extends Activity {
             }
         }
 
-        logger.debug("solving formula " + instance);
+        // logger.debug("solving formula " + instance);
         int lookahead = instance.lookahead();
 
         if (lookahead == 0) {
             if (instance.isSatisfied()) {
-                logger.info("instance is satisfiable");
+                // logger.debug("instance is satisfiable");
                 cohort.send(identifier(), listener, instance.model());
             } else if (instance.isContradiction()) {
-                logger.info("instance is a contradiction");
+                // logger.debug("instance is a contradiction");
             } else {
                 logger.error(
                         "Instance was not satisfied and is not a " +
@@ -67,13 +69,14 @@ public class CohortJob extends Activity {
                         "variable to branch on.");
             }
         } else {
-            logger.debug("branching on " + SATInstance.toDimacs(lookahead));
+            // logger.debug("branching on " + lookahead + " for " + instance);
             cohort.send(identifier(), counter, 2);
 
+            /* FIXME: I assumed that a copy of instance is already done */
             cohort.submit(new CohortJob(
-                    counter, listener, instance, lookahead * 2 + 0));
+                    counter, listener, instance.deepCopy(), lookahead * 2 + 0));
             cohort.submit(new CohortJob(
-                    counter, listener, instance, lookahead * 2 + 1));
+                    counter, listener, instance.deepCopy(), lookahead * 2 + 1));
         }
 
         /* job finished, decrease counter */
