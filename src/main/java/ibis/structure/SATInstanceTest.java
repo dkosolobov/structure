@@ -36,7 +36,6 @@ public final class SATInstanceTest {
             // trasnforms the clause from String to VecInt
             // as required by SATInstance
             for (String variable: variables) {
-                System.err.println("variable = " + variable);
                 int variable_ = Integer.parseInt(variable);
                 numVariables = Math.max(numVariables, Math.abs(variable_));
                 clause_.push(variable_);
@@ -72,32 +71,38 @@ public final class SATInstanceTest {
     @Test
     public void missingVariables()
             throws Exception {
-        SATInstance instance = parse(
-                "(-16 | 13 | 19) & (-13 | 15) & (-19 | -15 | 17) & " +
-                "(-16 | 17) & (13 | 15) & (-17 | 19) & " +
-                "(-17 | 13 | 16 | 19) & (-16 | 15 | 19)");
-        Integer[] missing = new Integer[] {
-                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 18
-            };
+        SATInstance instance = parse("(-2 | 4 | 7) & (2 | -4 | -7) & (-6)");
+        Integer[] missing = new Integer[] { 1, 3, 5, 6 };
 
         int variable = instance.lookahead();
-        Assert.assertTrue(1 <= variable && variable <= 19);
+        Assert.assertTrue(1 <= variable && variable <= 7);
         Assert.assertTrue(Arrays.asList(missing).indexOf(variable) == -1);
     }
 
     @Test
-    public void solvedVariables()
+    public void simple()
             throws Exception {
-        SATInstance instance = parse(
-                "(-16 | 13 | 19) & (-13 | 15) & (-19 | -15 | 17) & " +
-                "(-16 | 17) & (13 | 15) & (-17 | 19) & " +
-                "(-17 | 13 | 16 | 19) & (-16 | 15 | 19)");
-        Integer[] solved = new Integer[] {
-                13, 15, 16
-            };
+        SATInstance instance;
+        int variable;
+       
+        instance = parse("(1)");
+        variable = instance.lookahead();
+        Assert.assertTrue(variable == 0);
+        Assert.assertTrue(instance.isSatisfied());
 
-        int variable = instance.lookahead();
-        Assert.assertTrue(1 <= variable && variable <= 19);
-        Assert.assertTrue(Arrays.asList(solved).indexOf(variable) == -1);
+        instance = parse("(1 | 2) & (-1 | -2)");
+        variable = instance.lookahead();
+        Assert.assertTrue(variable == 0);
+        Assert.assertTrue(instance.isSatisfied());
+
+        instance = parse("(-1) & (1)");
+        variable = instance.lookahead();
+        Assert.assertTrue(variable == 0);
+        Assert.assertTrue(instance.isContradiction());
+
+        instance = parse("(1) & (-1 | 2) & (-1 | 3) & (-2 | -3)");
+        variable = instance.lookahead();
+        Assert.assertTrue(variable == 0);
+        Assert.assertTrue(instance.isContradiction());
     }
 }

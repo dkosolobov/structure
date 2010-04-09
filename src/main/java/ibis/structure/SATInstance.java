@@ -13,6 +13,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Vector;
+import java.util.Arrays;
+import java.util.Collections;
 
 import org.sat4j.core.VecInt;
 import org.sat4j.reader.InstanceReader;
@@ -177,14 +179,15 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
                 /* variable is already assigned */
                 if (values[variable] != Value.fromInt(literal & 1)) {
                     /* assigning variable leads to contradiction */
-                    // logger.error("variable " + variable + " = " +
-                            // values[variable] + " versus " + Value.fromInt(literal & 1));
+                    logger.error("variable " + variable + " = " +
+                            values[variable] + " versus just found " + Value.fromInt(literal & 1));
                     contradiction = true;
                 }
                 continue;
             }
 
             // logger.debug("propagating literal " + toDimacs(literal));
+            // logger.debug("current instance " + this);
             
             /* assigns variable */
             if (units != null)
@@ -194,22 +197,9 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
 
             /* literal is true */
             for (Clause clause: watches[literal ^ 0]) {
-                if (!clause.isSatisfied()) {
-                    for (int l: clause) {
+                if (!clause.isSatisfied())
+                    for (int l: clause)
                         --counts[l];
-                        if (counts[l] == 0 && counts[l ^ 1] != 0 &&
-                                values[l >> 1] == Value.UNKNOWN) {
-                            /*
-                             * if literal is missing from formula then
-                             * therefore non literal must be true if it
-                             * appears at least once in the formula.
-                             */
-                            // logger.debug("missing literal " + toDimacs(l));
-                            toTry.push(l ^ 1);
-                        }
-                    }
-                }
-
                 clause.setLiteral(true);    
             }
             
@@ -231,9 +221,77 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
         } 
 
         // logger.debug("propagation ended: " + contradiction + " --- " + units);
-
         check();
         return contradiction;
+    }
+
+    boolean lookahead(int variable, VecInt tUnits, VecInt fUnits) {
+        /* set variable to *t*rue */
+        boolean tContradiction = propagate(variable * 2 + 0, tUnits);
+        if (!tContradiction && numUnknowns == 0) {
+            /* solution discovered */
+            values[0] = Value.FALSE;
+            return true;
+        }
+        undo(tUnits);
+
+        /* set variable to *f*alse */
+        boolean fContradiction = propagate(variable * 2 + 1, fUnits);
+        if (!fContradiction && numUnknowns == 0) {
+            /* solution discovered */
+            values[0] = Value.FALSE;
+            return true;
+        }
+        undo(fUnits);
+
+        /* analyzes conflicts */
+        /* TODO: at most two propagations are needed */
+
+        if (fContradiction && tContradiction) {
+            /* contradiction for both true and false */
+            values[0] = Value.TRUE;
+            return true;
+        }
+
+        if (tContradiction) {
+            /* variable must be false */
+            propagate(2 * variable + 1, null);
+            return true;
+        }
+
+        if (fContradiction) {
+            /* variable must be true */
+            propagate(2 * variable + 0, null);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Propagates a variable which appears in a single form.
+     *
+     * If variable appears only as a positive literal
+     * or only as a negative literal then if the formula
+     * is satisfiable then there exists an assignment
+     * of variables satisfying the formula such that
+     * the literal is true.
+     *
+     * @param variable variable to propagate
+     * @return true if variable was propagated
+     */
+    boolean propagateIfMissing(int variable) {
+        if (counts[2 * variable + 1] == 0) {
+            // logger.debug("missing -" + variable);
+            propagate(variable * 2 + 0, null);
+            return true;
+        } else if (counts[2 * variable + 0] == 0) {
+            // logger.debug("missing +" + variable);
+            propagate(variable * 2 + 1, null);
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -243,6 +301,8 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
      * making the instances easier to solve.
      * Based on the literal units resulted from assigment a variable
      * true and false there are three cases to analyze:
+     *
+     * TODO: heuristics
      *
      * Ia. Constant propagation
      * variable == false => other = false
@@ -261,108 +321,66 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
      *
      * variable == true  => other = false
      *
-     * @return 0 if the formula is a contradiction
+     * @return 0 if the formula is a contradiction or has been satisfied
      *         1...numVariables the variable to branch on
      */
     public int lookahead() {
         assert !isSatisfied() && !isContradiction();
 
-        VecInt candidates = select();
-        // logger.debug("Selected variables are " + candidates);
+        int currentNumUnknowns;
+        int decision;
 
-        for (int c = 0; c < candidates.size() && values[0] == Value.UNKNOWN; ++c) {
-            int variable = candidates.get(c);
-            if (values[variable] != Value.UNKNOWN)
-                continue;
+        /* repeats as long as new units are discovered */
+        do {
+            currentNumUnknowns = numUnknowns;
+            decision = 0;
 
-            if (counts[2 * variable + 1] == 0) {
-                /*
-                 * negative variable appears is missing so
-                 * variable can safely be assigned to true
-                 */
-                boolean contradiction = propagate(variable * 2 + 0, null);
-                assert !contradiction;
-                continue;
-            } else if (counts[2 * variable + 0] == 0) {
-                /*
-                 * positive variable appears is missing so
-                 * variable can safely be assigned to false
-                 */
-                boolean contradiction = propagate(variable * 2 + 1, null);
-                assert !contradiction;
-                continue;
+            VecInt candidates = select();
+            // logger.debug("Selected variables are " + candidates);
+
+            for (int c = 0; c < candidates.size() &&
+                    values[0] == Value.UNKNOWN; ++c) {
+
+                int variable = candidates.get(c);
+                // logger.debug("candidate " + variable);
+
+                if (values[variable] != Value.UNKNOWN)
+                    continue;
+                if (propagateIfMissing(variable))
+                    continue;
+
+                VecInt tUnits = new VecInt();
+                VecInt fUnits = new VecInt();
+                if (lookahead(variable, tUnits, fUnits))
+                    continue;
+
+                tUnits.sort();
+                fUnits.sort();
+
+                constantPropagation(tUnits, fUnits);
+                propagateIfMissing(variable);
+
+                if (values[variable] == Value.UNKNOWN)
+                    decision = variable;
             }
 
-            // logger.debug("evaluating " + variable);
-            logger.debug("evaluating instance " + this);
-
-            /* set variable to *t*rue */
-            VecInt tUnits = new VecInt();
-            boolean tContradiction = propagate(variable * 2 + 0, tUnits);
-            if (!tContradiction && numUnknowns == 0) {
-                /* solution discovered */
+            if (numUnknowns == 0)
                 values[0] = Value.FALSE;
-                continue;
-            }
-            undo(tUnits);
 
-            /* set variable to *f*alse */
-            VecInt fUnits = new VecInt();
-            boolean fContradiction = propagate(variable * 2 + 1, fUnits);
-            if (!fContradiction && numUnknowns == 0) {
-                /* solution discovered */
-                values[0] = Value.FALSE;
-                continue;
-            }
-            undo(fUnits);
+            // logger.debug(currentNumUnknowns + " versus now " + numUnknowns);
+        } while (currentNumUnknowns != numUnknowns
+                && values[0] == Value.UNKNOWN);
 
-            /* analyzes conflicts */
-            /* TODO: at most two propagations are needed */
+        if (values[0] != Value.UNKNOWN)
+            return 0;
 
-            if (fContradiction && tContradiction) {
-                /* contradiction for both true and false */
-                values[0] = Value.TRUE;
-                continue;
-            }
-
-            if (tContradiction) {
-                /* variable must be false */
-                // logger.debug("variable " + variable + " must be false");
-                propagate(2 * variable + 1, null);
-                continue;
-            }
-
-            if (fContradiction) {
-                /* variable must be true */
-                // logger.debug("variable " + variable + " must be true");
-                propagate(2 * variable + 0, null);
-                continue;
-            }
-
-
-            tUnits.sort();
-            fUnits.sort();
-
-            constantPropagation(tUnits, fUnits);
-
-            if (values[variable] != Value.UNKNOWN) {
-                /* this variable was assigned, nothing to decide on */
-                continue;
-            }
-
-            /* TODO: euristics */
-            logger.debug("decided on " + variable + " for instance " + this);
-            return variable;
-        }
-
-        // logger.debug("isSatisfied() == " + isSatisfied());
-        // logger.debug("isContradiction() == " + isContradiction());
-        return 0;
+        assert values[decision] == Value.UNKNOWN;
+        return decision;
     }
 
     public String toString() {
-        StringBuffer result = new StringBuffer();
         HashSet<Clause> clauses = new HashSet<Clause>();
+        Vector<String> text = new Vector<String>();
 
         for (int v = 1; v < numVariables; ++v) {
             for (int i = 0; i < 2; ++i) 
@@ -372,12 +390,20 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
                     clauses.add(clause);
 
                     String tmp = clause.toString(values);
-                    if (!tmp.equals("") && result.length() != 0)
-                        result.append(" & ");
-                    result.append(tmp);
+                    if (tmp.length() != 0)
+                        text.add(tmp);
                 }
         }
 
+        Collections.sort(text);
+        StringBuffer result = new StringBuffer();
+        for (String t: text) {
+            if (result.length() != 0)
+                result.append(" & ");
+            result.append(t);
+        }
+
+        result.append(" [numUnknowns = " + numUnknowns + ", hashCode = " + result.toString().hashCode() + "]");
         return result.toString();
     }
 
@@ -398,11 +424,10 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
                  * to the same assignment */
                 int literal = tUnits.get(tIndex);
                 // logger.debug("copy propagation of " + toDimacs(literal) +
-                             // " for " + this);
+                             // " (" + values[literal >> 1] + ") for " + this);
                 boolean contradiction = propagate(literal, null);
-                assert !contradiction:
-                        "Propagating common literal resulted in contradiction";
-                System.exit(1);
+                assert !contradiction: "Propagating common literal " +
+                        toDimacs(literal) + " resulted in contradiction";
 
                 ++tIndex;
                 ++fIndex;
@@ -713,6 +738,7 @@ final class Clause implements Iterable<Integer>, Serializable {
         this.literals = new int[literals.size()];
         for (int l = 0; l < this.literals.length; ++l)
             this.literals[l] = SATInstance.fromDimacs(literals.get(l));
+        Arrays.sort(this.literals);
         this.satisfied = this.unsatisfied = 0;
     }
 
