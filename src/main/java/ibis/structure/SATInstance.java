@@ -239,6 +239,28 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
     /**
      * Searches a new variable to branch on.
      *
+     * Looking ahead may results in free assignments or replacement
+     * making the instances easier to solve.
+     * Based on the literal units resulted from assigment a variable
+     * true and false there are three cases to analyze:
+     *
+     * Ia. Constant propagation
+     * variable == false => other = false
+     * variable == true  => other = false
+     *
+     * Ib. Constant propagation
+     * variable == false => other = true
+     * variable == true  => other = true
+     *
+     * II. Copy propagation (TODO: replace other with variable)
+     * variable == false => other = false
+     * variable == true  => other = true
+     *
+     * III. Reverse propagation (TODO: replace other with !variable)
+     * variable == false => other = true
+     *
+     * variable == true  => other = false
+     *
      * @return 0 if the formula is a contradiction
      *         1...numVariables the variable to branch on
      */
@@ -253,7 +275,26 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
             if (values[variable] != Value.UNKNOWN)
                 continue;
 
+            if (counts[2 * variable + 1] == 0) {
+                /*
+                 * negative variable appears is missing so
+                 * variable can safely be assigned to true
+                 */
+                boolean contradiction = propagate(variable * 2 + 0, null);
+                assert !contradiction;
+                continue;
+            } else if (counts[2 * variable + 0] == 0) {
+                /*
+                 * positive variable appears is missing so
+                 * variable can safely be assigned to false
+                 */
+                boolean contradiction = propagate(variable * 2 + 1, null);
+                assert !contradiction;
+                continue;
+            }
+
             // logger.debug("evaluating " + variable);
+            logger.debug("evaluating instance " + this);
 
             /* set variable to *t*rue */
             VecInt tUnits = new VecInt();
@@ -298,50 +339,19 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
                 continue;
             }
 
-            /*
-             * Based on the units propagated there are three cases to analyze
-             *
-             * Ia. Constant propagation
-             * variable == false => other = false
-             * variable == true  => other = false
-             *
-             * Ib. Constant propagation
-             * variable == false => other = true
-             * variable == true  => other = true
-             *
-             * II. Copy propagation (TODO: replace other with variable)
-             * variable == false => other = false
-             * variable == true  => other = true
-             *
-             * III. Reverse propagation (TODO: replace other with !variable)
-             * variable == false => other = true
-             * variable == true  => other = false
-             */
 
-            /* I. Constant propagation */
             tUnits.sort();
             fUnits.sort();
 
-            int tIndex = 0, fIndex = 0;
-            while (tIndex < tUnits.size() && fIndex < fUnits.size()) {
-                if (tUnits.get(tIndex) < fUnits.get(fIndex)) tIndex++;
-                else if (tUnits.get(tIndex) > fUnits.get(fIndex)) fIndex++;
-                else {
-                    /* setting current variable true or false leads
-                     * to the same assignment */
-                    int literal = tUnits.get(tIndex);
-                    // logger.debug("copy propagation of " + toDimacs(literal) +
-                                 // " for " + this);
-                    boolean contradiction = propagate(literal, null);
-                    assert !contradiction;
+            constantPropagation(tUnits, fUnits);
 
-                    ++tIndex;
-                    ++fIndex;
-                }
+            if (values[variable] != Value.UNKNOWN) {
+                /* this variable was assigned, nothing to decide on */
+                continue;
             }
 
             /* TODO: euristics */
-            // logger.debug("decided on " + variable);
+            logger.debug("decided on " + variable + " for instance " + this);
             return variable;
         }
 
@@ -369,6 +379,35 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
         }
 
         return result.toString();
+    }
+
+    /**
+     * Propagates all common literals resulted from looking
+     * ahead on a variable.
+     *
+     * @param tUnits sorted unit literals from looking ahead on true
+     * @param fUnits sorted unit literals from looking ahead on false
+     */
+    void constantPropagation(VecInt tUnits, VecInt fUnits) {
+        int tIndex = 0, fIndex = 0;
+        while (tIndex < tUnits.size() && fIndex < fUnits.size()) {
+            if (tUnits.get(tIndex) < fUnits.get(fIndex)) tIndex++;
+            else if (tUnits.get(tIndex) > fUnits.get(fIndex)) fIndex++;
+            else {
+                /* setting current variable true or false leads
+                 * to the same assignment */
+                int literal = tUnits.get(tIndex);
+                // logger.debug("copy propagation of " + toDimacs(literal) +
+                             // " for " + this);
+                boolean contradiction = propagate(literal, null);
+                assert !contradiction:
+                        "Propagating common literal resulted in contradiction";
+                System.exit(1);
+
+                ++tIndex;
+                ++fIndex;
+            }
+        }
     }
 
     /**
