@@ -1,0 +1,9 @@
+#/bin/sh
+
+for seed in `seq 1 5`
+do
+    for vars in `seq 20 20 200`
+    do
+        ../../bin/generate.py -k3 -s $seed $vars > random-`printf '%04d' $vars`.$seed.cnf
+    done
+done
