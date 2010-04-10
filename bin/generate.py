@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # A script to generate random sat formulas inspired from the paper
 # Achlioptas, Jia and Moore: Hiding Satisfying Assignments: Two are Better than One, 
