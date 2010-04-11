@@ -187,7 +187,7 @@ def main():
         for test, files in group_tests.iteritems():
             tests[group + '/' + test] = files
 
-    solvers = [solverFactory('mt', procs) for procs in [1, 2, 4]]
+    solvers = [solverFactory('mt', 4)]
     executeTests(tests, solvers)
 
 
