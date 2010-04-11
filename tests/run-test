@@ -4,6 +4,7 @@
 # Returns 0 on success, 1 on failure
 # On success prints the time required to run the test
 
+cwd=`(cd \`dirname $0\`; pwd)`
+
 exec prun -asocial -t 01:00:00 -1 -np $SOLVER_PROCS      \
-    $STRUCTURE_LOCATION/bin/time                         \
-    $STRUCTURE_LOCATION/bin/$SOLVER $*
+    $cwd/time $cwd/$SOLVER $*

@@ -1,20 +1,53 @@
 #!/usr/bin/env python
 
+from __future__ import with_statement
+
 import subprocess
+import sqlite3
 import os
+import math
 import sys
 import os.path
 
+from time import sleep, time
 
-structure_location = os.getenv('STRUCTURE_LOCATION')
-tmpdir = os.path.join(structure_location, 'tests/tmp')
-groups = ['random']
+
+STRUCTURE_LOCATION = os.getenv('STRUCTURE_LOCATION')
+TMPDIR = os.path.join(STRUCTURE_LOCATION, 'tests/tmp')
+GROUPS = ['random']
+MAX_PROCESSES = 16
+
+cursor = None
+
+
+class TestResults(object):
+    def __init__(self, name, solver, num_files):
+        self.name = name
+        self.solver = solver
+        self.num_files = num_files
+        self.times = []
+
+    def finished(self, elapsed):
+        self.times.append(elapsed)
+
+        if len(self.times) == self.num_files:
+            self.mean = sum(self.times) / self.num_files
+            self.stddev = math.sqrt(
+                    sum((x - self.mean) ** 2 for x in self.times) / self.num_files)
+            self.min = min(self.times)
+            self.max = min(self.times)
+
+            print 'finished %s using %s: mean=%.3f, stddev=%.3f, min=%.3f, max=%.3f' % (
+                    self.name, self.solver, self.mean, self.stddev, self.min, self.max)
+
+            cursor.execute('insert into running_times values (?, ?, ?, ?, ?, ?, ?)', (
+                    time(), self.name, self.solver, self.mean, self.stddev, self.min, self.max))
 
 
 def sat4j_Solver():
     return {
-        'STRUCTURE_LOCATION': structure_location,
-        'STRUCTURE_TMPDIR': tmpdir,
+        'STRUCTURE_LOCATION': STRUCTURE_LOCATION,
+        'STRUCTURE_TMPDIR': TMPDIR,
         'SOLVER': 'run-sat4j',
         'SOLVER_PROCS': '1',
     }
@@ -22,8 +55,8 @@ def sat4j_Solver():
 
 def mt_Solver(threads):
     return {
-        'STRUCTURE_LOCATION': structure_location,
-        'STRUCTURE_TMPDIR': tmpdir,
+        'STRUCTURE_LOCATION': STRUCTURE_LOCATION,
+        'STRUCTURE_TMPDIR': TMPDIR,
         'SOLVER': 'run-structure',
         'SOLVER_PROCS': '1',
         'SOLVER_IMPL': 'mt',
@@ -33,8 +66,8 @@ def mt_Solver(threads):
 
 def dist_Solver(procs, threads):
     return {
-        'STRUCTURE_LOCATION': structure_location,
-        'STRUCTURE_TMPDIR': tmpdir,
+        'STRUCTURE_LOCATION': STRUCTURE_LOCATION,
+        'STRUCTURE_TMPDIR': TMPDIR,
         'SOLVER': 'run-structure',
         'SOLVER_PROCS': str(procs),
         'SOLVER_IMPL': 'dist',
@@ -42,7 +75,7 @@ def dist_Solver(procs, threads):
     }
 
 
-def solverFactory(name, procs):
+def solverFactoryHelper(name, procs):
     if name == 'sat4j':
         assert procs == 1
         return sat4j_Solver()
@@ -61,96 +94,101 @@ def solverFactory(name, procs):
     assert False, 'Unknown solver %s' % name
 
 
-
-def executeGroup(group, solver, procs):
-    os.chdir(group)
-
-    environ = os.environ.copy()
-    environ.update(solverFactory(solver, procs))
-
-    p = subprocess.Popen(['run'],
-        stdout=subprocess.PIPE,
-        env=environ);
-    p.wait()
-
-    timings = {}
-    for line in p.stdout:
-        line = line.split()
-        timings[line[0]] = line[1]
-
-    os.chdir('..');
-    return timings
+def solverFactory(name, procs):
+    return '%s-%d' % (name, procs), solverFactoryHelper(name, procs)
 
 
-def updateTimings(timings, group, procs, tests):
-    for key, value in tests.iteritems():
-        timings.setdefault(group + '/' + key, {})[procs] = value
+def loadGroup(group):
+    tests = {}
+
+    with open(os.path.join(group, 'list')) as f:
+        for fullline in f:
+            if fullline[0] == '#':
+                # ignores comments
+                continue
+                
+            test, files = fullline.split('=', 1)
+            test = test.strip()
+            files = files.split()
+            tests[test] = [os.path.join(group, file) for file in files]
+
+    return tests
 
 
-def write(solver, procs, tests):
-    f = open(solver + '.dat', 'w')
+def executeTests(tests, solvers):
+    results = {}
+    todo = []     # [(file, test, solver), ...]
 
-    # print header
-    print >>f, 'processors',
-    for key in tests:
-        print >>f, key,
-    print >>f
+    for solver in solvers:
+        for test, files in tests.iteritems():
+            results[(test, solver[0])] = TestResults(test, solver[0], len(files))
+            for file in files:
+                todo.append((file, test, solver))
 
-    # prints contents
-    for i, p in enumerate(procs):
-        print >>f, p,
-        for times in tests.itervalues():
-            print >>f, times[i],
-        print >>f
+    running = []  # [((file, test, solver), process), ...]
+    while todo or running:
+        running_ = []
+        for run in running:
+            file, test, solver = run[0]
+            process = run[1]
 
-    f.close()
+            process.poll()
+
+            if process.returncode is None:
+                # process didn't finish yet
+                running_.append(run)
+                continue
 
 
+            elif process.returncode:
+                # process finished with error
+                print 'solving instance %s (test %s) using %s failed. restarting' % (
+                        file, test, solver[0])
+                todo.append(run[0])
+            else:
+                # process finish
+                time = float(run[1].stdout.readline())
+                print 'finished instance %s (test %s) using %s in %.3fs' % (
+                        file, test, solver[0], time)
+                results[(test, solver[0])].finished(time)
+        running = running_
+
+        
+        while todo and len(running) < MAX_PROCESSES:
+            # starts new processes
+            file, test, solver = todo.pop()
+            environ = os.environ.copy()
+            environ.update(solver[1])
+
+            process = subprocess.Popen(
+                args=('./run-test', file),
+                stdout=subprocess.PIPE,
+                env=environ)
+
+            print ' solving instance %s (test %s) using %s' % (
+                    file, test, solver[0])
+            running.append(((file, test, solver), process))
+
+        
+        # print 'sleeping'
+        if todo or running:
+            sleep(0.5)
+
+
+            
 def main():
-    solvers = {
-        'sat4j': [1],
-        'mt'   : [1, 2, 4],
-        'dist' : [1, 2, 4, 8, 16, 32],
-    }
+    global cursor
+    connection = sqlite3.connect('running-times.sql', isolation_level=None)
+    cursor = connection.cursor()
 
-    timings = {}  # timings[solver][test][procs] = seconds
-    for solver, procs in solvers.iteritems():
-        timings[solver] = {}
+    tests = {}
+    for group in GROUPS:
+        group_tests = loadGroup(group)
+        for test, files in group_tests.iteritems():
+            tests[group + '/' + test] = files
 
-        for group in groups:
-            for p in procs:
-                print >>sys.stderr, 'solving %s using %s on %d processor(s)' % (
-                        group, solver, p)
-                tests = executeGroup(group, solver, p)
-                print >>sys.stderr, 'timings ', tests
-                updateTimings(timings[solver], group, p, tests)
-
-    # random-mt
-    f = open('www/random-mt.dat', 'w')
-    for test in sorted(timings['mt'].keys()):
-        if not test.startswith('random/'):
-            continue
-
-        print >>f, int(test[-4:]),
-        for proc in solvers['mt']:
-            print >>f, timings['mt'][test][proc],
-        print >>f, timings['sat4j'][test][1],
-        print >>f
-    f.close()
-
-    # dist
-    f = open('www/dist.dat', 'w')
-    tests = ['random/random-0120', 'random/random-0140', 'random/random-0160']
-    print >>f, 'procs',
-    for test in tests:
-        print >>f, test,
-    print >>f
-    for proc in solvers['dist']:
-        print >>f, proc,
-        for test in tests:
-            print >>f, timings['dist'][test][proc],
-        print >>f
-    f.close()
+    solvers = [solverFactory('mt', procs) for procs in [1, 2, 4]]
+    executeTests(tests, solvers)
 
 
 if __name__ == '__main__':
