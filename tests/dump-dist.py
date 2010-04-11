@@ -30,9 +30,8 @@ with open('dist.dat', 'w') as f:
         while True:
             line = cursor.fetchone()
             if line is None: break
-
-            num_vars = int(line[1].split('-', 1)[1])
-            times[test][num_vars] = line[2]
+            num_procs = int(line[1].split('-', 1)[1])
+            times[test][num_procs] = line[2]
 
         keys_ = set(times[test].keys())
         if keys is None:
@@ -46,5 +45,3 @@ with open('dist.dat', 'w') as f:
         for test in tests:
             print >>f, times[test][key],
         print >>f
-
-
