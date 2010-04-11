@@ -50,6 +50,7 @@ public class CohortJob extends Activity {
                 /* TODO: this is an error an should be treated as such */
                 logger.error("Propagation of " + SATInstance.toDimacs(decision) +
                              " returned in contradiction");
+                System.exit(1);
             }
         }
 
@@ -58,13 +59,13 @@ public class CohortJob extends Activity {
 
         if (lookahead == 0) {
             if (instance.isSatisfied()) {
-                // logger.debug("instance is satisfiable");
+                logger.debug("instance is satisfiable");
                 cohort.send(identifier(), listener, instance.model());
             } else if (instance.isContradiction()) {
-                // logger.debug("instance is a contradiction");
+                logger.debug("instance is a contradiction");
             } else {
                 logger.error(
-                        "Instance was not satisfied and is not a " +
+                        "Instance " + this + " was not satisfied and is not a " +
                         "contradiction, but lookahead didn't find any " +
                         "variable to branch on.");
             }
