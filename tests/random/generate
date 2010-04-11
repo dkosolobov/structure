@@ -1,9 +1,15 @@
 #/bin/sh
 
-for seed in `seq 1 5`
+rm -f list *.cnf
+
+for vars in `seq 20 20 200`
 do
-    for vars in `seq 20 20 200`
+    printf "$vars =" >> list
+    for seed in `seq 1 5`
     do
-        ../../bin/generate.py -k3 -s $seed $vars > random-`printf '%04d' $vars`.$seed.cnf
+        output=$vars.$seed.cnf
+        printf " $output" >> list
+        ../../bin/generate.py -k3 -s $seed $vars > $output
     done
+    echo >> list
 done
