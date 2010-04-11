@@ -17,6 +17,7 @@ import ibis.cohort.Activity;
 import ibis.cohort.MessageEvent;
 import ibis.cohort.Event;
 import ibis.cohort.Context;
+import ibis.cohort.SingleEventCollector;
 
 
 public class CohortJob extends Activity {
@@ -27,6 +28,7 @@ public class CohortJob extends Activity {
     private final ActivityIdentifier listener;
     private final SATInstance instance;
     private final int decision;
+    private int lookahead;
 
     public CohortJob(
             ActivityIdentifier counter, ActivityIdentifier listener,
@@ -55,25 +57,37 @@ public class CohortJob extends Activity {
         }
 
         // logger.debug("solving formula " + instance);
-        int lookahead = instance.lookahead();
+        lookahead = instance.lookahead();
 
         if (lookahead == 0) {
             if (instance.isSatisfied()) {
-                logger.debug("instance is satisfiable");
+                // logger.debug("instance is satisfiable");
                 cohort.send(identifier(), listener, instance.model());
             } else if (instance.isContradiction()) {
-                logger.debug("instance is a contradiction");
+                // logger.debug("instance is a contradiction");
             } else {
                 logger.error(
                         "Instance " + this + " was not satisfied and is not a " +
                         "contradiction, but lookahead didn't find any " +
                         "variable to branch on.");
             }
-        } else {
-            // logger.debug("branching on " + lookahead + " for " + instance);
-            cohort.send(identifier(), counter, 2);
 
+            /* job finished, decrease counter */
+            finish();
+            cohort.send(identifier(), counter, -1);
+        } else {
+            cohort.send(identifier(), counter, 2);
+            suspend();
+        }
+    }
+
+    public void process(Event event)
+            throws Exception {
+        boolean stopped = ((MessageEvent<Boolean>)event).message;
+
+        if (!stopped) {
             /* FIXME: I assumed that a copy of instance is already done */
+            // logger.debug("branching on " + lookahead + " for " + instance);
             cohort.submit(new CohortJob(
                     counter, listener, instance.deepCopy(), lookahead * 2 + 0));
             cohort.submit(new CohortJob(
@@ -83,10 +97,6 @@ public class CohortJob extends Activity {
         /* job finished, decrease counter */
         finish();
         cohort.send(identifier(), counter, -1);
-    }
-
-    public void process(Event arg0)
-            throws Exception {
     }
 
     public void cleanup()

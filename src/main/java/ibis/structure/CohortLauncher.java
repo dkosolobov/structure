@@ -124,7 +124,7 @@ public class CohortLauncher {
 
     public void start()
             throws FileNotFoundException, ParseFormatException, IOException, ContradictionException {
-        System.err.println("starting " + cohort);
+        logger.debug("starting " + cohort);
         if (cohort.isMaster()) {
             displayHeader();
 
@@ -134,7 +134,7 @@ public class CohortLauncher {
             logger.debug("#constraints  " + instance.nConstraints());
 
             JobsCounter counter = new JobsCounter(1);
-            SolutionListener listener = new SolutionListener();
+            SolutionListener listener = new SolutionListener(counter);
 
             /* starts the first job */
             cohort.submit(counter);
@@ -200,8 +200,11 @@ public class CohortLauncher {
 class SolutionListener extends Activity {
     private static StructureLogger logger = StructureLogger.getLogger(SolutionListener.class);
 
-    public SolutionListener() {
+    private final JobsCounter counter;
+
+    public SolutionListener(JobsCounter counter) {
         super(Context.ANY);
+        this.counter = counter;
     }
 
     public void initialize()
@@ -211,6 +214,7 @@ class SolutionListener extends Activity {
 
     public void process(Event e)
             throws Exception {
+        counter.stop();
         int[] model = ((MessageEvent<int[]>)e).message;
         logger.solution(model);
         suspend();
@@ -228,6 +232,7 @@ class SolutionListener extends Activity {
 
 class JobsCounter extends Activity {
     private int counter;
+    private boolean stopped = false;
 
     public JobsCounter(int counter) {
         super(Context.ANY);
@@ -245,7 +250,20 @@ class JobsCounter extends Activity {
 
     public synchronized void process(Event e)
             throws Exception {
-        counter += ((MessageEvent<Integer>)e).message;
+        int inc = ((MessageEvent<Integer>)e).message;
+
+        if (inc > 0) {
+            /* job is branching returns whether we should stop */
+            cohort.send(identifier(), e.source, stopped);
+        }
+
+        if (inc > 0 && stopped) {
+            /* if processes stopped job is not branching */
+            suspend();
+            return;
+        }
+
+        counter += inc;
 
         if (counter == 0) {
             notifyAll();
@@ -261,6 +279,11 @@ class JobsCounter extends Activity {
 
     public void cancel()
             throws Exception {
+    }
+
+    public synchronized void stop() {
+        System.err.println("stopped");
+        stopped = true;
     }
 }
 
