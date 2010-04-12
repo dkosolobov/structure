@@ -2,7 +2,7 @@
 
 rm -f list *.cnf
 
-for vars in `seq 20 20 200`
+for vars in `seq 20 20 260`
 do
     printf "$vars =" >> list
     for seed in `seq 1 5`
