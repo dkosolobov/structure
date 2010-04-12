@@ -4,16 +4,9 @@ cwd=`cd \`dirname $0\`; pwd`
 
 export STRUCTURE_LOCATION=`cd $cwd/..; pwd`
 export STRUCTURE_TMPDIR=$cwd/tmp
-export SOLVER_IMPL=dist                  # dist or mt (only for run-structure)
+export SOLVER=run-structure              # run-structure or run-sat4j
+export SOLVER_IMPL=dist                  # dist or mt (only for structure)
 export SOLVER_PROCS=1                    # number of machines (1 for sat4j and mt)
 export SOLVER_THREADS=1                  # number of threads (1 for sat4j)
 
-java -ea                                                                \
-    -Dibis.pool.name=structure-$RANDOM                                  \
-    -Dibis.pool.size=$SOLVER_PROCS                                      \
-    -Dibis.cohort.impl=$SOLVER_IMPL                                     \
-    -Dibis.cohort.workers=$SOLVER_THREADS                               \
-    -Dlog4j.configuration=file://$STRUCTURE_LOCATION/log4j.properties   \
-    -Dibis.properties.file=$STRUCTURE_LOCATION/ibis.properties          \
-    -cp "$STRUCTURE_LOCATION/lib/*"                                     \
-    ibis.structure.CohortLauncher $*
+prun -np $SOLVER_PROCS -1 $cwd/$SOLVER $*
