@@ -38,7 +38,7 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
     private static final StructureLogger logger = StructureLogger.getLogger(CohortJob.class);
 
     enum Value {
-        FALSE(0), TRUE(1), UNKNOWN(2);
+        TRUE(0), FALSE(1), UNKNOWN(2);
 
         private final int intValue;
 
@@ -51,8 +51,8 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
         }
 
         public static Value fromInt(int intValue) {
-            if (intValue == 0) return FALSE;
-            if (intValue == 1) return TRUE;
+            if (intValue == 0) return TRUE;
+            if (intValue == 1) return FALSE;
             if (intValue == 2) return UNKNOWN;
             throw new IllegalArgumentException();
         }
@@ -76,7 +76,7 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
     private int numVariables;          /* number of variables */
     private int numClauses;            /* number of clauses */
     private int numUnknowns;           /* number of unknown variables */
-    private Vector<Clause> watches[];  /* clauses containing each literal */
+    private Vector<Clause> watches[];  /* non-satisfied clauses containing each literal */
     private Value[] values;            /* variable of values (1-index based) */
     private int[] counts;              /* count of each literal */
 
@@ -156,6 +156,18 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
         return values[0] == Value.TRUE;
     }
 
+    public void assume(int literal) {
+        int variable = literal >> 1;
+        assert values[variable] == Value.UNKNOWN;
+        --numUnknowns;
+        values[variable] = Value.fromInt(literal & 1);
+    }
+
+    public boolean checkLiteral(int literal) {
+        int variable = literal >> 1;
+        return values[variable] == Value.fromInt(literal & 1);
+    }
+
     /**
      * Sets a literal to true and propagates resulted assignments.
      *
@@ -164,9 +176,11 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
      * @return true if the propagation returned in a contradiction
      */
     public boolean propagate(int literal, VecInt units) {
-        // logger.debug("propagation starting at " + toDimacs(literal));
+        // logger.debug("*** propagation starting at " + toDimacs(literal));
+        // logger.debug("*** propagation on instance " + this);
         boolean contradiction = false;
 
+        // TODO: use static buffers
         VecInt toTry = new VecInt();
         toTry.push(literal);
 
@@ -177,7 +191,7 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
             int variable = literal >> 1;
             if (values[variable] != Value.UNKNOWN) {
                 /* variable is already assigned */
-                if (values[variable] != Value.fromInt(literal & 1)) {
+                if (!checkLiteral(literal)) {
                     /* assigning variable leads to contradiction */
                     logger.error("variable " + variable + " = " +
                             values[variable] + " versus just found " + Value.fromInt(literal & 1));
@@ -192,8 +206,7 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
             /* assigns variable */
             if (units != null)
                 units.push(literal);
-            --numUnknowns;
-            values[variable] = Value.fromInt(literal & 1);
+            assume(literal);
 
             /* literal is true */
             for (Clause clause: watches[literal ^ 0]) {
@@ -221,8 +234,34 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
         } 
 
         // logger.debug("propagation ended: " + contradiction + " --- " + units);
-        check();
+        // check();
         return contradiction;
+    }
+
+    /**
+     * Undoes some previous assignments done using propagate(...)
+     *
+     * @param literals literals to undo
+     */
+    void undo(VecInt literals) {
+        IteratorInt iterator = literals.iterator();
+        while (iterator.hasNext()) {
+            int literal = iterator.next();
+            for (Clause clause: watches[literal ^ 0]) {
+                clause.undoLiteral(true);
+                if (!clause.isSatisfied())
+                    for (int l: clause)
+                        ++counts[l];
+            }
+
+            for (Clause clause: watches[literal ^ 1])
+                clause.undoLiteral(false);
+
+            values[literal >> 1] = Value.UNKNOWN;
+            ++numUnknowns;
+        }
+
+        // check();
     }
 
     boolean lookahead(int variable, VecInt tUnits, VecInt fUnits) {
@@ -231,6 +270,7 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
         if (!tContradiction && numUnknowns == 0) {
             /* solution discovered */
             values[0] = Value.FALSE;
+            // logger.debug("maybe 1");
             return true;
         }
         undo(tUnits);
@@ -240,28 +280,30 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
         if (!fContradiction && numUnknowns == 0) {
             /* solution discovered */
             values[0] = Value.FALSE;
+            // logger.debug("maybe 2");
             return true;
         }
         undo(fUnits);
 
         /* analyzes conflicts */
-        /* TODO: at most two propagations are needed */
-
         if (fContradiction && tContradiction) {
             /* contradiction for both true and false */
             values[0] = Value.TRUE;
+            // logger.debug("maybe 3");
             return true;
         }
 
         if (tContradiction) {
             /* variable must be false */
             propagate(2 * variable + 1, null);
+            // logger.debug("maybe 4");
             return true;
         }
 
         if (fContradiction) {
             /* variable must be true */
             propagate(2 * variable + 0, null);
+            // logger.debug("maybe 5");
             return true;
         }
 
@@ -336,13 +378,12 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
             decision = 0;
 
             VecInt candidates = select();
-            // logger.debug("Selected variables are " + candidates);
+            //logger.debug("Selected variables are " + candidates);
 
             for (int c = 0; c < candidates.size() &&
                     values[0] == Value.UNKNOWN; ++c) {
 
                 int variable = candidates.get(c);
-                // logger.debug("candidate " + variable);
 
                 if (values[variable] != Value.UNKNOWN)
                     continue;
@@ -403,8 +444,16 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
             result.append(t);
         }
 
-        result.append(" [numUnknowns = " + numUnknowns + ", hashCode = " + result.toString().hashCode() + "]");
+        result.append(" [numUnknowns = " + numUnknowns + ", hashCode = " +
+                      result.toString().hashCode() + "]");
         return result.toString();
+    }
+
+    VecInt convert(VecInt spam) {
+        VecInt egg = new VecInt();
+        for (int i = 0; i < spam.size(); ++i)
+            egg.push(toDimacs(spam.get(i)));
+        return egg;
     }
 
     /**
@@ -423,8 +472,6 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
                 /* setting current variable true or false leads
                  * to the same assignment */
                 int literal = tUnits.get(tIndex);
-                // logger.debug("copy propagation of " + toDimacs(literal) +
-                             // " (" + values[literal >> 1] + ") for " + this);
                 boolean contradiction = propagate(literal, null);
                 assert !contradiction: "Propagating common literal " +
                         toDimacs(literal) + " resulted in contradiction";
@@ -435,31 +482,6 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
         }
     }
 
-    /**
-     * Undoes some previous assignments done using propagate(...)
-     *
-     * @param literals literals to undo
-     */
-    void undo(VecInt literals) {
-        IteratorInt iterator = literals.iterator();
-        while (iterator.hasNext()) {
-            int literal = iterator.next();
-            for (Clause clause: watches[literal ^ 0]) {
-                clause.undoLiteral(true);
-                if (!clause.isSatisfied())
-                    for (int l: clause)
-                        ++counts[l];
-            }
-
-            for (Clause clause: watches[literal ^ 1])
-                clause.undoLiteral(false);
-
-            values[literal >> 1] = Value.UNKNOWN;
-            ++numUnknowns;
-        }
-
-        check();
-    }
 
     /**
      * Checks the current object for correctens.
@@ -474,7 +496,9 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
                 int literal = v * 2 + values[v].intValue();
                 for (Clause clause: watches[literal])
                     if (!clause.isSatisfied())
-                        throw new RuntimeException("Clause not satisfied");
+                        throw new RuntimeException(
+                                "Literal " + toDimacs(literal) + " is true, " +
+                                "but clause " + clause + " is not satisfied");
             }
 
 
@@ -798,17 +822,18 @@ final class Clause implements Iterable<Integer>, Serializable {
     }
 
     public String toString(SATInstance.Value[] values) {
-        if (isSatisfied())
+        if (values != null && isSatisfied())
             return "";
-        if (isContradiction())
+        if (values != null && isContradiction())
             return "0";
 
         StringBuffer result = new StringBuffer();
 
         boolean first = true;
         for (int l: literals) {
-            if (values[l >> 1] != SATInstance.Value.UNKNOWN)
-                continue;
+            if (values != null)
+                if (values[l >> 1] != SATInstance.Value.UNKNOWN)
+                    continue;
 
             if (first)
                 result.append('(');
@@ -824,6 +849,10 @@ final class Clause implements Iterable<Integer>, Serializable {
         if (!first)
             result.append(')');
         return result.toString();
+    }
+
+    public String toString() {
+        return toString(null);
     }
 
     public Iterator<Integer> iterator() {
