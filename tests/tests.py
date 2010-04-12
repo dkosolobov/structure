@@ -126,6 +126,8 @@ def executeTests(tests, solvers):
                 todo.append((file, test, solver))
 
     running = []  # [((file, test, solver), process), ...]
+    next_print = None
+    
     while todo or running:
         running_ = []
         for run in running:
@@ -139,18 +141,18 @@ def executeTests(tests, solvers):
                 running_.append(run)
                 continue
 
-
-            elif process.returncode:
+            next_print = time() + 15
+            if process.returncode:
                 # process finished with error
                 print 'solving instance %s (test %s) using %s failed. restarting' % (
                         file, test, solver[0])
                 todo.append(run[0])
             else:
                 # process finish
-                time = float(run[1].stdout.readline())
+                elapsed = float(run[1].stdout.readline())
                 print 'finished instance %s (test %s) using %s in %.3fs' % (
-                        file, test, solver[0], time)
-                results[(test, solver[0])].finished(time)
+                        file, test, solver[0], elapsed)
+                results[(test, solver[0])].finished(elapsed)
         running = running_
 
         
@@ -168,9 +170,12 @@ def executeTests(tests, solvers):
             print ' solving instance %s (test %s) using %s' % (
                     file, test, solver[0])
             running.append(((file, test, solver), process))
-
+            next_print = time() + 15
         
         # print 'sleeping'
+        if next_print is not None and time() > next_print:
+            next_print = None
+            print 'running', [(job[0][0], job[0][2][0]) for job in running]
         if todo or running:
             sleep(0.5)
 
@@ -187,7 +192,7 @@ def main():
         for test, files in group_tests.iteritems():
             tests[group + '/' + test] = files
 
-    solvers = [solverFactory('mt', 4)]
+    solvers = [solverFactory('dist', procs) for procs in [1, 2, 4, 8, 16, 32]]
     executeTests(tests, solvers)
 
 
