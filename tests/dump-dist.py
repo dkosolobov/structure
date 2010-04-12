@@ -8,7 +8,7 @@ import sqlite3
 connection = sqlite3.connect('running-times.sql', isolation_level=None)
 cursor = connection.cursor()
 
-tests = ['random/160', 'random/180', 'random/200']
+tests = ['random/220', 'random/240', 'random/260']
 times = {}
 keys = None
 

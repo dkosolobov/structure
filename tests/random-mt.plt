@@ -6,7 +6,7 @@ set title "Random instances on multithreaded Cohort"
 set xlabel "variables"
 set ylabel "seconds"
 
-set xrange [20:200]
+#set xrange [20:200]
 set xtics 20
 set grid ytics mytics
 set logscale y

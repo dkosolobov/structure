@@ -1,7 +1,7 @@
 set terminal png
 set output "www/dist.png"
 
-set title "Distributed Cohort"
+set title "Distributed Cohort (tests failed)"
 set xlabel "processors"
 set xtics (1,2,4,8,16,32)
 set ylabel "seconds"
