@@ -1,12 +1,13 @@
 #!/bin/sh
 
 
-java -ea                                                             \
-    -Dibis.pool.name=structure-$RANDOM                               \
-    -Dibis.pool.size=$SOLVER_PROCS                                   \
-    -Dibis.cohort.impl=$SOLVER_IMPL                                  \
-    -Dibis.cohort.workers=$SOLVER_THREADS                            \
-    -Dlog4j.properties=file://$STRUCTURE_LOCATION/log4j.properties   \
-    -cp "$STRUCTURE_LOCATION/lib/*"                                  \
+java -ea                                                                \
+    -Dibis.pool.name=structure-$RANDOM                                  \
+    -Dibis.pool.size=$SOLVER_PROCS                                      \
+    -Dibis.cohort.impl=$SOLVER_IMPL                                     \
+    -Dibis.cohort.workers=$SOLVER_THREADS                               \
+    -Dlog4j.configuration=file://$STRUCTURE_LOCATION/log4j.properties   \
+    -Dibis.properties.file=$STRUCTURE_LOCATION/ibis.properties          \
+    -cp "$STRUCTURE_LOCATION/lib/*"                                     \
     ibis.structure.CohortLauncher $*
 

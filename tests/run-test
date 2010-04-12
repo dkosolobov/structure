@@ -3,8 +3,18 @@
 #
 # Returns 0 on success, 1 on failure
 # On success prints the time required to run the test
+#
+# To manually run this script export the following environment
+# variables:
+#
+# export STRUCTURE_LOCATION=/home0/ami650/src/structure
+# export STRUCTURE_TMPDIR=/home0/ami650/src/structure/tests/tmp
+# export SOLVER=run-structure     # run-structure or run-sat4j
+# export SOLVER_IMPL=dist         # dist or mt (only for run-structure)
+# export SOLVER_PROCS=1           # number of machines (1 for sat4j and mt)
+# export SOLVER_THREADS=1         # number of threads (1 for sat4j)
 
-cwd=`(cd \`dirname $0\`; pwd)`
+cwd=`cd \`dirname $0\`; pwd`
 
 exec prun -asocial -t 01:00:00 -1 -np $SOLVER_PROCS      \
     $cwd/time $cwd/$SOLVER $*
