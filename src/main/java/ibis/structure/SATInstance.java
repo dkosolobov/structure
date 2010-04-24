@@ -189,7 +189,7 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
 
             // logger.debug("propagating literal " + toDimacs(literal));
             // logger.debug("current instance " + this);
-            
+
             /* assigns variable */
             if (units != null)
                 units.push(literal);
@@ -197,9 +197,9 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
 
             /* literal is true */
             for (Clause clause: watches[literal ^ 0]) {
-                clause.setLiteral(true, counts);    
+                clause.setLiteral(true, counts);
             }
-            
+
             /* non literal is false */
             for (Clause clause: watches[literal ^ 1]) {
                 clause.setLiteral(false, counts);
@@ -207,15 +207,10 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
                 if (clause.isContradiction()) {
                     contradiction = true;
                 } else if (clause.isUnit()) {
-                    for (int l: clause)
-                        if (values[l >> 1].isUnknown()) {
-                            /* left literal must be true */
-                            // logger.debug("found unit " + toDimacs(l));
-                            toTry.push(l);
-                        }
+                    toTry.push(clause.findUnit(values));
                 }
             }
-        } 
+        }
 
         // logger.debug("propagation ended: " + contradiction + " --- " + units);
         // check();
@@ -765,6 +760,14 @@ final class Clause implements Iterable<Integer>, Serializable {
      */
     public boolean isUnit() {
         return satisfied == 0 && unsatisfied == size() - 1;
+    }
+
+    public int findUnit(Value[] values) {
+        for (int literal: literals)
+            if (values[literal >> 1].isUnknown())
+                return literal;
+        assert false: "No unit found";
+        return -1;
     }
 
     /**
