@@ -344,18 +344,16 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
         assert !isSatisfied() && !isContradiction();
 
         int currentNumUnknowns;
-        int decision;
+        VecInt candidates;
 
         /* repeats as long as new units are discovered */
         do {
             currentNumUnknowns = numUnknowns;
-            decision = 0;
-
-            VecInt candidates = select();
+            candidates = select();
             //logger.debug("Selected variables are " + candidates);
 
             for (int c = 0; c < candidates.size() &&
-                    values[0] == Value.UNKNOWN; ++c) {
+                    values[0].isUnknown(); ++c) {
 
                 int variable = candidates.get(c);
 
@@ -374,20 +372,23 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
 
                 constantPropagation(tUnits, fUnits);
                 propagateIfMissing(variable);
-
-                if (values[variable].isUnknown())
-                    decision = variable;
             }
 
             if (numUnknowns == 0)
                 values[0] = Value.FALSE;
-
-            // logger.debug(currentNumUnknowns + " versus now " + numUnknowns);
         } while (currentNumUnknowns != numUnknowns
                 && values[0] == Value.UNKNOWN);
 
         if (values[0] != Value.UNKNOWN)
             return 0;
+
+        int decision = -1;
+        for (int c = 0; c < candidates.size(); ++c) {
+            int variable = candidates.get(c);
+            if (values[variable].isUnknown())
+                if (decision == -1 || counts[variable] > counts[decision])
+                    decision = variable;
+        }
 
         assert values[decision] == Value.UNKNOWN;
         return decision;
