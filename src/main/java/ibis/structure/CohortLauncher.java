@@ -140,7 +140,7 @@ public class CohortLauncher {
             cohort.submit(counter);
             cohort.submit(listener);
             cohort.submit(new CohortJob(
-                    counter.identifier(), listener.identifier(), instance, 0));
+                    counter.identifier(), listener.identifier(), instance.skeleton(), 0));
 
             /* waits for all jobs to finish */
             synchronized(counter) {

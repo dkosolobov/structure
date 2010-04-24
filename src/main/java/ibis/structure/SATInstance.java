@@ -1,10 +1,6 @@
 package ibis.structure;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
@@ -37,26 +33,6 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
     private static final long serialVersionUID = 10275539472837495L;
     private static final StructureLogger logger = StructureLogger.getLogger(CohortJob.class);
 
-    enum Value {
-        TRUE(0), FALSE(1), UNKNOWN(2);
-
-        private final int intValue;
-
-        private Value(int intValue) {
-            this.intValue = intValue;        
-        }
-
-        public int intValue() {
-            return intValue;
-        }
-
-        public static Value fromInt(int intValue) {
-            if (intValue == 0) return TRUE;
-            if (intValue == 1) return FALSE;
-            if (intValue == 2) return UNKNOWN;
-            throw new IllegalArgumentException();
-        }
-    }
     
     /*
      * All clauses read from the problem to be solved
@@ -85,33 +61,44 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
         reset();
     }
 
-    /**
-     * Returns a deep copy of this instance.
-     *
-     * Code adapted from: http://javatechniques.com/blog/faster-deep-copies-of-java-objects/
-     */
-    public SATInstance deepCopy() {
-        try {
-            /*
-             * write the object out to a byte array
-             */
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream out = new ObjectOutputStream(bos);
-            out.writeObject(this);
-            out.flush();
-            out.close();
+    public SATInstance(Skeleton skeleton) {
+        reset();
 
-            /*
-             * Make an input stream from the byte array and read
-             * a copy of the object back in.
-             */
-            ObjectInputStream in = new ObjectInputStream(
-                    new ByteArrayInputStream(bos.toByteArray()));
-            return (SATInstance)in.readObject();
-        } catch (Exception e) {
-            logger.error("Cannot create a deep copy of the sat instance", e);
-            return null;
+        /* creates variables */
+        newVar(skeleton.numVariables);
+        for (int literal: skeleton.units)
+            values[literal >> 1] = Value.fromInt(literal & 1);
+        numUnknowns -= skeleton.units.length;
+
+        /* creates clauses */
+        setExpectedNumberOfClauses(skeleton.clauses.size());
+        for (int[] clause: skeleton.clauses) {
+            try {
+                addClause(new VecInt(clause));
+            } catch (ContradictionException e) {
+                logger.error("Contradiction when building instance " +
+                             "from skeleton", e);
+            }
         }
+    }
+
+    public Skeleton skeleton() {
+        Skeleton skeleton = new Skeleton(numVariables);
+        skeleton.addValues(values);
+
+        HashSet<Clause> clauses = new HashSet<Clause>();
+
+        for (int v = 1; v < numVariables; ++v)
+            for (int i = 0; i < 2; ++i)
+                for (Clause clause: watches[v * 2 + i]) {
+                    if (clauses.contains(clause))
+                        continue;
+
+                    clauses.add(clause);
+                    skeleton.addClause(clause.skeleton(values));
+                }
+
+        return skeleton;
     }
 
     /**
@@ -210,21 +197,18 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
 
             /* literal is true */
             for (Clause clause: watches[literal ^ 0]) {
-                if (!clause.isSatisfied())
-                    for (int l: clause)
-                        --counts[l];
-                clause.setLiteral(true);    
+                clause.setLiteral(true, counts);    
             }
             
             /* non literal is false */
             for (Clause clause: watches[literal ^ 1]) {
-                clause.setLiteral(false);
+                clause.setLiteral(false, counts);
 
                 if (clause.isContradiction()) {
                     contradiction = true;
                 } else if (clause.isUnit()) {
                     for (int l: clause)
-                        if (values[l >> 1] == Value.UNKNOWN) {
+                        if (values[l >> 1].isUnknown()) {
                             /* left literal must be true */
                             // logger.debug("found unit " + toDimacs(l));
                             toTry.push(l);
@@ -247,15 +231,10 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
         IteratorInt iterator = literals.iterator();
         while (iterator.hasNext()) {
             int literal = iterator.next();
-            for (Clause clause: watches[literal ^ 0]) {
-                clause.undoLiteral(true);
-                if (!clause.isSatisfied())
-                    for (int l: clause)
-                        ++counts[l];
-            }
-
+            for (Clause clause: watches[literal ^ 0])
+                clause.undoLiteral(true, counts);
             for (Clause clause: watches[literal ^ 1])
-                clause.undoLiteral(false);
+                clause.undoLiteral(false, counts);
 
             values[literal >> 1] = Value.UNKNOWN;
             ++numUnknowns;
@@ -401,7 +380,7 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
                 constantPropagation(tUnits, fUnits);
                 propagateIfMissing(variable);
 
-                if (values[variable] == Value.UNKNOWN)
+                if (values[variable].isUnknown())
                     decision = variable;
             }
 
@@ -566,7 +545,7 @@ public final class SATInstance implements ISolver, Serializable, Cloneable {
     public void setExpectedNumberOfClauses(int numClauses) {
         this.numClauses = numClauses;
     }
-    
+
 	public IConstr addClause(IVecInt literals)
             throws ContradictionException {
         Clause clause = new Clause(literals);
@@ -770,7 +749,7 @@ final class Clause implements Iterable<Integer>, Serializable {
      * Checks if this clause was satisfied by at least one literal.
      */
     public boolean isSatisfied() {
-        return satisfied > 0;
+        return satisfied != 0;
     }
 
     /**
@@ -791,22 +770,30 @@ final class Clause implements Iterable<Integer>, Serializable {
     /**
      * Marks that one literal was set true or false.
      */
-    public void setLiteral(boolean isSatisfied) {
-        if (isSatisfied)
+    public void setLiteral(boolean isSatisfied, int[] counts) {
+        if (isSatisfied) {
+            if (!isSatisfied())
+                for (int literal: literals)
+                    --counts[literal];
             satisfied += 1;
-        else
+        } else {
             unsatisfied += 1;
+        }
         assert satisfied + unsatisfied <= size();
     }
 
     /**
      * Undoes an assignement.
      */
-    public void undoLiteral(boolean isSatisfied) {
-        if (isSatisfied)
+    public void undoLiteral(boolean isSatisfied, int[] counts) {
+        if (isSatisfied) {
             satisfied -= 1;
-        else
+            if (!isSatisfied())
+                for (int literal: literals)
+                    ++counts[literal];
+        } else {
             unsatisfied -= 1;
+        }
         assert satisfied + unsatisfied >= 0;
     }
 
@@ -821,7 +808,32 @@ final class Clause implements Iterable<Integer>, Serializable {
         return literals[index];
     }
 
-    public String toString(SATInstance.Value[] values) {
+    /**
+     * Returns the clause after eliminating known values
+     */
+    public int[] skeleton(Value[] values) {
+        assert !isContradiction();
+        if (isSatisfied())
+            return null;
+
+        int count = 0;
+        int[] skeleton = new int[size() - satisfied - unsatisfied];
+        for (int literal: literals)
+            if (values[literal >> 1].isUnknown())
+                skeleton[count++] = SATInstance.toDimacs(literal);
+
+        return skeleton;
+    }
+
+    /**
+     * Returns a string representation of this
+     * clause without the known values.
+     *
+     * If the clause is satisified returns an empty string.
+     * The values must correspond to calls to setLiteral() and
+     * undoLiteral().
+     */
+    public String toString(Value[] values) {
         if (values != null && isSatisfied())
             return "";
         if (values != null && isContradiction())
@@ -832,7 +844,7 @@ final class Clause implements Iterable<Integer>, Serializable {
         boolean first = true;
         for (int l: literals) {
             if (values != null)
-                if (values[l >> 1] != SATInstance.Value.UNKNOWN)
+                if (!values[l >> 1].isUnknown())
                     continue;
 
             if (first)
