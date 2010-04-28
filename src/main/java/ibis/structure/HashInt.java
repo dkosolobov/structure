@@ -29,6 +29,12 @@ public class HashInt {
         return stackKeys[numElements - 1];
     }
 
+    public final int[] keys() {
+        int[] keys_ = new int[numElements];
+        System.arraycopy(keys, 0, keys_, 0, numElements);
+        return keys_;
+    }
+
     public final void pop() {
         keys[search(stackKeys[numElements - 1])] = SENTINEL;
     }
