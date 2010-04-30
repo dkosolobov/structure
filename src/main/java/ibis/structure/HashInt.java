@@ -21,6 +21,10 @@ public class HashInt {
         return numElements;
     }
 
+    public final boolean isEmpty() {
+        return numElements == 0;
+    }
+
     public final boolean has(int key) {
         return keys[search(key)] != SENTINEL;
     }
@@ -31,12 +35,17 @@ public class HashInt {
 
     public final int[] keys() {
         int[] keys_ = new int[numElements];
-        System.arraycopy(keys, 0, keys_, 0, numElements);
+        System.arraycopy(stackKeys, 0, keys_, 0, numElements);
         return keys_;
     }
 
     public final void pop() {
-        keys[search(stackKeys[numElements - 1])] = SENTINEL;
+        keys[search(stackKeys[--numElements])] = SENTINEL;
+    }
+
+    public final void pop(int count) {
+        for (int i = 0; i < count; ++i)
+            pop();
     }
 
     protected final int hash(int value) {
@@ -55,8 +64,10 @@ public class HashInt {
         if (keys[hash] != SENTINEL)
             return stackKeys[keys[hash]];
 
-        keys[hash] = key;
-        stackKeys[numElements++] = key;
+        keys[hash] = numElements;
+        stackKeys[numElements] = key;
+
+        ++numElements;
         if (numElements * 2 > keys.length)
             rehash();
 
@@ -104,11 +115,10 @@ public class HashInt {
         int[] stackKeys_ = stackKeys;
 
         create(size);
-        for (int i = 0; i < keys_.length; ++i)
-            if (keys_[i] != SENTINEL) {
-                int hash = search(keys_[i]);
-                keys[hash] = keys_[i];
-            }
+        for (int i = 0; i < numElements; ++i) {
+            int hash = search(stackKeys_[i]);
+            keys[hash] = i;
+        }
         System.arraycopy(stackKeys_, 0, stackKeys, 0, numElements);
 
         return size;

@@ -12,23 +12,27 @@ public final class MapInt<E> extends HashInt {
     }
 
     public E get(int key) {
-        int index = search(key);
-        if (keys[index] == key)
-            return stackValues[keys[index]];
-        return null;
+        return get(key, null);
     }
 
     public E get(int key, E default_) {
         int index = search(key);
-        if (keys[index] == key)
+        if (keys[index] == SENTINEL)
+            return default_;
+        else
             return stackValues[keys[index]];
-        return default_;
     }
 
-    public int push(int key, E value) {
+    public int put(int key, E value) {
         int index = insert(key);
         stackValues[index] = value;
         return index;
+    }
+
+    public E setdefault(int key, E value) {
+        if (!has(key)) put(key, value);
+        else value = get(key);
+        return value;
     }
 
     public E peekValue() {
