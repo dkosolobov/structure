@@ -32,10 +32,26 @@ public final class VecInt {
         return array[--numElements];
     }
 
+    /**
+     * Returns a specific element.
+     *
+     * @param index location of the element
+     * @return element at index
+     * @throws IndexOutOfBoundsException if location is invalid
+     */
     public int getAt(int index) {
         if (0 > index || index >= numElements)
             throw new IndexOutOfBoundsException();
         return array[index];
+    }
+
+    /**
+     * Returns a copy of this vector as an int array.
+     */
+    public int[] toArray() {
+        int[] elements = new int[numElements];
+        System.arraycopy(array, 0, elements, 0, numElements);
+        return elements;
     }
 
     private void init(int capacity) {
