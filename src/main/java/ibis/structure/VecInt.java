@@ -20,10 +20,10 @@ public final class VecInt {
         return numElements == 0;
     }
 
-    public void push(int e0) {
-        array[numElements++] = e0;
-        if (numElements * 2 > array.length)
+    public void push(int e) {
+        if (numElements == array.length)
             resize();
+        array[numElements++] = e;
     }
 
     public int pop() {
