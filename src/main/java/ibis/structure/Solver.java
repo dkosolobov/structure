@@ -30,12 +30,6 @@ public final class Solver {
     public Solver(Skeleton skeleton) {
         this.numVariables = skeleton.numVariables;
 
-        /*
-        logger.debug("units     #" + skeleton.clauses[1][0].length);
-        logger.debug("binaries  #" + skeleton.clauses[2][0].length);
-        logger.debug("ternaries #" + skeleton.clauses[3][0].length);
-        */
-
         this.binaries = new MapInt<SetInt>();
         this.units = binaries.setdefault(0, new SetInt());
         this.ternaries = new MapInt<VecInt[]>();
@@ -133,14 +127,6 @@ public final class Solver {
     public int numUnknowns() {
         /* FIXME: units may contain 0 or 1 which are not variables */
         return numVariables - units.size();
-    }
-
-    public Value valueOf(int variable) {
-        if (units.has(2 * variable + 0))
-            return Value.TRUE;
-        if (units.has(2 * variable + 1))
-            return Value.FALSE;
-        return Value.UNKNOWN;
     }
 
     /**
@@ -429,7 +415,7 @@ public final class Solver {
 
             for (int c = 0; c < candidates.size() && !isSolved(); ++c) {
                 int variable = candidates.getAt(c);
-                if (!isUnknown(variable))
+                if (!isUnknown(2 * variable + 0))
                     continue;
 
                 SetInt tUnits = new SetInt();
@@ -508,6 +494,21 @@ public final class Solver {
         }
 
         return false;
+    }
+
+    /**
+     * Selects some possible variables for lookahead.
+     *
+     * NB: the simplest implementation is to select all
+     * unsatisfied variables.
+     */
+    private VecInt select() {
+        VecInt candidates = new VecInt();
+        for (int v = 1; v <= numVariables; ++v) {
+            if (isUnknown(2 * v + 0))
+                candidates.push(v);
+        }
+        return candidates;
     }
 
 
@@ -670,18 +671,5 @@ public final class Solver {
         return result.toString();
     }
 
-    /**
-     * Selects some possible variables for lookahead.
-     *
-     * NB: the simplest implementation is to select all
-     * unsatisfied variables.
-     */
-    private VecInt select() {
-        VecInt candidates = new VecInt(numVariables - units.size());
-        for (int v = 1; v <= numVariables; ++v)
-            if (valueOf(v) == Value.UNKNOWN)
-                candidates.push(v);
-        return candidates;
-    }
 }
 

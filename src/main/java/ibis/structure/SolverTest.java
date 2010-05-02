@@ -58,8 +58,10 @@ public final class SolverTest {
 
     private void checkPropagate(String begin, String end, int... literals) {
         Solver solver = load(begin);
-        for (int literal: literals)
+        for (int literal: literals) {
             solver.propagate(SAT.fromDimacs(literal));
+            Assert.assertFalse(solver.isContradiction());
+        }
         solver.check();
         check(solver, end);
     }
@@ -94,8 +96,8 @@ public final class SolverTest {
                        "1 & 2",
                        1);
 
-        checkPropagate("(1 | -2) & 2",
-                       "-1 & 2",
+        checkPropagate("(1 | -2) & -2",
+                       "-1 & -2",
                        -1);
 
         checkPropagate("(-1 | -2 | 3) & (1 | -2 | -3) & (1 | 2 | -3) & (1 | 2 | 3)",
