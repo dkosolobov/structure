@@ -62,7 +62,7 @@ public class HashInt {
     protected final int insert(int key) {
         int hash = search(key);
         if (keys[hash] != SENTINEL)
-            return stackKeys[keys[hash]];
+            return keys[hash];
 
         keys[hash] = numElements;
         stackKeys[numElements] = key;
