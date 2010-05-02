@@ -1,0 +1,8 @@
+#!/bin/sh
+
+export STRUCTURE_LOCATION=/home/vasile/src/structure
+export SOLVER=structure
+export SOLVER_IMPL=mt
+export SOLVER_THREADS=1
+
+time ./run-structure $*
