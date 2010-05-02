@@ -1,6 +1,8 @@
 package ibis.structure;
 
 public final class SetInt extends HashInt {
+    public final static SetInt EMPTY = new SetInt();
+
     public SetInt() {
         super();
     }
