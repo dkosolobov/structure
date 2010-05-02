@@ -20,6 +20,7 @@ import org.sat4j.specs.TimeoutException;
  */
 public final class Reader implements ISolver {
     private int numVariables;
+    private int numConstraints;
     private VecInt[][] clauses;
 
     public Reader() {
@@ -65,17 +66,20 @@ public final class Reader implements ISolver {
 
     private void addUnit(int first)
             throws ContradictionException {
+        ++numConstraints;
         clauses[1][0].push(first);
     }
 
     private void addBinary(int first, int second)
             throws ContradictionException {
+        ++numConstraints;
         clauses[2][0].push(first);
         clauses[2][1].push(second);
     }
 
     private void addTernary(int first, int second, int third)
             throws ContradictionException {
+        ++numConstraints;
         clauses[3][0].push(first);
         clauses[3][1].push(second);
         clauses[3][2].push(third);
@@ -182,6 +186,8 @@ public final class Reader implements ISolver {
 
 	public void reset() {
         numVariables = 0;
+        numConstraints = 0;
+
         clauses = new VecInt[4][];
         for (int i = 0; i < 4; ++i) {
             clauses[i] = new VecInt[i];
@@ -284,7 +290,7 @@ public final class Reader implements ISolver {
     }
 
     public int nConstraints() {
-        throw new UnsupportedOperationException();
+        return numConstraints;
     }
 
     public int nVars() {
