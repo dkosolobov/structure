@@ -1,3 +1,5 @@
 build/
 lib/
 src/test/testfiles/
+docs/
+instrumented/
