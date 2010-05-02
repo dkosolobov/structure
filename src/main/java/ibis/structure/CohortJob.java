@@ -4,14 +4,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.sat4j.core.VecInt;
-import org.sat4j.minisat.SolverFactory;
-import org.sat4j.minisat.core.Solver;
-import org.sat4j.specs.ContradictionException;
-import org.sat4j.specs.IProblem;
-import org.sat4j.specs.ISolver;
-import org.sat4j.specs.IVecInt;
-
 import ibis.cohort.ActivityIdentifier;
 import ibis.cohort.Activity;
 import ibis.cohort.MessageEvent;
@@ -19,17 +11,19 @@ import ibis.cohort.Event;
 import ibis.cohort.Context;
 import ibis.cohort.SingleEventCollector;
 
+import org.apache.log4j.Logger;
+
 
 public class CohortJob extends Activity {
     private static final long serialVersionUID = 1L;
-    private static final StructureLogger logger = StructureLogger.getLogger(CohortJob.class);
+    private static final Logger logger = Logger.getLogger(CohortJob.class);
 
     private final ActivityIdentifier counter;
     private final ActivityIdentifier listener;
     private final Skeleton skeleton;
     private final int decision;
 
-    private SATInstance instance;
+    private Solver solver;
     private int lookahead;
 
     public CohortJob(
@@ -46,35 +40,38 @@ public class CohortJob extends Activity {
     public void initialize()
             throws Exception {
         /* creates the instance from skeleton */
-        instance = new SATInstance(skeleton);
+        solver = new Solver(skeleton);
 
         /* makes the decision first */
         if (decision != 0) {
-            // logger.debug("decision " + SATInstance.toDimacs(decision) + " on " +
-                         // "instance " + instance);
-            boolean contradiction = instance.propagate(decision, null);
-            if (contradiction) {
+            /*
+            logger.debug("propagating " + SAT.toDimacs(decision) +
+                         " on " + solver); */
+            String instance = solver.toString();
+            solver.propagate(decision);
+            if (solver.isContradiction()) {
                 /* TODO: this is an error an should be treated as such */
-                logger.error("Propagation of " + SATInstance.toDimacs(decision) +
-                             " returned in contradiction");
+                logger.error("Propagation of " + SAT.toDimacs(decision) +
+                             " on " + instance + " returned in contradiction");
                 System.exit(1);
             }
         }
 
         // logger.debug("solving formula " + instance);
-        lookahead = instance.lookahead();
+        lookahead = solver.lookahead();
 
         if (lookahead == 0) {
-            if (instance.isSatisfied()) {
+            if (solver.isSatisfied()) {
                 // logger.debug("instance is satisfiable");
-                cohort.send(identifier(), listener, instance.model());
-            } else if (instance.isContradiction()) {
+                cohort.send(identifier(), listener, solver.model());
+            } else if (solver.isContradiction()) {
                 // logger.debug("instance is a contradiction");
             } else {
                 logger.error(
                         "Instance " + this + " was not satisfied and is not a " +
                         "contradiction, but lookahead didn't find any " +
                         "variable to branch on.");
+                while (true);
             }
 
             /* job finished, decrease counter */
@@ -91,12 +88,13 @@ public class CohortJob extends Activity {
         boolean stopped = ((MessageEvent<Boolean>)event).message;
 
         if (!stopped) {
-            /* FIXME: I assumed that a copy of instance is already done */
             // logger.debug("branching on " + lookahead + " for " + instance);
+            Skeleton skeleton = solver.skeleton();
+
             cohort.submit(new CohortJob(
-                    counter, listener, instance.skeleton(), lookahead * 2 + 0));
+                    counter, listener, skeleton, lookahead * 2 + 0));
             cohort.submit(new CohortJob(
-                    counter, listener, instance.skeleton(), lookahead * 2 + 1));
+                    counter, listener, skeleton, lookahead * 2 + 1));
         }
 
         /* job finished, decrease counter */
@@ -113,8 +111,8 @@ public class CohortJob extends Activity {
     }
 
     public String toString() {
-        return "CohortJob: instance = " + instance +
-               (decision == 0 ? "" : ", decision = " + SATInstance.toDimacs(decision));
+        return "CohortJob: solver = " + solver +
+               (decision == 0 ? "" : ", decision = " + SAT.toDimacs(decision));
     }
 }
 

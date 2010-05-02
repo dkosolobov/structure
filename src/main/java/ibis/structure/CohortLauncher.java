@@ -11,20 +11,6 @@ import java.util.Properties;
 import java.util.Stack;
 import java.util.Random;
 
-import org.sat4j.core.ASolverFactory;
-import org.sat4j.core.VecInt;
-import org.sat4j.ExitCode;
-import org.sat4j.minisat.core.IOrder;
-import org.sat4j.minisat.core.Solver;
-import org.sat4j.minisat.SolverFactory;
-import org.sat4j.reader.Reader;
-import org.sat4j.reader.InstanceReader;
-import org.sat4j.reader.ParseFormatException;
-import org.sat4j.specs.ContradictionException;
-import org.sat4j.specs.IProblem;
-import org.sat4j.specs.ISolver;
-import org.sat4j.specs.IVecInt;
-
 import org.apache.log4j.Logger;
 
 import ibis.cohort.Activity;
@@ -37,6 +23,17 @@ import ibis.cohort.MessageEvent;
 import ibis.cohort.MultiEventCollector;
 import ibis.cohort.SingleEventCollector;
 
+import org.sat4j.core.ASolverFactory;
+import org.sat4j.core.VecInt;
+import org.sat4j.ExitCode;
+import org.sat4j.minisat.core.IOrder;
+import org.sat4j.minisat.SolverFactory;
+import org.sat4j.reader.InstanceReader;
+import org.sat4j.reader.ParseFormatException;
+import org.sat4j.specs.ContradictionException;
+import org.sat4j.specs.IProblem;
+import org.sat4j.specs.ISolver;
+import org.sat4j.specs.IVecInt;
 
 
 /**
@@ -54,7 +51,7 @@ public class CohortLauncher {
     private String problemName;
     private int maxJobs = DEFAULT_MAX_JOBS;
 
-    private static StructureLogger logger = StructureLogger.getLogger(CohortLauncher.class);
+    private static Logger logger = Logger.getLogger(CohortLauncher.class);
 
     private static void displayLicense() {
         logger.info("SAT4J: a SATisfiability library for Java (c) 2004-2008 Daniel Le Berre"); //$NON-NLS-1$
@@ -128,19 +125,24 @@ public class CohortLauncher {
         if (cohort.isMaster()) {
             displayHeader();
 
-            SATInstance instance = readProblem(problemName);
+            Skeleton instance = readProblem(problemName);
+            Solver solver = new Solver(instance);
+
             logger.debug("solving " + problemName);
-            logger.debug("#vars     " + instance.nVars());
-            logger.debug("#constraints  " + instance.nConstraints());
+            logger.debug("instance " + solver);
+            logger.debug("#vars     " + instance.numVariables());
+            logger.debug("#constraints  " + instance.numConstraints());
+            logger.debug("simplifying");
+            logger.debug("instance " + solver);
 
             JobsCounter counter = new JobsCounter(1);
-            SolutionListener listener = new SolutionListener(counter);
+            SolutionListener listener = new SolutionListener(instance, counter);
 
             /* starts the first job */
             cohort.submit(counter);
             cohort.submit(listener);
             cohort.submit(new CohortJob(
-                    counter.identifier(), listener.identifier(), instance.skeleton(), 0));
+                    counter.identifier(), listener.identifier(), instance, 0));
 
             /* waits for all jobs to finish */
             synchronized(counter) {
@@ -158,12 +160,12 @@ public class CohortLauncher {
     /**
      * Reads the SATInstance from problemName
      */
-    public static SATInstance readProblem(String problemName)
+    public static Skeleton readProblem(String problemName)
             throws FileNotFoundException, ParseFormatException, IOException, ContradictionException {
-        SATInstance satInstance = new SATInstance();
-        Reader reader = new InstanceReader(satInstance);
+        Reader instance = new Reader();
+        org.sat4j.reader.Reader reader = new InstanceReader(instance);
         reader.parseInstance(problemName);
-        return satInstance;
+        return instance.skeleton();
     }
 
     public static void main(final String[] args) {
@@ -185,7 +187,8 @@ public class CohortLauncher {
             logger.fatal("Cannot read input file", e);
         } catch (ContradictionException e) {
             logger.info("(trivial inconsistency)");
-            logger.answer(ExitCode.UNSATISFIABLE);
+            /* TODO */
+            // logger.answer(ExitCode.UNSATISFIABLE);
             exitCode = ExitCode.UNSATISFIABLE;
         } catch (Exception e) {
             /* FIXME: never throw Exception */
@@ -198,13 +201,15 @@ public class CohortLauncher {
 
 
 class SolutionListener extends Activity {
-    private static StructureLogger logger = StructureLogger.getLogger(SolutionListener.class);
+    private static Logger logger = Logger.getLogger(SolutionListener.class);
 
+    private final Skeleton instance;
     private final JobsCounter counter;
 
-    public SolutionListener(JobsCounter counter) {
+    public SolutionListener(Skeleton instance, JobsCounter counter) {
         super(Context.ANY);
         this.counter = counter;
+        this.instance = instance;
     }
 
     public void initialize()
@@ -215,8 +220,7 @@ class SolutionListener extends Activity {
     public void process(Event e)
             throws Exception {
         counter.stop();
-        int[] model = ((MessageEvent<int[]>)e).message;
-        logger.solution(model);
+        printModel(((MessageEvent<int[]>)e).message);
         suspend();
     }
 
@@ -226,6 +230,20 @@ class SolutionListener extends Activity {
 
     public void cancel()
             throws Exception {
+    }
+
+    private void printModel(int[] model) {
+        if (instance.testModel(model))
+            System.out.println("c model is CORRECT");
+        else {
+            System.out.println("c model is WRONG");
+            while (true);
+        }
+
+        System.out.print("v");
+        for (int i = 0; i < model.length; ++i)
+            System.out.print(" " + SAT.toDimacs(model[i]));
+        System.out.println();
     }
 }
 
