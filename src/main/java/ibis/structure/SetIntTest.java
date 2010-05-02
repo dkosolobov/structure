@@ -93,7 +93,7 @@ public final class SetIntTest {
     @Test
     public void manyRehashes() {
         SetInt set = new SetInt();
-        for (int i = 0; i < (1 << 21); ++i)
+        for (int i = 0; i < (1 << 20); ++i)
             Assert.assertTrue(set.push(i) == i);
     }
 
@@ -108,5 +108,16 @@ public final class SetIntTest {
         for (int i = 0; i < 16; ++i)
             Assert.assertTrue(keys[i] == i);
     }
+
+    @Test
+    public void complex() {
+        SetInt set = new SetInt();
+        int[] es = new int[] { 3, 9, 16, 10, 20, 12, 4, 15 };
+        for (int e: es)
+            set.push(e);
+        for (int e: es)
+            Assert.assertTrue(set.has(e));
+    }
+
 }
 
