@@ -6,6 +6,9 @@ import java.io.Serializable;
 import org.apache.log4j.Logger;
 
 
+/**
+ * @todo store initial number of variables
+ */
 public final class Skeleton implements Serializable {
     private static final Logger logger = Logger.getLogger(Solver.class);
 
@@ -73,5 +76,41 @@ public final class Skeleton implements Serializable {
             }
 
         return skeleton;
+    }
+
+    /**
+     * Returns the number of variables.
+     */
+    public int numVariables() {
+        return numVariables;
+    }
+
+    /**
+     * Returns the number of constraints.
+     */
+    public int numConstraints() {
+        return clauses[1][0].length + clauses[2][0].length + clauses[3][0].length;
+    }
+
+    /**
+     * Returns true if model satisfies stored instance.
+     */
+    public boolean testModel(int[] model) {
+        SetInt units = new SetInt();
+        for (int unit: model)
+            units.push(unit);
+
+        for (int i = 1; i < 4; ++i) {
+            for (int j = 0; j < clauses[i][0].length; ++j) {
+                boolean valid = true;
+                for (int k = 0; k < i; ++k)
+                    if (units.has(clauses[i][k][j]))
+                        valid = false;
+                if (valid)
+                    return false;
+            }
+        }
+
+        return true;
     }
 }
