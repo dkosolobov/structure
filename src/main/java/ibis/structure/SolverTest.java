@@ -97,6 +97,14 @@ public final class SolverTest {
         checkPropagate("(1 | -2) & 2",
                        "-1 & 2",
                        -1);
+
+        checkPropagate("(-1 | -2 | 3) & (1 | -2 | -3) & (1 | 2 | -3) & (1 | 2 | 3)",
+                       "1 & (-2 | 3)",
+                       1);
+
+        checkPropagate("(-1 | -2 | 3) & (1 | -2 | -3) & (1 | 2 | -3) & (1 | 2 | 3)",
+                       "-1 & -3 & 2",
+                       -1);
     }
 
     @Test
@@ -121,8 +129,8 @@ public final class SolverTest {
         Solver solver = load(begin);
         MapInt<Integer> state = new MapInt<Integer>();
         for (int literal: literals) {
-            boolean contradiction = solver.propagate(literal, state, null);
-            Assert.assertFalse(contradiction);
+            solver.propagate(literal, state, null);
+            Assert.assertFalse(solver.isContradiction());
         }
         solver.undo(state);
         check(solver, begin);

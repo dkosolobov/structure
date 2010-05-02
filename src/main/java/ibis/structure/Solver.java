@@ -30,6 +30,12 @@ public final class Solver {
     public Solver(Skeleton skeleton) {
         this.numVariables = skeleton.numVariables;
 
+        /*
+        logger.debug("units     #" + skeleton.clauses[1][0].length);
+        logger.debug("binaries  #" + skeleton.clauses[2][0].length);
+        logger.debug("ternaries #" + skeleton.clauses[3][0].length);
+        */
+
         this.binaries = new MapInt<SetInt>();
         this.units = binaries.setdefault(0, new SetInt());
         this.ternaries = new MapInt<VecInt[]>();
@@ -52,6 +58,7 @@ public final class Solver {
     }
 
     private void addBinaryHelper(int first, int second) {
+        assert first != 0;
         SetInt temp = binaries.get(first);
         if (temp == null) {
             temp = new SetInt();
@@ -70,6 +77,10 @@ public final class Solver {
     }
 
     private void addTernaryHelper(int first, int second, int third) {
+        /*
+        logger.debug("xxxx " + SAT.toDimacs(first) + " " + SAT.toDimacs(second) + " " +
+                SAT.toDimacs(third) + " ");*/
+
         VecInt[] temp = ternaries.get(first);
         if (temp == null) {
             temp = new VecInt[] {
@@ -137,24 +148,90 @@ public final class Solver {
      */
     public int[] model() {
         assert isSatisfied();
-        throw new UnsupportedOperationException();
+        assert units.peekKey() == 1;
+
+        units.pop();
+        int[] model = units.keys();
+        units.push(1);
+        return model;
     }
 
     /**
-     * Returns the skeleton of this solver
+     * Returns the skeleton of this solver.
+     *
+     * This function doesn't handle bogus clauses like (a | b | b)
+     * so it may be a good idea to run a simplify() before this.
      */
     public Skeleton skeleton() {
-        throw new UnsupportedOperationException();
+        VecInt[] clauses;
+        int[] keys;
+        Skeleton skeleton = new Skeleton();
+        skeleton.numVariables = numVariables;
+
+        /* units */
+        skeleton.clauses[1][0] = units.keys();
+
+        /* binaries */
+        clauses = new VecInt[] {
+                new VecInt(),
+                new VecInt(),
+            };
+        keys = binaries.keys();
+
+        for (int first: keys) {
+            if (first == 0 || !isUnknown(first))
+                continue;
+
+            int[] seconds = binaries.get(first).keys();
+            for (int second: seconds)
+                if (first < second && isUnknown(second)) {
+                    clauses[0].push(first);
+                    clauses[1].push(second);
+                }
+        }
+        skeleton.clauses[2][0] = clauses[0].toArray();
+        skeleton.clauses[2][1] = clauses[1].toArray();
+
+        /* ternaries */
+        clauses = new VecInt[] {
+                new VecInt(),
+                new VecInt(),
+                new VecInt(),
+            };
+        keys = ternaries.keys();
+
+        for (int first: keys) {
+            if (!isUnknown(first))
+                continue;
+
+            VecInt[] tern = ternaries.get(first);
+            for (int i = 0; i < tern[0].size(); ++i) {
+                int second = tern[0].getAt(i);
+                int third = tern[1].getAt(i);
+
+                if (first < second && first < third &&
+                        isUnknown(second) && isUnknown(third)) {
+                    clauses[0].push(first);
+                    clauses[1].push(second);
+                    clauses[2].push(third);
+                }
+            }
+        }
+        skeleton.clauses[3][0] = clauses[0].toArray();
+        skeleton.clauses[3][1] = clauses[1].toArray();
+        skeleton.clauses[3][2] = clauses[2].toArray();
+
+        return skeleton;
     }
 
     /**
      * Propagates one literal.
      *
      * @param literal literal to propagate
-     * @return true if propagating literals results in contradiction
      */
-    public boolean propagate(int literal) {
-        return propagate(literal, null, null);
+    public void propagate(int literal) {
+        propagate(literal, null, null);
+        check();
     }
 
     /**
@@ -162,12 +239,12 @@ public final class Solver {
      *
      * @param literal literal to propagate
      * @param state stores the state to undo the propragation
-     * @param propagates literals propagated
-     * @return true if propagating literals results in contradiction
+     * @param propagated literals propagated
      */
-    public boolean propagate(int literal,
-                             MapInt<Integer> state,
-                             SetInt propagated) {
+    public void propagate(int literal,
+                          MapInt<Integer> state,
+                          SetInt propagated) {
+        assert !isSolved();
         if (state != null)
             state.setdefault(0, units.size());
 
@@ -194,13 +271,17 @@ public final class Solver {
                 literal = l1;
 
                 /* checks if literal is already known */
-                if (units.has(literal ^ 1))
-                    return true;
-                if (units.has(literal))
+                if (units.has(literal ^ 1)) {
+                    units.push(0);
+                    return;
+                }
+                if (units.has(literal)) {
                     continue;
+                }
 
-                logger.debug("propagating literal " + SAT.toDimacs(literal));
+                // logger.debug("propagating literal " + SAT.toDimacs(literal));
                 units.push(literal);
+                // logger.debug("units " + units);
                 if (propagated != null)
                     propagated.push(literal);
 
@@ -224,19 +305,31 @@ public final class Solver {
                 }
 
             } else {  /* found a binary */
-                if (units.has(l0 ^ 1) && units.has(l1 ^ 1))
+                if (units.has(l0 ^ 1) && units.has(l1 ^ 1)) {
                     /* both literals are false */
-                    return true;
-
+                    units.push(0);
+                    return;
+                }
                 if (units.has(l0) || units.has(l1))
                     /* at least one literal is true */
                     continue;
-
+                if (units.has(l0 ^ 1)) {
+                    toTry[0].push(0);
+                    toTry[1].push(l1);
+                    continue;
+                }
+                if (units.has(l1 ^ 1)) {
+                    toTry[0].push(0);
+                    toTry[1].push(l0);
+                    continue;
+                }
                 if (l0 == (l1 ^ 1))
                     /* l0 | !l0 is true */
                     continue;
 
                 boolean simplified = false;
+                // logger.debug("propagating binary (" + SAT.toDimacs(l0) +
+                             // " | " + SAT.toDimacs(l1) + ")");
 
                 SetInt bin0 = binaries.get(l0, SetInt.EMPTY);
                 if (bin0.has(l1 ^ 1)) {
@@ -265,7 +358,8 @@ public final class Solver {
             }
         }
 
-        return false;
+        if (units.size() == numVariables)
+            units.push(1);
     }
 
     /**
@@ -324,13 +418,14 @@ public final class Solver {
      *         1...numVariables the variable selected for branching
      */
     public int lookahead() {
-        assert !isSatisfied() && !isContradiction();
-
+        if (isSolved())
+            return 0;
 
         /* repeats as long as the instance is simplified */
+        int beforeNumUnknowns, afterNumUnknowns;
         do {
             VecInt candidates = select();
-            int beforeNumUnknowns = numUnknowns();
+            beforeNumUnknowns = numUnknowns();
 
             for (int c = 0; c < candidates.size() && !isSolved(); ++c) {
                 int variable = candidates.getAt(c);
@@ -345,9 +440,17 @@ public final class Solver {
                 constantPropagation(tUnits, fUnits);
             }
 
-            int afterNumUnknowns = numUnknowns();
-        } while (beforeNumUnknowns > afterNumUnknowns() && !isSolved());
+            afterNumUnknowns = numUnknowns();
+        } while (beforeNumUnknowns > afterNumUnknowns && !isSolved());
 
+        if (isSolved())
+            return 0;
+
+        for (int v = 1; v <= numVariables; ++v)
+            if (isUnknown(2 * v + 0))
+                return v;
+
+        assert false: this + " not solved, but all variables assigned!";
         return 0;
     }
 
@@ -359,8 +462,10 @@ public final class Solver {
     void constantPropagation(SetInt tUnits, SetInt fUnits) {
         int[] literals = tUnits.keys();
         for (int literal: literals)
-            if (fUnits.has(literal))
+            if (fUnits.has(literal)) {
+                logger.debug("discovered " + SAT.toDimacs(literal));
                 propagate(literal);
+            }
     }
 
     /**
@@ -368,20 +473,19 @@ public final class Solver {
      * and tUnits.
      */
     boolean lookahead(int variable, SetInt tUnits, SetInt fUnits) {
+        // logger.debug("lookup on " + variable);
         MapInt<Integer> state = new MapInt<Integer>();
 
-        boolean tContradiction = propagate(2 * variable + 0, state, tUnits);
-        if (!tContradiction && numUnknowns() == 0) {
-            units.push(1);
+        propagate(2 * variable + 0, state, tUnits);
+        boolean tContradiction = isContradiction();
+        if (isSatisfied())
             return true;
-        }
         undo(state);
 
-        boolean fContradiction = propagate(2 * variable + 1, state, fUnits);
-        if (!fContradiction && numUnknowns() == 0) {
-            units.push(1);
+        propagate(2 * variable + 1, state, fUnits);
+        boolean fContradiction = isContradiction();
+        if (isSatisfied())
             return true;
-        }
         undo(state);
 
         /* analyzes conflicts */
@@ -519,7 +623,8 @@ public final class Solver {
         /* units */
         keys = units.keys();
         for (int key: keys)
-            parts.add("" + SAT.toDimacs(key));
+            if (key != 0 && key != 1)
+                parts.add("" + SAT.toDimacs(key));
         extend(result, parts);
 
         /* binaries */
