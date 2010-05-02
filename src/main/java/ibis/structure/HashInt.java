@@ -115,11 +115,12 @@ public class HashInt {
         int[] stackKeys_ = stackKeys;
 
         create(size);
+        System.arraycopy(stackKeys_, 0, stackKeys, 0, numElements);
+
         for (int i = 0; i < numElements; ++i) {
             int hash = search(stackKeys_[i]);
             keys[hash] = i;
         }
-        System.arraycopy(stackKeys_, 0, stackKeys, 0, numElements);
 
         return size;
     }
