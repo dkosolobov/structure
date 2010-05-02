@@ -16,80 +16,23 @@ import org.sat4j.specs.TimeoutException;
 
 
 /**
- * Reader.
- *
- * This class is used to read a SAT instance using
- * the sat4j reader. The instance can be converted to
- * a skeleton which can be passed to a solver.
- * The SAT formula is transformed into a 3-SAT formula
- * (ie. all clauses have at most 3 literals). 
- * All trivial clauses (eg. x | !x) are reduced or eliminated.
- * Duplicate clauses are eliminated.
- * Trivial contradictions like x & !x are also detected.
+ * Reader is used to read instances using the SAT4J reader.
  */
 public final class Reader implements ISolver {
     private int numVariables;
-    private SetInt units;
-    private MapInt<SetInt> binaries;
-    private MapInt<MapInt<SetInt>> ternaries;
+    private VecInt[][] clauses;
 
     public Reader() {
         reset();
-    }
-
-    private void backtrackHelper(
-            int depth, int maxDepth, int[] path,
-            HashInt tree, Vector<Integer>[] store) {
-        int[] keys = tree.keys();
-        for (int k: keys) {
-            path[depth] = k;
-
-            if (depth < maxDepth - 1) {
-                backtrackHelper(
-                        depth + 1, maxDepth, path,
-                        (HashInt)(((MapInt)tree).get(k)), store);
-            } else {
-                for (int d = 0; d < maxDepth; ++d)
-                    store[d].add(path[d]);
-            }
-        }
-    }
-
-    private void backtrack(int maxDepth, HashInt tree, Vector<Integer>[] store) {
-        backtrackHelper(0, maxDepth, new int[maxDepth], tree, store);
-    }
-
-    private int[][] convert(Vector<Integer>[] store) {
-        int[][] store_ = new int[store.length][];
-        for (int i = 0; i < store.length; ++i) {
-            store_[i] = new int[store[i].size()];
-            for (int j = 0; j < store[i].size(); ++j)
-                store_[i][j] = store[i].elementAt(j);
-        }
-        return store_;
     }
 
     public Skeleton skeleton() {
         Skeleton skeleton = new Skeleton();
         skeleton.numVariables = numVariables;
 
-        Vector<Integer>[] units_ = new Vector[1];
-        units_[0] = new Vector<Integer>();
-        backtrack(1, units, units_);
-        skeleton.units = convert(units_);
-
-        Vector<Integer>[] binaries_ = new Vector[2];
-        binaries_[0] = new Vector<Integer>();
-        binaries_[1] = new Vector<Integer>();
-        backtrack(2, binaries, binaries_);
-        skeleton.binaries = convert(binaries_);
-
-        Vector<Integer>[] ternaries_ = new Vector[3];
-        ternaries_[0] = new Vector<Integer>();
-        ternaries_[1] = new Vector<Integer>();
-        ternaries_[2] = new Vector<Integer>();
-        backtrack(3, ternaries, ternaries_);
-        skeleton.ternaries = convert(ternaries_);
+        for (int i = 0; i < 4; ++i)
+            for (int j = 0; j < i; ++j)
+                skeleton.clauses[i][j] = clauses[i][j].toArray();
 
         return skeleton;
     }
@@ -122,70 +65,20 @@ public final class Reader implements ISolver {
 
     private void addUnit(int first)
             throws ContradictionException {
-        if (units.has(first ^ 1))
-            throw new ContradictionException();
-        units.push(first);
+        clauses[1][0].push(first);
     }
 
     private void addBinary(int first, int second)
             throws ContradictionException {
-        /* sorts first, second */
-        int temp;
-        if (first > second) { temp = first; first = second; second = temp; }
-
-        /* eliminates trivial cases */
-        if (first == second) {
-            /* first | first */
-            addUnit(first);
-            return;
-        }
-        if ((first ^ 1) == second) {
-            /* first | !first */
-            return;
-        }
-
-        /* first | second */
-        binaries.
-                get(first, new SetInt()).push(second);
+        clauses[2][0].push(first);
+        clauses[2][1].push(second);
     }
 
     private void addTernary(int first, int second, int third)
             throws ContradictionException {
-        /* sorts first, second, third */
-        int temp;
-        if (first > second) { temp = first; first = second; second = temp; }
-        if (second > third) { temp = second; second = third; third = temp; }
-        if (first > second) { temp = first; first = second; second = temp; }
-        assert first <= second && second <= third;
-
-        /* eliminates trivial cases when a literal appeares twice */
-        if (first == second) {
-            /* first | first | third */
-            addBinary(first, third);
-            return;
-        }
-        if (second == third) {
-            /* first | second | second */
-            addBinary(first, second);
-            return;
-        }
-        assert first < second && second < third;
-
-        /* eliminates trivial cases when a variable appeares twice */
-        if (first == (second ^ 1)) {
-            /* first | !first | third */
-            addUnit(third);
-            return;
-        }
-        if (second == (third ^ 1)) {
-            /* first | second | !second */
-            addUnit(first);
-            return;
-        }
-
-        ternaries.
-                get(first, new MapInt<SetInt>()).
-                get(second, new SetInt()).push(second);
+        clauses[3][0].push(first);
+        clauses[3][1].push(second);
+        clauses[3][2].push(third);
     }
 
 	public IConstr addClause(IVecInt literals)
@@ -289,9 +182,12 @@ public final class Reader implements ISolver {
 
 	public void reset() {
         numVariables = 0;
-        units = new SetInt();
-        binaries = new MapInt<SetInt>();
-        ternaries = new MapInt<MapInt<SetInt>>();
+        clauses = new VecInt[4][];
+        for (int i = 0; i < 4; ++i) {
+            clauses[i] = new VecInt[i];
+            for (int j = 0; j < i; ++j)
+                clauses[i][j] = new VecInt();
+        }
     }
 
 	@Deprecated
