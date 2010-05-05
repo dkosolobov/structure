@@ -299,6 +299,9 @@ public final class Solver {
                 if (units.has(l0) || units.has(l1))
                     /* at least one literal is true */
                     continue;
+                if (l0 == (l1 ^ 1))
+                    /* l0 | !l0 is true */
+                    continue;
                 if (units.has(l0 ^ 1)) {
                     toTry[0].push(0);
                     toTry[1].push(l1);
@@ -309,16 +312,13 @@ public final class Solver {
                     toTry[1].push(l0);
                     continue;
                 }
-                if (l0 == (l1 ^ 1))
-                    /* l0 | !l0 is true */
-                    continue;
 
                 boolean simplified = false;
                 // logger.debug("propagating binary (" + SAT.toDimacs(l0) +
                              // " | " + SAT.toDimacs(l1) + ")");
 
-                SetInt bin0 = binaries.get(l0, SetInt.EMPTY);
-                if (bin0.has(l1 ^ 1)) {
+                SetInt bin0 = binaries.get(l0);
+                if (bin0 != null && bin0.has(l1 ^ 1)) {
                     /* (l0 | l1) & (l0 | !l1) <=> l0 */
                     toTry[0].push(0);
                     toTry[1].push(l0);
@@ -326,7 +326,7 @@ public final class Solver {
                 }
 
                 SetInt bin1 = binaries.get(l1, SetInt.EMPTY);
-                if (bin1.has(l0 ^ 1)) {
+                if (bin1 != null && bin1.has(l0 ^ 1)) {
                     /* (l0 | l1) & (!l0 | l1) <=> l1 */
                     toTry[0].push(0);
                     toTry[1].push(l1);
@@ -335,8 +335,8 @@ public final class Solver {
 
                 if (!simplified) {
                     if (state != null) {
-                        state.setdefault(l0, bin0.size());
-                        state.setdefault(l1, bin1.size());
+                        state.setdefault(l0, bin0 == null ? 0 : bin0.size());
+                        state.setdefault(l1, bin1 == null ? 0 : bin1.size());
                     }
 
                     addBinary(l0, l1);
@@ -435,22 +435,29 @@ public final class Solver {
         // @todo: selecting variable that appears in most ternaries.
         // this is a simple, not the best, heuristic.
         int best = 0;
-        long bestVal = Long.MIN_VALUE;
+        double bestVal = Double.MIN_VALUE;
         for (int v = 1; v <= numVariables; ++v) {
             int l = 2 * v + 0;
             if (isUnknown(l)) {
+                SetInt bin;
+                double num2 = 1;
                 VecInt[] tern;
-                long num = 1;
+                double num3 = 1;
 
+                bin = binaries.get(l);
                 tern = ternaries.get(l);
-                num *= 1 + (tern == null ? 0 : tern[0].size());
+                num2 *= 1 + (bin == null ? 0 : bin.size());
+                num3 *= 1 + (tern == null ? 0 : tern[0].size());
 
+                bin = binaries.get(l ^ 1);
                 tern = ternaries.get(l ^ 1);
-                num *= 1 + (tern == null ? 0 : tern[0].size());
+                num2 *= 1 + (bin == null ? 0 : bin.size());
+                num3 *= 1 + (tern == null ? 0 : tern[0].size());
 
-                if (num > bestVal) {
+                double val = num3 * num2;
+                if (val > bestVal) {
                     best = v;
-                    bestVal = num;
+                    bestVal = val;
                 }
             }
         }
