@@ -454,7 +454,7 @@ public final class Solver {
                 num2 *= 1 + (bin == null ? 0 : bin.size());
                 num3 *= 1 + (tern == null ? 0 : tern[0].size());
 
-                double val = num3 * num2;
+                double val = num3 * num2 * num2;
                 if (val > bestVal) {
                     best = v;
                     bestVal = val;
