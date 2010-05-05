@@ -44,14 +44,11 @@ import org.sat4j.specs.IVecInt;
  * 
  */
 public class CohortLauncher {
-    private static final long serialVersionUID = 1L;
-    private static final int DEFAULT_MAX_JOBS = 1024;
+    private static Logger logger = Logger.getLogger(CohortLauncher.class);
 
     private Cohort cohort;
     private String problemName;
-    private int maxJobs = DEFAULT_MAX_JOBS;
 
-    private static Logger logger = Logger.getLogger(CohortLauncher.class);
 
     private static void displayLicense() {
         logger.info("SAT4J: a SATisfiability library for Java (c) 2004-2008 Daniel Le Berre"); //$NON-NLS-1$
@@ -87,12 +84,6 @@ public class CohortLauncher {
                 return false;
             }
 
-            // reads the number of jobs
-            if (args[index].equals("-jobs")) {
-                index++;
-                maxJobs = Integer.parseInt(args[index++]);
-            }
-
             // reads the problem name
             problemName = args[index++];
             cohort.activate();
@@ -125,15 +116,23 @@ public class CohortLauncher {
         if (cohort.isMaster()) {
             displayHeader();
 
+            // reads the problem
             Skeleton instance = readProblem(problemName);
             Solver solver = new Solver(instance);
 
             logger.debug("solving " + problemName);
-            logger.debug("instance " + solver);
             logger.debug("#vars     " + instance.numVariables());
             logger.debug("#constraints  " + instance.numConstraints());
+            logger.debug("#solved  " + instance.numUnits());
+
+            // simplifies
+            solver.simplify();
+            Skeleton easy = solver.skeleton();
+
             logger.debug("simplifying");
-            logger.debug("instance " + solver);
+            logger.debug("#vars     " + easy.numVariables());
+            logger.debug("#constraints  " + easy.numConstraints());
+            logger.debug("#solved  " + easy.numUnits());
 
             JobsCounter counter = new JobsCounter(1);
             SolutionListener listener = new SolutionListener(instance, counter);
@@ -142,7 +141,7 @@ public class CohortLauncher {
             cohort.submit(counter);
             cohort.submit(listener);
             cohort.submit(new CohortJob(
-                    counter.identifier(), listener.identifier(), instance, 0));
+                    counter.identifier(), listener.identifier(), easy, 0));
 
             /* waits for all jobs to finish */
             synchronized(counter) {
@@ -249,7 +248,12 @@ class SolutionListener extends Activity {
 
 
 class JobsCounter extends Activity {
+    private static Logger logger = Logger.getLogger(CohortLauncher.class);
+
     private int counter;
+    private long timer = System.currentTimeMillis();
+
+
     private boolean stopped = false;
 
     public JobsCounter(int counter) {
@@ -265,6 +269,8 @@ class JobsCounter extends Activity {
             throws Exception {
         suspend();
     }
+
+    private int stats = 0;
 
     public synchronized void process(Event e)
             throws Exception {
@@ -282,6 +288,16 @@ class JobsCounter extends Activity {
         }
 
         counter += inc;
+
+        if (inc < 0) {
+            if (++stats % 256 == 0) {
+                long now = System.currentTimeMillis();
+                logger.debug("solved " + stats +
+                             ", pending " + counter +
+                             ", speed " + (256. / ((now - timer) / 1000.)));
+                timer = now;
+            }
+        }
 
         if (counter == 0) {
             notifyAll();

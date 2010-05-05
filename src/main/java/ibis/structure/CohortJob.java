@@ -37,10 +37,22 @@ public class CohortJob extends Activity {
         this.decision = decision;
     }
 
+    private static int count = 0;
+
+    private synchronized void printStats(Skeleton skeleton) {
+        ++count;
+        if (count % 64 == 0) {
+            logger.debug(skeleton.numVariables() + " variables, " +
+                         skeleton.numConstraints() + " constraints, " +
+                         skeleton.numUnits() + " solved");
+        }
+    }
+
     public void initialize()
             throws Exception {
         /* creates the instance from skeleton */
         solver = new Solver(skeleton);
+        printStats(skeleton);
 
         /* makes the decision first */
         if (decision != 0) {
