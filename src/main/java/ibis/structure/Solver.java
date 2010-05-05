@@ -217,7 +217,7 @@ public final class Solver {
      */
     public void propagate(int literal) {
         propagate(literal, null, null);
-        check();
+        // check();
     }
 
     /**
@@ -432,12 +432,34 @@ public final class Solver {
         if (isSolved())
             return 0;
 
-        for (int v = 1; v <= numVariables; ++v)
-            if (isUnknown(2 * v + 0))
-                return v;
+        // @todo: selecting variable that appears in most ternaries.
+        // this is a simple, not the best, heuristic.
+        int best = 0;
+        long bestVal = Long.MIN_VALUE;
+        for (int v = 1; v <= numVariables; ++v) {
+            int l = 2 * v + 0;
+            if (isUnknown(l)) {
+                VecInt[] tern;
+                long num = 1;
 
-        assert false: this + " not solved, but all variables assigned!";
-        return 0;
+                tern = ternaries.get(l);
+                num *= 1 + (tern == null ? 0 : tern[0].size());
+
+                tern = ternaries.get(l ^ 1);
+                num *= 1 + (tern == null ? 0 : tern[0].size());
+
+                if (num > bestVal) {
+                    best = v;
+                    bestVal = num;
+                }
+            }
+        }
+
+        assert bestVal != -1;
+        return best;
+
+        // assert false: this + " not solved, but all variables assigned!";
+        // return 0;
     }
 
     /**
@@ -447,11 +469,16 @@ public final class Solver {
      */
     void constantPropagation(SetInt tUnits, SetInt fUnits) {
         int[] literals = tUnits.keys();
+        int discovered = 0;
         for (int literal: literals)
             if (fUnits.has(literal)) {
-                logger.debug("discovered " + SAT.toDimacs(literal));
+                // logger.debug("discovered " + SAT.toDimacs(literal));
+                ++discovered;
                 propagate(literal);
             }
+
+        //if (discovered > 0)
+            //logger.debug("discovered " + discovered + " literal(s)");
     }
 
     /**
@@ -496,18 +523,45 @@ public final class Solver {
         return false;
     }
 
+    private boolean isMissing(int literal) {
+        if (units.has(literal))
+            return false;
+        if (binaries.has(literal))
+            return false;
+        if (ternaries.has(literal))
+            return false;
+        return true;
+    }
+
     /**
      * Selects some possible variables for lookahead.
      *
      * NB: the simplest implementation is to select all
      * unsatisfied variables.
+     * @todo: detection of missing variables should be done using counts
      */
     private VecInt select() {
         VecInt candidates = new VecInt();
+        int missing = 0;
+
         for (int v = 1; v <= numVariables; ++v) {
-            if (isUnknown(2 * v + 0))
-                candidates.push(v);
+            int l = 2 * v + 0;
+
+            if (isUnknown(l)) {
+                if (isMissing(l)) {
+                    ++missing;
+                    propagate(l ^ 1);
+                } else if (isMissing(l ^ 1)) {
+                    ++missing;
+                    propagate(l);
+                } else {
+                    candidates.push(v);
+                }
+            }
         }
+
+        //if (missing > 0)
+            //logger.debug(missing + " missing literals");
         return candidates;
     }
 
