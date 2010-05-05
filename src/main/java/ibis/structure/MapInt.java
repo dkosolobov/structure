@@ -30,8 +30,11 @@ public final class MapInt<E> extends HashInt {
     }
 
     public E setdefault(int key, E value) {
-        if (!has(key)) put(key, value);
-        else value = get(key);
+        int hash = search(key);
+        if (keys[hash] != SENTINEL)
+            return stackValues[keys[hash]];
+
+        put(key, value);
         return value;
     }
 
