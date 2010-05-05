@@ -93,6 +93,13 @@ public final class Skeleton implements Serializable {
     }
 
     /**
+     * Returns the number of units
+     */
+    public int numUnits() {
+        return clauses[1][0].length;
+    }
+
+    /**
      * Returns true if model satisfies stored instance.
      */
     public boolean testModel(int[] model) {
