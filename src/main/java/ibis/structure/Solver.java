@@ -22,12 +22,14 @@ import org.apache.log4j.Logger;
 public final class Solver {
     private static final Logger logger = Logger.getLogger(Solver.class);
 
+    private ES.Gene gene;
     private int numVariables;
     private SetInt units;
     private MapInt<SetInt> binaries;
     private MapInt<VecInt[]> ternaries;
 
-    public Solver(Skeleton skeleton) {
+    public Solver(Skeleton skeleton, ES.Gene gene) {
+        this.gene = gene;
         this.numVariables = skeleton.numVariables;
 
         this.binaries = new MapInt<SetInt>();
@@ -434,8 +436,8 @@ public final class Solver {
 
         // @todo: selecting variable that appears in most ternaries.
         // this is a simple, not the best, heuristic.
-        int best = 0;
-        double bestVal = Double.MIN_VALUE;
+        int best = -1;
+        double bestVal = Double.NEGATIVE_INFINITY;
         for (int v = 1; v <= numVariables; ++v) {
             int l = 2 * v + 0;
             if (isUnknown(l)) {
@@ -454,7 +456,7 @@ public final class Solver {
                 num2 *= 1 + (bin == null ? 0 : bin.size());
                 num3 *= 1 + (tern == null ? 0 : tern[0].size());
 
-                double val = num3 * num2 * num2;
+                double val = gene.alpha * Math.log(num3) + Math.log(num2);
                 if (val > bestVal) {
                     best = v;
                     bestVal = val;

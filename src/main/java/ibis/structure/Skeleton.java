@@ -89,7 +89,7 @@ public final class Skeleton implements Serializable {
      * Returns the number of constraints.
      */
     public int numConstraints() {
-        return clauses[1][0].length + clauses[2][0].length + clauses[3][0].length;
+        return clauses[2][0].length + clauses[3][0].length;
     }
 
     /**

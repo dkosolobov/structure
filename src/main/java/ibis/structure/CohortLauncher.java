@@ -118,7 +118,7 @@ public class CohortLauncher {
 
             // reads the problem
             Skeleton instance = readProblem(problemName);
-            Solver solver = new Solver(instance);
+            Solver solver = new Solver(instance, null);
 
             logger.debug("solving " + problemName);
             logger.debug("#vars     " + instance.numVariables());
