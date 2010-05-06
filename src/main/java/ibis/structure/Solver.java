@@ -456,7 +456,7 @@ public final class Solver {
                 num2 *= 1 + (bin == null ? 0 : bin.size());
                 num3 *= 1 + (tern == null ? 0 : tern[0].size());
 
-                double val = gene.alpha * Math.log(num3) + Math.log(num2);
+                double val = sigmoid(num3) + gene.alpha * sigmoid(num2);
                 if (val > bestVal) {
                     best = v;
                     bestVal = val;
@@ -470,6 +470,11 @@ public final class Solver {
         // assert false: this + " not solved, but all variables assigned!";
         // return 0;
     }
+
+    public static double sigmoid(double x) {
+        return (1 / (1 + Math.exp(-x)));
+    }
+
 
     /**
      * If a literal is true regardless of wheather another

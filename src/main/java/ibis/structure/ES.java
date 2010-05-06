@@ -9,8 +9,8 @@ public class ES {
         double alpha;
 
         public Gene() {
-            this.alpha = 1.0;
             this.sigma = 0.1;
+            this.alpha = 1.0;
         }
 
         public String toString() {
@@ -19,8 +19,8 @@ public class ES {
     }
 
 
-    private static final int POPULATION_SIZE = 9;
-    private static final int TOURNAMENT_SIZE = 3;
+    private static final int POPULATION_SIZE = 32;
+    private static final int TOURNAMENT_SIZE = 4;
     private static final double EPSILON_0 = 0.0001;
 
     private Gene[] individuals;
@@ -48,10 +48,8 @@ public class ES {
 
     public synchronized void evaluate(Gene child, double fitness_) {
         int next = tournamentMin();
-        if (fitness[next] < fitness_) {
-            individuals[next] = child;
-            fitness[next] = fitness_;
-        }
+        individuals[next] = child;
+        fitness[next] = fitness_;
     }
 
     private int tournamentMin() {
