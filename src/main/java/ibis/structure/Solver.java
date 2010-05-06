@@ -22,14 +22,12 @@ import org.apache.log4j.Logger;
 public final class Solver {
     private static final Logger logger = Logger.getLogger(Solver.class);
 
-    private ES.Gene gene;
     private int numVariables;
     private SetInt units;
     private MapInt<SetInt> binaries;
     private MapInt<VecInt[]> ternaries;
 
-    public Solver(Skeleton skeleton, ES.Gene gene) {
-        this.gene = gene;
+    public Solver(Skeleton skeleton) {
         this.numVariables = skeleton.numVariables;
 
         this.binaries = new MapInt<SetInt>();
@@ -456,7 +454,7 @@ public final class Solver {
                 num2 *= 1 + (bin == null ? 0 : bin.size());
                 num3 *= 1 + (tern == null ? 0 : tern[0].size());
 
-                double val = sigmoid(num3) + gene.alpha * sigmoid(num2);
+                double val = sigmoid(num3) + sigmoid(num2);
                 if (val > bestVal) {
                     best = v;
                     bestVal = val;

@@ -10,7 +10,7 @@ public final class SolverTest {
     private static final Logger logger = Logger.getLogger(SolverTest.class);
 
     private Solver load(String instance) {
-        return new Solver(Skeleton.parse(instance), null);
+        return new Solver(Skeleton.parse(instance));
     }
 
     private void check(Solver solver, String instance) {

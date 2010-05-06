@@ -18,14 +18,11 @@ public class CohortJob extends Activity {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = Logger.getLogger(CohortJob.class);
 
-    private static ES es = new ES();
-
     private final ActivityIdentifier counter;
     private final ActivityIdentifier listener;
     private final Skeleton skeleton;
     private final int decision;
 
-    private ES.Gene gene;
     private Solver solver;
     private int lookahead;
 
@@ -42,22 +39,20 @@ public class CohortJob extends Activity {
 
     private static int count = 0;
 
-    private synchronized void printStats(Skeleton skeleton, ES.Gene gene) {
+    private synchronized void printStats(Skeleton skeleton) {
         ++count;
         if (count % 8 == 0) {
             logger.debug(skeleton.numVariables() + " variables, " +
                          skeleton.numConstraints() + " constraints, " +
-                         skeleton.numUnits() + " solved, " +
-                         "gene is " + gene);
+                         skeleton.numUnits() + " solved");
         }
     }
 
     public void initialize()
             throws Exception {
         /* creates the instance from skeleton */
-        gene = es.select();
-        solver = new Solver(skeleton, gene);
-        printStats(skeleton, gene);
+        solver = new Solver(skeleton);
+        printStats(skeleton);
 
         /* makes the decision first */
         if (decision != 0) {
@@ -107,7 +102,6 @@ public class CohortJob extends Activity {
         if (!stopped) {
             // logger.debug("branching on " + lookahead + " for " + instance);
             Skeleton skeleton = solver.skeleton();
-            es.evaluate(gene, skeleton.numUnits());
 
             cohort.submit(new CohortJob(
                     counter, listener, skeleton, lookahead * 2 + 0));
