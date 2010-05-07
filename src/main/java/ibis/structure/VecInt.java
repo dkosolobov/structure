@@ -1,6 +1,8 @@
 package ibis.structure;
 
 public final class VecInt {
+    public static final VecInt EMPTY = new VecInt();
+
     int[] array;
     int numElements;
 

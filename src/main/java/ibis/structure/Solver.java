@@ -26,6 +26,7 @@ public final class Solver {
     private SetInt units;
     private MapInt<SetInt> binaries;
     private MapInt<VecInt> ternaries;
+    private MapIntInt equals;
 
     public Solver(Skeleton skeleton) {
         this.numVariables = skeleton.numVariables;
@@ -33,6 +34,7 @@ public final class Solver {
         this.binaries = new MapInt<SetInt>();
         this.units = binaries.setdefault(0, new SetInt());
         this.ternaries = new MapInt<VecInt>();
+        this.equals = new MapIntInt();
 
         /* units */
         for (int i = 0; i < skeleton.clauses[1][0].length; ++i)
@@ -212,28 +214,25 @@ public final class Solver {
         // check();
     }
 
-    private boolean propagateUnit(int unit, SetInt toTryUnits,
+    private boolean propagateUnit(int l0, SetInt toTryUnits,
                                   VecInt toTryBinaries, SetInt propagated) {
-        int literal = unit;
-        // logger.debug("propagating literal " + SAT.toDimacs(literal));
-
         /* checks if literal is already known */
-        if (units.has(literal ^ 1))
+        if (units.has(l0 ^ 1))
             return true;
-        if (units.has(literal))
+        if (units.has(l0))
             return false;
 
-        units.push(literal);
+        units.push(l0);
         if (propagated != null)
-            propagated.push(literal);
+            propagated.push(l0);
 
         /* !literal is false, solve implications */
-        SetInt bin = binaries.get(literal ^ 1);
+        SetInt bin = binaries.get(l0 ^ 1);
         if (bin != null)
             toTryUnits.pushAll(bin);
 
         /* !literal is false, new binaries */
-        VecInt tern = ternaries.get(literal ^ 1);
+        VecInt tern = ternaries.get(l0 ^ 1);
         if (tern != null)
             toTryBinaries.pushAll(tern);
 
@@ -406,7 +405,11 @@ public final class Solver {
 
             for (int c = 0; c < candidates.size() && !isSolved(); ++c) {
                 int variable = candidates.getAt(c);
-                if (!isUnknown(2 * variable + 0))
+                int literal = 2 * variable + 0;
+
+                if (!isUnknown(literal))
+                    continue;
+                if (equals.has(literal))
                     continue;
 
                 SetInt tUnits = new SetInt();
@@ -415,7 +418,7 @@ public final class Solver {
                     continue;
 
                 constantPropagation(tUnits, fUnits);
-                // copyPropagation(2 * variable + 0, tUnits, fUnits);
+                copyPropagation(literal, tUnits, fUnits);
             }
 
             afterNumUnknowns = numUnknowns();
@@ -423,6 +426,9 @@ public final class Solver {
 
         if (isSolved())
             return 0;
+
+        if (!equals.isEmpty())
+            logger.debug("equals.size() == " + equals.size());
 
         // @todo: selecting variable that appears in most ternaries.
         // this is a simple, not the best, heuristic.
@@ -477,12 +483,11 @@ public final class Solver {
         for (int literal: literals)
             if (fUnits.has(literal)) {
                 ++discovered;
-                // logger.debug("discovered " + SAT.toDimacs(literal));
                 propagate(literal);
             }
 
-        if (discovered > 0)
-            logger.debug("discovered " + discovered + " literals");
+        //if (discovered > 0)
+            //logger.debug("discovered " + discovered + " literals");
     }
 
     /**
@@ -495,13 +500,16 @@ public final class Solver {
         int discovered = 0;
         for (int literal: literals)
             if (literal != original && fUnits.has(literal ^ 1)) {
-                // logger.debug("discovered copy " + SAT.toDimacs(literal));
                 ++discovered;
-                // propagate(literal);
+
+                //logger.debug(literal + " versus " + original);
+                equals.put(literal, original);
+                equals.put(literal ^ 1, original ^ 1);
+
             }
 
-        if (discovered > 0)
-            logger.debug("discovered " + discovered + " clone(s)");
+        //if (discovered > 0)
+            //logger.debug("discovered " + discovered + " clone(s)");
     }
 
     /**
