@@ -17,7 +17,7 @@ public final class SetInt extends HashInt {
 
     public void pushAll(SetInt other) {
         for (int i = 0; i < other.numElements; ++i)
-            push(other.keys[i]);
+            push(other.stackKeys[i]);
     }
 
     public String toString() {

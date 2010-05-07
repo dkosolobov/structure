@@ -129,7 +129,7 @@ public final class SolverTest {
 
     private void checkUndo(String begin, int... literals) {
         Solver solver = load(begin);
-        MapInt<Integer> state = new MapInt<Integer>();
+        MapIntInt state = new MapIntInt();
         for (int literal: literals) {
             solver.propagate(literal, state, null);
             Assert.assertFalse(solver.isContradiction());

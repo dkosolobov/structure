@@ -1,8 +1,10 @@
 #!/bin/sh
 
-export STRUCTURE_LOCATION=/home/vasile/src/structure
+export STRUCTURE_LOCATION=/home/alexandru/workspace/structure
+export CLASSPATH=$STRUCTURE_LOCATION/build/structure.jar:$STRUCTURE_LOCATION/lib/*
 export SOLVER=structure
 export SOLVER_IMPL=mt
 export SOLVER_THREADS=1
 
 time ./run-structure $*
+#java ibis.structure.Time

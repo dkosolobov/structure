@@ -22,8 +22,20 @@ public final class VecInt {
 
     public void push(int e) {
         if (numElements == array.length)
-            resize();
+            resize(numElements * 2);
         array[numElements++] = e;
+    }
+
+    public void pushAll(VecInt e) {
+        // resizes array, keeping it a POT
+        int size = 1;
+        while (numElements + e.numElements > size)
+            size *= 2;
+        if (size != array.length)
+            resize(size);
+
+        System.arraycopy(e.array, 0, array, numElements, e.numElements);
+        numElements += e.numElements;
     }
 
     public int pop() {
@@ -54,14 +66,18 @@ public final class VecInt {
         return elements;
     }
 
+    public void resize(int size) {
+        if (size < numElements)
+            numElements = size;
+
+        int[] array_ = new int[size];
+        System.arraycopy(array, 0, array_, 0, numElements);
+        array = array_;
+    }
+
     private void init(int capacity) {
         array = new int[capacity];
         numElements = 0;
     }
 
-    private void resize() {
-        int[] array_ = new int[array.length * 2];
-        System.arraycopy(array, 0, array_, 0, numElements);
-        array = array_;
-    }
 }
