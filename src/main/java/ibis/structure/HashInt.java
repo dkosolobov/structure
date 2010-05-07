@@ -1,7 +1,11 @@
 package ibis.structure;
 
+import java.util.Arrays;
+
+
 public class HashInt {
     protected static final int SENTINEL = -1;
+    protected static final double LOAD_FACTOR = 0.75;
 
     protected int[] keys;
     protected int[] stackKeys;
@@ -48,6 +52,9 @@ public class HashInt {
             pop();
     }
 
+    /**
+     * Hash function from Bob Jenkins.
+     */
     protected final int hash(int value) {
         int a = value;
         a = (a+0x7ed55d16) + (a<<12);
@@ -56,7 +63,18 @@ public class HashInt {
         a = (a+0xd3a2646c) ^ (a<<9);
         a = (a+0xfd7046c5) + (a<<3);
         a = (a^0xb55a4f09) ^ (a>>16);
-        return a & mask;
+        return a;
+    }
+
+    /**
+     * Hash function from Java.
+     */
+    private static int newHash(int h) {
+        // This function ensures that hashCodes that differ only by
+        // constant multiples at each bit position have a bounded
+        // number of collisions (approximately 8 at default load factor).
+        h ^= (h >>> 20) ^ (h >>> 12);
+        return h ^ (h >>> 7) ^ (h >>> 4);
     }
 
     protected final int insert(int key) {
@@ -64,37 +82,32 @@ public class HashInt {
         if (keys[hash] != SENTINEL)
             return keys[hash];
 
-        keys[hash] = numElements;
-        stackKeys[numElements] = key;
-
         ++numElements;
-        if (numElements * 2 > keys.length)
+
+        // puts the key in the stack
+        if (numElements == stackKeys.length)
+            restack();
+        stackKeys[numElements - 1] = key;
+
+        // puts the key in the hash table
+        keys[hash] = numElements - 1;
+        if (numElements >= LOAD_FACTOR * keys.length)
             rehash();
 
         return numElements - 1;
     }
 
+
     protected final int search(int key) {
-        int hash = hash(key);
-        while (true) {
-            if (keys[hash] == SENTINEL)
-                return hash;
-            if (stackKeys[keys[hash]] == key)
-                return hash;
+        int hash = newHash(key) & mask;
+        int step = 1;
 
-            ++hash;
-            if (hash == keys.length)
-                hash = 0;
+        while (keys[hash] != SENTINEL &&
+                stackKeys[keys[hash]] != key) {
+            hash = (hash + (step * (step + 1) >> 1)) & mask;
         }
-    }
 
-    private final void create(int size) {
-        keys = new int[size];
-        stackKeys = new int[size];
-        mask = size - 1;
-
-        for (int i = 0; i < size; ++i)
-            keys[i] = SENTINEL;
+        return hash;
     }
 
     protected int init(int size) {
@@ -103,25 +116,27 @@ public class HashInt {
             ++log;
         size = 1 << log;
 
-        this.create(size);
+        this.keys = new int[size];
+        this.stackKeys = new int[size];
+        this.mask = keys.length - 1;
         this.numElements = 0;
+        Arrays.fill(this.keys, SENTINEL);
+
         return size;
     }
 
-    protected int rehash() {
-        int size = 2 * keys.length;
+    protected void restack() {
+        stackKeys = Arrays.copyOf(stackKeys, 2 * stackKeys.length);
+    }
 
-        int[] keys_ = keys;
-        int[] stackKeys_ = stackKeys;
+    protected final int rehash() {
+        keys = new int[2 * keys.length];
+        mask = keys.length - 1;
+        Arrays.fill(keys, SENTINEL);
 
-        create(size);
-        System.arraycopy(stackKeys_, 0, stackKeys, 0, numElements);
+        for (int i = 0; i < numElements; ++i)
+            keys[search(stackKeys[i])] = i;
 
-        for (int i = 0; i < numElements; ++i) {
-            int hash = search(stackKeys_[i]);
-            keys[hash] = i;
-        }
-
-        return size;
+        return keys.length;
     }
 }

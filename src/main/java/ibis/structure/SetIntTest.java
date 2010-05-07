@@ -5,6 +5,17 @@ import org.junit.Assert;
 
 
 public final class SetIntTest {
+    private long timer;
+
+    private void start() {
+        timer = System.currentTimeMillis();
+    }
+
+    private void end(String message) {
+        double elapsed = (System.currentTimeMillis() - timer) / 1000.;
+        System.err.println(message + ": " + elapsed + "s");
+    }
+
     @Test
     public void emptySet() {
         SetInt set = new SetInt();
@@ -95,6 +106,27 @@ public final class SetIntTest {
         SetInt set = new SetInt();
         for (int i = 0; i < (1 << 20); ++i)
             Assert.assertTrue(set.push(i) == i);
+    }
+
+    @Test
+    public void manyPuts() {
+        SetInt set;
+
+        start();
+        set = new SetInt();
+        for (int i = 0; i < (1 << 21); ++i)
+            set.push(i * i + i);
+        end("put21");
+
+        start();
+        for (int i = 0; i < (1 << 21); ++i)
+            set.has(i * i + i);
+        end("has21");
+
+        start();
+        for (int i = 0; i < (1 << 21); ++i)
+            set.pop();
+        end("pop21");
     }
 
     @Test
