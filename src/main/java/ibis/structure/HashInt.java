@@ -77,8 +77,7 @@ public class HashInt {
         return h ^ (h >>> 7) ^ (h >>> 4);
     }
 
-    protected final int insert(int key) {
-        int hash = search(key);
+    protected final int insertNoLookup(int key, int hash) {
         if (keys[hash] != SENTINEL)
             return keys[hash];
 
@@ -97,6 +96,9 @@ public class HashInt {
         return numElements - 1;
     }
 
+    protected final int insert(int key) {
+        return insertNoLookup(key, search(key));
+    }
 
     protected final int search(int key) {
         int hash = newHash(key) & mask;

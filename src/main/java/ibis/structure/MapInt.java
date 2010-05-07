@@ -20,10 +20,9 @@ public final class MapInt<E> extends HashInt {
 
     public E get(int key, E default_) {
         int index = search(key);
-        if (keys[index] == SENTINEL)
-            return default_;
-        else
-            return stackValues[keys[index]];
+        if (keys[index] != SENTINEL)
+            default_ = stackValues[keys[index]];
+        return default_;
     }
 
     public int put(int key, E value) {
@@ -37,7 +36,8 @@ public final class MapInt<E> extends HashInt {
         if (keys[hash] != SENTINEL)
             return stackValues[keys[hash]];
 
-        put(key, value);
+        int index = insertNoLookup(key, hash);
+        stackValues[index] = value;
         return value;
     }
 
