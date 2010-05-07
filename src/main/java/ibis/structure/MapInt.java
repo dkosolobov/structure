@@ -1,5 +1,8 @@
 package ibis.structure;
 
+import java.util.Arrays;
+
+
 public final class MapInt<E> extends HashInt {
     private E[] stackValues;
 
@@ -48,11 +51,8 @@ public final class MapInt<E> extends HashInt {
         return size;
     }
 
-    protected int rehash() {
-        int size = super.rehash();
-        E[] stackValues_ = stackValues;
-        stackValues = (E[])new Object[size];
-        System.arraycopy(stackValues_, 0, stackValues, 0, numElements);
-        return size;
+    protected void restack() {
+        super.restack();
+        stackValues = (E[])Arrays.copyOf(stackValues, 2 * stackValues.length);
     }
 }
