@@ -224,8 +224,8 @@ public final class SolverTest {
     private void checkLookahead(String begin, int variable,
                                 int[] tUnits_, int[] fUnits_) {
         Solver solver = load(begin);
-        SetInt tUnits = new SetInt();
-        SetInt fUnits = new SetInt();
+        Propagations tUnits = new Propagations();
+        Propagations fUnits = new Propagations();
 
         for (int i = 0; i < tUnits_.length; ++i)
             tUnits_[i] = SAT.fromDimacs(tUnits_[i]);
@@ -235,8 +235,8 @@ public final class SolverTest {
         boolean contradiction = solver.lookahead(variable, tUnits, fUnits);
         Assert.assertFalse(contradiction);
 
-        Assert.assertTrue(equals(tUnits, tUnits_));
-        Assert.assertTrue(equals(fUnits, fUnits_));
+        Assert.assertTrue(equals(tUnits.units, tUnits_));
+        Assert.assertTrue(equals(fUnits.units, fUnits_));
     }
 
     @Test

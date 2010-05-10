@@ -23,6 +23,7 @@ public final class Solver {
     private static final Logger logger = Logger.getLogger(Solver.class);
 
     private int numVariables;
+
     private SetInt units;
     private MapInt<SetInt> binaries;
     private MapInt<VecInt> ternaries;
@@ -211,11 +212,11 @@ public final class Solver {
      */
     public void propagate(int literal) {
         propagate(literal, null, null);
-        // check();
     }
 
-    private boolean propagateUnit(int l0, SetInt toTryUnits,
-                                  VecInt toTryBinaries, SetInt propagated) {
+    private boolean propagateUnit(
+            int l0, SetInt toTryUnits, VecInt toTryBinaries,
+            Propagations propagated) {
         /* checks if literal is already known */
         if (units.has(l0 ^ 1))
             return true;
@@ -224,7 +225,7 @@ public final class Solver {
 
         units.push(l0);
         if (propagated != null)
-            propagated.push(l0);
+            propagated.addUnit(l0);
 
         /* !literal is false, solve implications */
         SetInt bin = binaries.get(l0 ^ 1);
@@ -239,8 +240,9 @@ public final class Solver {
         return false;
     }
 
-    private boolean propagateBinary(int l0, int l1, SetInt toTryUnits,
-                                    VecInt toTryBinaries, MapIntInt state) {
+    private boolean propagateBinary(
+            int l0, int l1, SetInt toTryUnits, VecInt toTryBinaries,
+            Propagations propagated, MapIntInt state) {
         if (units.has(l0 ^ 1) && units.has(l1 ^ 1)) {
             /* both literals are false */
             return true;
@@ -284,6 +286,9 @@ public final class Solver {
             }
 
             addBinary(l0, l1);
+            if (propagated != null)
+                propagated.addBinary(l0, l1);
+
         }
 
         return false;
@@ -298,10 +303,11 @@ public final class Solver {
      */
     public void propagate(int literal,
                           MapIntInt state,
-                          SetInt propagated) {
+                          Propagations propagated) {
         assert !isSolved();
-        if (state != null)
+        if (state != null) {
             state.setdefault(0, units.size());
+        }
 
         SetInt toTryUnits = new SetInt();
         VecInt toTryBinaries = new VecInt();
@@ -312,7 +318,8 @@ public final class Solver {
             if (!toTryUnits.isEmpty()) {
                 int unit = toTryUnits.peekKey();
                 toTryUnits.pop();
-                if (propagateUnit(unit, toTryUnits, toTryBinaries, propagated)) {
+                if (propagateUnit(
+                        unit, toTryUnits, toTryBinaries, propagated)) {
                     units.push(0);
                     break;
                 }
@@ -325,7 +332,8 @@ public final class Solver {
                     continue;
                 }
 
-                if (propagateBinary(l0, l1, toTryUnits, toTryBinaries, state)) {
+                if (propagateBinary(
+                        l0, l1, toTryUnits, toTryBinaries, propagated, state)) {
                     units.push(0);
                     break;
                 }
@@ -346,8 +354,10 @@ public final class Solver {
     public void undo(MapIntInt state) {
         int[] keys = state.keys();
         for (int key: keys) {
-            SetInt bin = binaries.get(key);
-            bin.pop(bin.size() - state.get(key));
+            if (key != -1) {
+                SetInt bin = binaries.get(key);
+                bin.pop(bin.size() - state.get(key));
+            }
         }
     }
 
@@ -361,6 +371,36 @@ public final class Solver {
                 /* checks for (v | w) & (v | !w) */
                 assert !bin.has(w) || !bin.has(w ^ 1);
         }
+    }
+
+
+    /**
+     * Choses a variable to branch on.
+     */
+    private int decide(MapInt<Stats> stats) {
+        // @todo: selecting variable that appears in most ternaries.
+        // this is a simple, not the best, heuristic.
+        int best = -1;
+        double bestVal = Double.NEGATIVE_INFINITY;
+        for (int v = 1; v <= numVariables; ++v) {
+            Stats s0 = stats.get(2 * v + 0);
+            Stats s1 = stats.get(2 * v + 1);
+
+            if (s0 != null && s1 != null) {
+                double val = Math.max(s0.eval(), s1.eval());
+
+                if (val > bestVal) {
+                    best = v;
+                    bestVal = val;
+                }
+            }
+        }
+
+        return best;
+    }
+
+    private static double sigmoid(double x) {
+        return (1 / (1 + Math.exp(-x)));
     }
 
     /**
@@ -399,9 +439,11 @@ public final class Solver {
 
         /* repeats as long as the instance is simplified */
         int beforeNumUnknowns, afterNumUnknowns;
+        MapInt<Stats> stats;
         do {
             VecInt candidates = select();
             beforeNumUnknowns = numUnknowns();
+            stats = new MapInt<Stats>();
 
             for (int c = 0; c < candidates.size() && !isSolved(); ++c) {
                 int variable = candidates.getAt(c);
@@ -412,13 +454,16 @@ public final class Solver {
                 if (equals.has(literal))
                     continue;
 
-                SetInt tUnits = new SetInt();
-                SetInt fUnits = new SetInt();
-                if (lookahead(variable, tUnits, fUnits))
+                Propagations tPropagated = new Propagations();
+                Propagations fPropagated = new Propagations();
+                if (lookahead(variable, tPropagated, fPropagated))
                     continue;
 
-                constantPropagation(tUnits, fUnits);
-                copyPropagation(literal, tUnits, fUnits);
+                stats.put(literal, new Stats(tPropagated));
+                stats.put(literal ^ 1, new Stats(fPropagated));
+
+                constantPropagation(tPropagated.units, fPropagated.units);
+                copyPropagation(literal, tPropagated.units, fPropagated.units);
             }
 
             afterNumUnknowns = numUnknowns();
@@ -427,49 +472,9 @@ public final class Solver {
         if (isSolved())
             return 0;
 
-        if (!equals.isEmpty())
-            logger.debug("equals.size() == " + equals.size());
-
-        // @todo: selecting variable that appears in most ternaries.
-        // this is a simple, not the best, heuristic.
-        int best = -1;
-        double bestVal = Double.NEGATIVE_INFINITY;
-        for (int v = 1; v <= numVariables; ++v) {
-            int l = 2 * v + 0;
-            if (isUnknown(l)) {
-                SetInt bin;
-                double num2 = 1;
-                VecInt tern;
-                double num3 = 1;
-
-                bin = binaries.get(l);
-                tern = ternaries.get(l);
-                num2 *= 1 + (bin == null ? 0 : bin.size());
-                num3 *= 1 + (tern == null ? 0 : tern.size() / 2);
-
-                bin = binaries.get(l ^ 1);
-                tern = ternaries.get(l ^ 1);
-                num2 *= 1 + (bin == null ? 0 : bin.size());
-                num3 *= 1 + (tern == null ? 0 : tern.size() / 2);
-
-                double val = sigmoid(num3) + sigmoid(num2);
-                if (val > bestVal) {
-                    best = v;
-                    bestVal = val;
-                }
-            }
-        }
-
-        assert bestVal != -1;
-        return best;
-
-        // assert false: this + " not solved, but all variables assigned!";
-        // return 0;
+        return decide(stats);
     }
 
-    public static double sigmoid(double x) {
-        return (1 / (1 + Math.exp(-x)));
-    }
 
 
     /**
@@ -506,6 +511,8 @@ public final class Solver {
                 equals.put(literal, original);
                 equals.put(literal ^ 1, original ^ 1);
 
+                addBinary(literal, original ^ 1);
+                addBinary(literal ^ 1, original);
             }
 
         //if (discovered > 0)
@@ -516,7 +523,7 @@ public final class Solver {
      * Does a lookahead on variable storing dicovered literals in fUnits
      * and tUnits.
      */
-    boolean lookahead(int variable, SetInt tUnits, SetInt fUnits) {
+    boolean lookahead(int variable, Propagations tUnits, Propagations fUnits) {
         // logger.debug("lookup on " + variable);
         MapIntInt state = new MapIntInt();
 
