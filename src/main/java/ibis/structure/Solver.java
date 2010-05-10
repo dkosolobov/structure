@@ -38,20 +38,19 @@ public final class Solver {
         this.equals = new MapIntInt();
 
         /* units */
-        for (int i = 0; i < skeleton.clauses[1][0].length; ++i)
-            this.units.push(skeleton.clauses[1][0][i]);
+        for (int i = 0; i < skeleton.clauses[1].size(); i += 1)
+            this.units.push(skeleton.clauses[1].getAt(i));
 
         /* binaries */
-        for (int i = 0; i < skeleton.clauses[2][0].length; ++i)
-            this.addBinary(skeleton.clauses[2][0][i],
-                           skeleton.clauses[2][1][i]);
+        for (int i = 0; i < skeleton.clauses[2].size(); i += 2)
+            this.addBinary(skeleton.clauses[2].getAt(i + 0),
+                           skeleton.clauses[2].getAt(i + 1));
 
         /* ternaries */
-        for (int i = 0; i < skeleton.clauses[3][0].length; ++i) {
-            this.addTernary(skeleton.clauses[3][0][i],
-                            skeleton.clauses[3][1][i],
-                            skeleton.clauses[3][2][i]);
-        }
+        for (int i = 0; i < skeleton.clauses[3].size(); i += 3)
+            this.addTernary(skeleton.clauses[3].getAt(i + 0),
+                            skeleton.clauses[3].getAt(i + 1),
+                            skeleton.clauses[3].getAt(i + 2));
     }
 
     private void addBinaryHelper(int first, int second) {
@@ -144,44 +143,36 @@ public final class Solver {
      * so it may be a good idea to run a simplify() before this.
      */
     public Skeleton skeleton() {
-        VecInt[] clauses;
+        VecInt clauses;
         int[] keys;
         Skeleton skeleton = new Skeleton();
         skeleton.numVariables = numVariables;
 
         /* units */
-        skeleton.clauses[1][0] = units.keys();
+        clauses = new VecInt();
+        for (int first: binaries.keys())
+            clauses.push(first);
+        skeleton.clauses[1] = clauses;
 
         /* binaries */
-        clauses = new VecInt[] {
-                new VecInt(),
-                new VecInt(),
-            };
-        keys = binaries.keys();
-
-        for (int first: keys) {
+        clauses = new VecInt();
+        skeleton.clauses[2] = clauses;
+        for (int first: binaries.keys()) {
             if (first == 0 || !isUnknown(first))
                 continue;
 
             int[] seconds = binaries.get(first).keys();
             for (int second: seconds)
                 if (first < second && isUnknown(second)) {
-                    clauses[0].push(first);
-                    clauses[1].push(second);
+                    clauses.push(first);
+                    clauses.push(second);
                 }
         }
-        skeleton.clauses[2][0] = clauses[0].toArray();
-        skeleton.clauses[2][1] = clauses[1].toArray();
 
         /* ternaries */
-        clauses = new VecInt[] {
-                new VecInt(),
-                new VecInt(),
-                new VecInt(),
-            };
-        keys = ternaries.keys();
-
-        for (int first: keys) {
+        clauses = new VecInt();
+        skeleton.clauses[3] = clauses;
+        for (int first: ternaries.keys()) {
             if (!isUnknown(first))
                 continue;
 
@@ -192,15 +183,12 @@ public final class Solver {
 
                 if (first < second && first < third &&
                         isUnknown(second) && isUnknown(third)) {
-                    clauses[0].push(first);
-                    clauses[1].push(second);
-                    clauses[2].push(third);
+                    clauses.push(first);
+                    clauses.push(second);
+                    clauses.push(third);
                 }
             }
         }
-        skeleton.clauses[3][0] = clauses[0].toArray();
-        skeleton.clauses[3][1] = clauses[1].toArray();
-        skeleton.clauses[3][2] = clauses[2].toArray();
 
         return skeleton;
     }
@@ -740,7 +728,7 @@ public final class Solver {
             VecInt others = ternaries.get(key);
             for (int i = 0; i < others.size(); i += 2) {
                 int first = others.getAt(i + 0);
-                int second = others.getAt(i + 0);
+                int second = others.getAt(i + 1);
 
                 if (first > second) {
                     first ^= second;

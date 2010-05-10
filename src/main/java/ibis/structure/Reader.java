@@ -31,9 +31,10 @@ public final class Reader implements ISolver {
         Skeleton skeleton = new Skeleton();
         skeleton.numVariables = numVariables;
 
-        for (int i = 0; i < 4; ++i)
-            for (int j = 0; j < i; ++j)
-                skeleton.clauses[i][j] = clauses[i][j].toArray();
+        for (int i = 1; i <= 3; ++i)
+            for (int k = 0; k < clauses[i][0].size(); ++k)
+                for (int j = 0; j < i; ++j)
+                    skeleton.clauses[i].push(clauses[i][j].getAt(k));
 
         return skeleton;
     }
