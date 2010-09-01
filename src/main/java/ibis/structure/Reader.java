@@ -42,7 +42,7 @@ public final class Reader implements ISolver {
     /*** ISolver methods ***/
 
     @Deprecated
-	public int newVar() {
+    public int newVar() {
         throw new UnsupportedOperationException();
     }
 
@@ -54,7 +54,7 @@ public final class Reader implements ISolver {
         return numVariables;
     }
 
-	public int nextFreeVarId(boolean reserve) {
+    public int nextFreeVarId(boolean reserve) {
         throw new UnsupportedOperationException();
     }
 
@@ -86,7 +86,7 @@ public final class Reader implements ISolver {
         clauses[3][2].push(third);
     }
 
-	public IConstr addClause(IVecInt literals)
+    public IConstr addClause(IVecInt literals)
             throws ContradictionException {
         if (literals.size() == 0)
             return null;
@@ -142,50 +142,50 @@ public final class Reader implements ISolver {
         throw new UnsupportedOperationException();
     }
 
-	public boolean removeSubsumedConstr(IConstr c) {
+    public boolean removeSubsumedConstr(IConstr c) {
         throw new UnsupportedOperationException();
     }
 
-	public void addAllClauses(IVec<IVecInt> clauses)
+    public void addAllClauses(IVec<IVecInt> clauses)
             throws ContradictionException {
         throw new UnsupportedOperationException();
     }
 
-	public IConstr addAtMost(IVecInt literals, int degree)
-			throws ContradictionException {
+    public IConstr addAtMost(IVecInt literals, int degree)
+            throws ContradictionException {
         throw new UnsupportedOperationException();
     }
 
-	public IConstr addAtLeast(IVecInt literals, int degree)
-			throws ContradictionException {
+    public IConstr addAtLeast(IVecInt literals, int degree)
+            throws ContradictionException {
         throw new UnsupportedOperationException();
     }
 
-	public void setTimeout(int t) {
+    public void setTimeout(int t) {
         throw new UnsupportedOperationException();
     }
 
-	public void setTimeoutOnConflicts(int count) {
+    public void setTimeoutOnConflicts(int count) {
         throw new UnsupportedOperationException();
     }
 
-	public void setTimeoutMs(long t) {
+    public void setTimeoutMs(long t) {
         throw new UnsupportedOperationException();
     }
 
-	public int getTimeout() {
+    public int getTimeout() {
         throw new UnsupportedOperationException();
     }
 
-	public long getTimeoutMs() {
+    public long getTimeoutMs() {
         throw new UnsupportedOperationException();
     }
 
-	public void expireTimeout() {
+    public void expireTimeout() {
         throw new UnsupportedOperationException();
     }
 
-	public void reset() {
+    public void reset() {
         numVariables = 0;
         numConstraints = 0;
 
@@ -197,56 +197,56 @@ public final class Reader implements ISolver {
         }
     }
 
-	@Deprecated
-	public void printStat(PrintStream out, String prefix) {
+    @Deprecated
+    public void printStat(PrintStream out, String prefix) {
         throw new UnsupportedOperationException();
     }
 
-	public void printStat(PrintWriter out, String prefix) {
+    public void printStat(PrintWriter out, String prefix) {
         throw new UnsupportedOperationException();
     }
 
-	public Map<String, Number> getStat() {
+    public Map<String, Number> getStat() {
         throw new UnsupportedOperationException();
     }
 
-	public String toString(String prefix) {
+    public String toString(String prefix) {
         throw new UnsupportedOperationException();
     }
 
-	public void clearLearntClauses() {
+    public void clearLearntClauses() {
         throw new UnsupportedOperationException();
     }
 
-	public void setDBSimplificationAllowed(boolean status) {
+    public void setDBSimplificationAllowed(boolean status) {
         throw new UnsupportedOperationException();
     }
 
-	public boolean isDBSimplificationAllowed() {
+    public boolean isDBSimplificationAllowed() {
         throw new UnsupportedOperationException();
     }
 
-	public void setSearchListener(SearchListener sl) {
+    public void setSearchListener(SearchListener sl) {
         throw new UnsupportedOperationException();
     }
 
-	public SearchListener getSearchListener() {
+    public SearchListener getSearchListener() {
         throw new UnsupportedOperationException();
     }
 
-	public boolean isVerbose() {
+    public boolean isVerbose() {
         throw new UnsupportedOperationException();
     }
 
-	public void setVerbose(boolean value) {
+    public void setVerbose(boolean value) {
         throw new UnsupportedOperationException();
     }
 
-	public void setLogPrefix(String prefix) {
+    public void setLogPrefix(String prefix) {
         throw new UnsupportedOperationException();
     }
 
-	public String getLogPrefix() {
+    public String getLogPrefix() {
         throw new UnsupportedOperationException();
     }
 
@@ -302,5 +302,3 @@ public final class Reader implements ISolver {
         throw new UnsupportedOperationException();
     }
 }
-
-
