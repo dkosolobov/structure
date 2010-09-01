@@ -1,6 +1,0 @@
-#!/bin/sh
-
-exec java -ea                                                           \
-    -Dlog4j.configuration=file://$STRUCTURE_LOCATION/log4j.properties   \
-    -cp ".:$STRUCTURE_LOCATION/lib/*"                                   \
-    org.sat4j.BasicLauncher $*

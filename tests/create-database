@@ -1,4 +1,0 @@
-#!/bin/sh
-
-rm -f running-times.sql
-sqlite3 running-times.sql "create table running_times (time float, test varchar, solver varchar, mean float, stddev float, min float, max float)"
