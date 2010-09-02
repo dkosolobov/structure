@@ -1,4 +1,2 @@
-build/
-src/test/testfiles/
-docs/
-instrumented/
+.*.swp
+target/
