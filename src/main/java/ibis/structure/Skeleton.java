@@ -33,6 +33,13 @@ public final class Skeleton implements Serializable {
   }
 
   /**
+   * @return a simple difficulty evaluator.
+   */
+  public int difficulty() {
+    return clauses[0].size() + clauses[1].size() + clauses[2].size();
+  }
+
+  /**
    * Adds a clause.
    */
   public void add(int[] clause) {
