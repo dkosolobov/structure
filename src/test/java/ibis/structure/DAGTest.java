@@ -1,20 +1,13 @@
 import gnu.trove.TIntHashSet;
-import junit.framework.TestCase;
+import org.junit.Test;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
-public class DAGTest extends TestCase {
-  DAG dag = new DAG();
+public class DAGTest {
+  private DAG dag = new DAG();
 
-  @Override
-  protected void setUp() throws Exception {
-    super.setUp();
-  }
-
-  @Override
-  protected void tearDown() throws Exception {
-    super.tearDown();
-  }
-
-  public void testSimpleAdd() throws Exception {
+  @Test
+  public void simpleAdd() throws Exception {
     dag.addEdge(1, 2);
     assertTrue(dag.containsEdge(1, 2));
     assertTrue(dag.containsEdge(-2, -1));
@@ -28,7 +21,8 @@ public class DAGTest extends TestCase {
     assertTrue(dag.containsEdge(3, 3));
   }
 
-  public void testTransitiveClosure() throws Exception {
+  @Test
+  public void transitiveClosure() throws Exception {
     dag.addEdge(1, 2);
     dag.addEdge(2, 3);
     assertTrue(dag.containsEdge(1, 3));
@@ -47,7 +41,8 @@ public class DAGTest extends TestCase {
       }
   }
 
-  public void testCycle1() throws Exception {
+  @Test
+  public void cycle1() throws Exception {
     dag.addEdge(1, 2);
     dag.addEdge(2, 1);
     assertTrue(dag.hasComponent(1));
@@ -58,7 +53,8 @@ public class DAGTest extends TestCase {
     assertEquals(-1, dag.component(-2));
   }
 
-  public void testCycle2() throws Exception {
+  @Test
+  public void cycle2() throws Exception {
     dag.addEdge(2, 1);
     dag.addEdge(1, 2);
     assertTrue(dag.hasComponent(1));
@@ -69,7 +65,8 @@ public class DAGTest extends TestCase {
     assertEquals(-1, dag.component(-2));
   }
 
-  public void testCycle3() throws Exception {
+  @Test
+  public void cycle3() throws Exception {
     dag.addEdge(1, 2);
     dag.addEdge(2, 3);
     dag.addEdge(3, 4);
@@ -86,7 +83,8 @@ public class DAGTest extends TestCase {
     assertEquals(-1, dag.component(-4));
   }
 
-  public void testCycle4() throws Exception {
+  @Test
+  public void cycle4() throws Exception {
     dag.addEdge(4, 1);
     dag.addEdge(1, 7);
     dag.addEdge(5, 2);
@@ -109,14 +107,16 @@ public class DAGTest extends TestCase {
     }
   }
 
-  public void testContradiction() throws Exception {
+  @Test
+  public void contradiction() throws Exception {
     dag.addEdge(1, -1);
     assertEquals(1, dag.component(1));
     assertEquals(-1, dag.component(-1));
     assertTrue(dag.containsEdge(1, -1));
   }
 
-  public void testCyclePaths() throws Exception {
+  @Test
+  public void cyclePaths() throws Exception {
     for (int i = 1; i <= 9; ++i) {
       dag.addEdge(i, i + 1);
     }
@@ -132,7 +132,8 @@ public class DAGTest extends TestCase {
     }
   }
 
-  public void testFindContradictions1() throws Exception {
+  @Test
+  public void findContradictions1() throws Exception {
     TIntHashSet contradictions;
 
     contradictions = dag.findContradictions(1, 2);
@@ -151,7 +152,8 @@ public class DAGTest extends TestCase {
     assertTrue(contradictions.contains(-1));
   }
 
-  public void testFindContradictions2() throws Exception {
+  @Test
+  public void findContradictions2() throws Exception {
     TIntHashSet contradictions;
 
     dag.addEdge(1, 4);
@@ -170,7 +172,8 @@ public class DAGTest extends TestCase {
     assertTrue(contradictions.contains(-3));
   }
 
-  public void testFindContradictions3() throws Exception {
+  @Test
+  public void findContradictions3() throws Exception {
     TIntHashSet contradictions;
 
     dag.addEdge(1, 2);
@@ -181,7 +184,8 @@ public class DAGTest extends TestCase {
     assertTrue(contradictions.contains(-2));
   }
 
-  public void testFindContradictions4() throws Exception {
+  @Test
+  public void findContradictions4() throws Exception {
     TIntHashSet contradictions;
 
     dag.addEdge(2, -1);
@@ -189,7 +193,8 @@ public class DAGTest extends TestCase {
     assertTrue(contradictions.contains(-1));
   }
 
-  public void testDelete() throws Exception {
+  @Test
+  public void delete() throws Exception {
     dag.addEdge(1, 2);
     dag.addEdge(2, 3);
 
@@ -204,7 +209,8 @@ public class DAGTest extends TestCase {
     assertTrue(!dag.containsEdge(-3, -2));
   }
 
-  public void testClone() throws Exception {
+  @Test
+  public void simpleClone() throws Exception {
     dag.addEdge(1, 2);
     dag.addEdge(2, 4);
 
