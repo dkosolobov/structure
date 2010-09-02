@@ -2,15 +2,18 @@ package ibis.structure;
 
 import gnu.trove.TIntArrayList;
 import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.IOException;
+import java.net.URL;
+import java.util.zip.GZIPInputStream;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import org.apache.log4j.Logger;
 
 
 /**
- * Reader is used to read instances using the SAT4J reader.
+ * Reads SAT instancs in DIMACS CNF format.
  */
 public final class Reader {
   private static final Logger logger = Logger.getLogger(Reader.class);
@@ -18,6 +21,26 @@ public final class Reader {
   public static Skeleton parseText(String text)
       throws IOException, ParseException {
     return parseStream(new ByteArrayInputStream(text.getBytes("UTF-8")));
+  }
+
+  public static Skeleton parseURL(String url)
+      throws IOException, ParseException {
+    InputStream source = null;
+    try {
+      if (url.startsWith("http://")) {
+        source = (new URL(url)).openStream();
+      } else {
+        source = new FileInputStream(url);
+      }
+      if (url.endsWith(".gz")) {
+        source = new GZIPInputStream(source);
+      }
+      return parseStream(source);
+    } finally {
+      if (source != null) {
+        source.close();
+      }
+    }
   }
 
   private static Skeleton parseStream(InputStream source)
