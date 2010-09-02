@@ -15,34 +15,6 @@ public final class Skeleton implements Serializable {
   public TIntArrayList[] clauses;
 
   /**
-   * Parses a string to produce a skeleton instance
-   * The string should be formatted like: 1 &amp; (2 | -3 | 3).
-   */
-  public static Skeleton parse(String nice) {
-    Skeleton skeleton = new Skeleton();
-
-    /* splits nice into clauses and clauses into variables */
-    String[] clauses = nice.split(" [&] ");
-
-    /* divides each clause into literals */
-    for (String clause: clauses) {
-      if (clause.charAt(0) == '(') {
-        clause = clause.substring(1, clause.length() - 1);
-        String[] literalsAsString = clause.split(" [|] ");
-        int[] literalsAsInt = new int[literalsAsString.length];
-        for (int i = 0; i < literalsAsString.length; ++i) {
-          literalsAsInt[i] = Integer.parseInt(literalsAsString[i]);
-        }
-        skeleton.add(literalsAsInt);
-      } else {
-        skeleton.add(Integer.parseInt(clause));
-      }
-    }
-
-    return skeleton;
-  }
-
-  /**
    * Constructor.
    */
   public Skeleton() {
@@ -58,20 +30,6 @@ public final class Skeleton implements Serializable {
    */
   public int numUnits() {
     return clauses[1].size();
-  }
-
-  /**
-   * @return number of constraints
-   */
-  public int numConstraints() {
-    return clauses[0].size() + clauses[1].size() + clauses[2].size();
-  }
-
-  /**
-   * Adds an unit.
-   */
-  public void add(int unit) {
-    clauses[1].add(unit);
   }
 
   /**
@@ -96,6 +54,9 @@ public final class Skeleton implements Serializable {
    * Detects some simple contradictions like a &amp; -a.
    * Simplifies clauses if literals are known, however clauses
    * are passed only once.
+   *
+   * Binaries and clauses will appear in the same order with same
+   * literal order except, of course, for the removed literals.
    */
   public void canonicalize()
       throws ContradictionException {
@@ -129,7 +90,7 @@ public final class Skeleton implements Serializable {
     }
 
     TIntArrayList clauses = new TIntArrayList();
-    TIntHashSet clause = new TIntHashSet();
+    TIntArrayList clause = new TIntArrayList();
     boolean satisfied = false;
     for (int i = 0; i < this.clauses[0].size(); ++i) {
       int literal = this.clauses[0].get(i);
@@ -137,21 +98,24 @@ public final class Skeleton implements Serializable {
         if (!satisfied) {
           if (clause.size() == 0) {
             throw new ContradictionException();
-          }
-          int[] clause_ = clause.toArray();
-          if (clause_.length == 1) {
-            units.add(clause_[0]);
-          } else if (clause_.length == 2) {
-            binaries.add(clause_);
+          } else if (clause.size() == 1) {
+            units.add(clause.get(0));
+          } else if (clause.size() == 2) {
+            binaries.add(clause.get(0));
+            binaries.add(clause.get(1));
           } else {
-            clauses.add(clause_);
+            clauses.add(clause.toNativeArray());
             clauses.add(0);
           }
         }
-      } else if (units.contains(literal) || clause.contains(-literal)) {
-        satisfied = true;
-      } else if (!units.contains(-literal)) {
-        clause.add(literal);
+        clause.clear();
+        satisfied = false;
+      } else if (!satisfied) {
+        if (units.contains(literal) || clause.contains(-literal)) {
+          satisfied = true;
+        } else if (!units.contains(-literal) && !clause.contains(literal)) {
+          clause.add(literal);
+        }
       }
     }
 
