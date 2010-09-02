@@ -12,7 +12,7 @@
     <dependency>
       <groupId>ibis</groupId>
       <artifactId>cohort</artifactId>
-      <version>0.3.6</version>
+      <version>0.5.0</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
