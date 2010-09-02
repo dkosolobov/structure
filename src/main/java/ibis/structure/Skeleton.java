@@ -2,7 +2,6 @@ package ibis.structure;
 
 import gnu.trove.TIntArrayList;
 import java.io.Serializable;
-
 import org.apache.log4j.Logger;
 
 
@@ -30,22 +29,13 @@ public final class Skeleton implements Serializable {
       if (clause.charAt(0) == '(') {
         clause = clause.substring(1, clause.length() - 1);
         String[] literalsAsString = clause.split(" [|] ");
-
         int[] literalsAsInt = new int[literalsAsString.length];
         for (int i = 0; i < literalsAsString.length; ++i) {
           literalsAsInt[i] = Integer.parseInt(literalsAsString[i]);
         }
-
-        if (literalsAsInt.length == 1) {
-          skeleton.clauses[1].add(literalsAsInt[0]);
-        } else if (literalsAsInt.length == 2) {
-          skeleton.clauses[2].add(literalsAsInt);
-        } else if (literalsAsInt.length >= 3) {
-          skeleton.clauses[0].add(literalsAsInt);
-          skeleton.clauses[0].add(0);
-        }
+        skeleton.add(literalsAsInt);
       } else {
-        skeleton.clauses[1].add(Integer.parseInt(clause));
+        skeleton.add(Integer.parseInt(clause));
       }
     }
 
@@ -75,5 +65,27 @@ public final class Skeleton implements Serializable {
    */
   public int numConstraints() {
     return clauses[0].size() + clauses[1].size() + clauses[2].size();
+  }
+
+  /**
+   * Adds an unit.
+   */
+  public void add(int unit) {
+    clauses[1].add(unit);
+  }
+
+  /**
+   * Adds a clause.
+   */
+  public void add(int[] clause) {
+    assert clause.length > 0;
+    if (clause.length == 1) {
+      clauses[1].add(clause[0]);
+    } else if (clause.length == 2) {
+      clauses[2].add(clause);
+    } else if (clause.length >= 3) {
+      clauses[0].add(clause);
+      clauses[0].add(0);
+    }
   }
 }
