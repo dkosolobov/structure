@@ -1,3 +1,5 @@
+package ibis.structure;
+
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIterator;

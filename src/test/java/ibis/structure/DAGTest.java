@@ -1,3 +1,5 @@
+package ibis.structure;
+
 import gnu.trove.TIntHashSet;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;

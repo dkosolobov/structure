@@ -1,12 +1,10 @@
+package ibis.structure;
+
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntHashSet;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-
-import ibis.structure.Reader;
-import ibis.structure.Skeleton;
-import ibis.structure.ContradictionException;
 
 public class SkeletonTest {
   private Skeleton skeleton;

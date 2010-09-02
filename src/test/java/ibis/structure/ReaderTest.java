@@ -1,8 +1,7 @@
+package ibis.structure;
+
 import java.io.IOException;
 import org.junit.Test;
-
-import ibis.structure.ParseException;
-import ibis.structure.Reader;
 
 public class ReaderTest {
   @Test(expected=ParseException.class)
