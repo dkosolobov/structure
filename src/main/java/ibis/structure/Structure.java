@@ -44,6 +44,7 @@ public class Structure {
 
   public static void main(String[] args) throws Exception {
     Cohort cohort = CohortFactory.createCohort();
+    cohort.activate();
     try {
       displayHeader();
       if (cohort.isMaster()) {
