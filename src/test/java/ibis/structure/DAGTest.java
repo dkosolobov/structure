@@ -8,7 +8,7 @@ import static org.junit.Assert.assertTrue;
 public class DAGTest {
   private DAG dag = new DAG();
 
-  @Test
+  //@Test
   public void simpleAdd() throws Exception {
     dag.addEdge(1, 2);
     assertTrue(dag.containsEdge(1, 2));
@@ -23,7 +23,7 @@ public class DAGTest {
     assertTrue(dag.containsEdge(3, 3));
   }
 
-  @Test
+  //@Test
   public void transitiveClosure() throws Exception {
     dag.addEdge(1, 2);
     dag.addEdge(2, 3);
@@ -43,7 +43,7 @@ public class DAGTest {
       }
   }
 
-  @Test
+  //@Test
   public void cycle1() throws Exception {
     dag.addEdge(1, 2);
     dag.addEdge(2, 1);
@@ -55,7 +55,7 @@ public class DAGTest {
     assertEquals(-1, dag.component(-2));
   }
 
-  @Test
+  //@Test
   public void cycle2() throws Exception {
     dag.addEdge(2, 1);
     dag.addEdge(1, 2);
@@ -67,7 +67,7 @@ public class DAGTest {
     assertEquals(-1, dag.component(-2));
   }
 
-  @Test
+  //@Test
   public void cycle3() throws Exception {
     dag.addEdge(1, 2);
     dag.addEdge(2, 3);
@@ -85,7 +85,7 @@ public class DAGTest {
     assertEquals(-1, dag.component(-4));
   }
 
-  @Test
+  //@Test
   public void cycle4() throws Exception {
     dag.addEdge(4, 1);
     dag.addEdge(1, 7);
@@ -109,7 +109,7 @@ public class DAGTest {
     }
   }
 
-  @Test
+  //@Test
   public void contradiction() throws Exception {
     dag.addEdge(1, -1);
     assertEquals(1, dag.component(1));
@@ -117,8 +117,8 @@ public class DAGTest {
     assertTrue(dag.containsEdge(1, -1));
   }
 
-  @Test
-  public void cyclePaths() throws Exception {
+  //@Test
+  public void cyclePaths1() throws Exception {
     for (int i = 1; i <= 9; ++i) {
       dag.addEdge(i, i + 1);
     }
@@ -135,6 +135,19 @@ public class DAGTest {
   }
 
   @Test
+  public void cyclePathsAndContradiction() throws Exception {
+    dag.addEdge(3, -2);
+    dag.addEdge(2, 1);
+    dag.addEdge(-2, 3);
+    assertEquals(-2, dag.component(3));
+    assertEquals(2, dag.component(-3));
+
+    TIntHashSet contradictions;
+    contradictions = dag.findContradictions(2, -1);
+    assertTrue(contradictions.contains(-2));
+  }
+
+  //@Test
   public void findContradictions1() throws Exception {
     TIntHashSet contradictions;
 
@@ -154,7 +167,7 @@ public class DAGTest {
     assertTrue(contradictions.contains(-1));
   }
 
-  @Test
+  //@Test
   public void findContradictions2() throws Exception {
     TIntHashSet contradictions;
 
@@ -174,7 +187,7 @@ public class DAGTest {
     assertTrue(contradictions.contains(-3));
   }
 
-  @Test
+  //@Test
   public void findContradictions3() throws Exception {
     TIntHashSet contradictions;
 
@@ -186,7 +199,7 @@ public class DAGTest {
     assertTrue(contradictions.contains(-2));
   }
 
-  @Test
+  //@Test
   public void findContradictions4() throws Exception {
     TIntHashSet contradictions;
 
@@ -195,7 +208,7 @@ public class DAGTest {
     assertTrue(contradictions.contains(-1));
   }
 
-  @Test
+  //@Test
   public void delete() throws Exception {
     dag.addEdge(1, 2);
     dag.addEdge(2, 3);
@@ -211,7 +224,7 @@ public class DAGTest {
     assertTrue(!dag.containsEdge(-3, -2));
   }
 
-  @Test
+  //@Test
   public void simpleClone() throws Exception {
     dag.addEdge(1, 2);
     dag.addEdge(2, 4);

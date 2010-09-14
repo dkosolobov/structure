@@ -3,6 +3,9 @@ package ibis.structure;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIterator;
+import gnu.trove.TIntIntIterator;
+import gnu.trove.TIntArrayList;
+import gnu.trove.TIntObjectIterator;
 import gnu.trove.TIntObjectHashMap;
 
 public class DAG {
@@ -20,7 +23,7 @@ public class DAG {
   // The elements in this set is included in the keys of proxies.
   private TIntHashSet components;
   // Maps nodes to the component they belong.
-  // If a key is in components then the values equals the key.
+  // If a key is in components then the value associated equals the key.
   private TIntIntHashMap proxies;
   // Maps proxies to set of neighbours.
   private TIntObjectHashMap<TIntHashSet> dag;
@@ -41,6 +44,31 @@ public class DAG {
       int node = it.next();
       dag.put(node, (TIntHashSet)other.dag.get(node).clone());
     }
+  }
+
+  /**
+   * Returns an instance containing all edges in the graph.
+   */
+  public Skeleton skeleton() {
+    Skeleton skeleton = new Skeleton();
+    for (TIntObjectIterator<TIntHashSet> itu = dag.iterator(); itu.hasNext();) {
+      itu.advance();
+      int u = itu.key();
+      for (TIntIterator itv = itu.value().iterator(); itv.hasNext();) {
+        int v = itv.next();
+        if (-u < v && u != v) {
+          skeleton.addArgs(-u, v);
+        }
+      }
+    }
+    for (int u: proxies.keys()) {
+      int v = component(u);
+      if (u != v) {
+        skeleton.addArgs(u, -v);
+        skeleton.addArgs(-u, v);
+      }
+    }
+    return skeleton;
   }
 
   // @return true if there is a path between u and v
@@ -97,8 +125,14 @@ public class DAG {
     return contradictions;
   }
 
-  // @return the component of node u.
-  // If n is a new node a component is created for it.
+  public TIntHashSet edges(int u) {
+    return dag.get(component(u));
+  }
+
+  /**
+   * @return the component of node u.
+   * If n is a new node a component is created for it.
+   */
   public int component(int u) {
     if (proxies.contains(u)) {
       return findComponent(u);
@@ -106,6 +140,11 @@ public class DAG {
     createComponent(u);
     createComponent(-u);
     return u;
+  }
+
+  // @return the set of components
+  public TIntHashSet components() {
+    return components;
   }
 
   // @return true if u is a component.
@@ -139,6 +178,7 @@ public class DAG {
   private int findComponent(int u) {
     int v = proxies.get(u);
     if (u != v) {
+      System.out.println("v = " + v);
       v = findComponent(v);
       proxies.put(u, v);
     }
@@ -177,9 +217,12 @@ public class DAG {
     }
 
     // The name of the new component is the smallest component.
-    int name = Math.abs(u);
+    int name = u;
     for (it = replaced.iterator(); it.hasNext();) {
-      name = Math.min(name, Math.abs(it.next()));
+      int node = it.next();
+      if (Math.abs(name) > Math.abs(node)) {
+        name = node;
+      }
     }
     replaced.remove(name);
 
@@ -202,6 +245,10 @@ public class DAG {
         children.add(node);
       }
     }
+
+    System.out.println("name = " + name +
+                       " list = " + (new TIntArrayList(replaced.toArray())));
+
 
     // Connects all parents with all children and removes replaced proxies.
     for (TIntIterator parent = parents.iterator(); parent.hasNext();) {
