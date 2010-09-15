@@ -16,8 +16,11 @@ public class Solver {
   private TIntIntHashMap proxies = new TIntIntHashMap();
   private TIntArrayList clauses;
 
-  public Solver(Skeleton instance) throws ContradictionException {
+  public Solver(Skeleton instance, int branch) {
     clauses = (TIntArrayList)instance.clauses.clone();
+    if (branch != 0) {
+      units.add(branch);
+    }
   }
 
   /**
@@ -33,7 +36,9 @@ public class Solver {
     for (int literal: proxies.keys()) {
       int proxy = getProxy(literal);
       if (units.contains(proxy)) {
-        skeleton.addArgs(literal);
+        if (includeUnits) {
+          skeleton.addArgs(literal);
+        }
       } else if (!units.contains(-proxy)) {
         skeleton.addArgs(-literal, proxy);
         skeleton.addArgs(literal, -proxy);
@@ -51,10 +56,48 @@ public class Solver {
   }
 
   /**
+   * Returns a list with all units including units from proxies.
+   */
+  public TIntArrayList getAllUnits() {
+    TIntArrayList units = new TIntArrayList();
+    units.add(this.units.toArray());
+    for (int literal: proxies.keys()) {
+      if (this.units.contains(getProxy(literal))) {
+        units.add(literal);
+      }
+    }
+    return units;
+  }
+
+  public int lookahead() throws ContradictionException {
+    simplify();
+    TIntIntHashMap counts = new TIntIntHashMap();
+    for (int i = 0; i < clauses.size(); ++i) {
+      counts.put(clauses.get(i), counts.get(clauses.get(i)));
+    }
+
+    int bestNode = 0;
+    double bestValue = Double.NEGATIVE_INFINITY;
+    for (int node: dag.nodes()) {
+      if (node > 0) {
+        double value =
+            sigmoid((1 + dag.neighbours(node).size()) * 
+                    (1 + dag.neighbours(-node).size())) +
+            sigmoid((1 + counts.get(node)) * 
+                    (1 + counts.get(-node)));
+        if (value > bestValue) {
+          bestNode = node;
+          bestValue = value;
+        }
+      }
+    }
+    return bestNode;
+  }
+
+  /**
    * Simplifies the instance.
    */
-  public void simplify()
-      throws ContradictionException {
+  public void simplify() throws ContradictionException {
     TIntArrayList tmp = new TIntArrayList();
     TIntArrayList newClauses = new TIntArrayList();
 
@@ -197,6 +240,14 @@ public class Solver {
     }
   }
 
+  private static double sigmoid(double x) {
+    return (1 / (1 + Math.exp(-x)));
+  }
+
+  /**
+   * Returns the proxy of u.
+   * The returned value doesn't have any proxy.
+   */
   private int getProxy(int u) {
     if (proxies.contains(u)) {
       int v = getProxy(proxies.get(u));

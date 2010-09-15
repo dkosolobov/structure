@@ -49,6 +49,13 @@ public class DAG {
   }
 
   /**
+   * Return an array containing all nodes in the graph.
+   */
+  public int[] nodes() {
+    return dag.keys();
+  }
+
+  /**
    * Returns an instance containing all edges in the graph.
    */
   public Skeleton skeleton() {

@@ -50,12 +50,18 @@ public class Structure {
     try {
       displayHeader();
       if (cohort.isMaster()) {
-        Skeleton skeleton = configure(args);
-        logger.info("Read problem, difficulty " + skeleton.difficulty());
-        Solver solver = new Solver(skeleton);
-        solver.simplify();
-        logger.info("all done");
-        System.out.println(solver);
+        Skeleton instance = configure(args);
+
+        SingleEventCollector root = new SingleEventCollector();
+        cohort.submit(root);
+        cohort.submit(new Job(root.identifier(), instance, 0));
+
+        int[] model = ((MessageEvent<int[]>)root.waitForEvent()).message;
+        if (model == null) {
+          printUnsatisfiable(System.out);
+        } else {
+          printSolution(System.out, model);
+        }
       }
     } catch (ContradictionException e) {
       logger.info("Clause unsatisfiable", e);

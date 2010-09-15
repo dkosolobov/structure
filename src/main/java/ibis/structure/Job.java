@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import org.apache.log4j.Logger;
 import gnu.trove.TIntArrayList;
 import ibis.cohort.Activity;
 import ibis.cohort.ActivityIdentifier;
@@ -8,6 +9,8 @@ import ibis.cohort.MessageEvent;
 import ibis.cohort.context.UnitActivityContext;
 
 public class Job extends Activity {
+  private static final Logger logger = Logger.getLogger(Job.class);
+
   private final ActivityIdentifier parent;
   private final Skeleton instance;
   private final int branch;
@@ -24,6 +27,9 @@ public class Job extends Activity {
     
   @Override
   public void initialize() {
+    logger.info("Branching on " + branch);
+    logger.info("Instance difficulty " + instance.difficulty());
+
     try {
       Solver solver = new Solver(instance, branch);
       int literal = solver.lookahead();
