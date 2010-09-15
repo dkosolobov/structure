@@ -50,7 +50,7 @@ while True:
             clause[l] = (clause[l] + 1) * flip
 
          # clause must satisfy both assignment and complented assignment
-         found = good[0] and good[1]
+         found = good[0] and (literals == 2 or good[1])
 
       clause.sort()
       clause = tuple(clause)
