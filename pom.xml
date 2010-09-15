@@ -33,6 +33,12 @@
       <version>2.1.0</version>
       <scope>compile</scope>
     </dependency>
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+      <version>2.3</version>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -44,6 +50,19 @@
           <source>1.6</source>
           <target>1.6</target>
         </configuration>
+      </plugin>
+      <plugin>  
+        <groupId>org.codehaus.mojo</groupId>  
+        <artifactId>exec-maven-plugin</artifactId>  
+        <configuration>  
+          <mainClass>ibis.structure.Structure</mainClass>  
+          <systemProperties>
+            <systemProperty>
+              <key>ibis.cohort.impl</key>
+              <value>mt</value>
+            </systemProperty>
+          </systemProperties>
+        </configuration>  
       </plugin>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
