@@ -55,7 +55,7 @@ public class SolverTest {
   public void simplify3() throws Exception {
     parse("p cnf 3 4\n-3 -2 0 -2 1 0 2 3 0 -2 -1 0");
     solver.simplify();
-    compare(-1, 0, -2, 0, 3, 0);
+    compare(-2, 0, 3, 0);
   }
 
   private void parse(String text) throws Exception {

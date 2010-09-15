@@ -19,25 +19,33 @@ public class DAG {
     }
   }
 
-  // The set of strongly connected nodes.
-  private TIntHashSet nodes;
-  // Maps proxies to set of neighbours (including the node itself).
+  // Maps nodes to set of neighbours (including the node itself).
   private TIntObjectHashMap<TIntHashSet> dag;
 
+  /**
+   * Creates an empty dag.
+   */
   public DAG() {
-    nodes = new TIntHashSet();
     dag = new TIntObjectHashMap<TIntHashSet>();
   }
 
+  /**
+   * Creates a copy of the given dag.
+   */
   public DAG(DAG other) {
-    nodes = (TIntHashSet)other.nodes.clone();
     dag = new TIntObjectHashMap<TIntHashSet>();
-
-    TIntIterator it;
-    for (it = nodes.iterator(); it.hasNext();) {
-      int node = it.next();
-      dag.put(node, (TIntHashSet)other.dag.get(node).clone());
+    TIntObjectIterator<TIntHashSet> it;
+    for (it = other.dag.iterator(); it.hasNext();) {
+      it.advance();
+      dag.put(it.key(), (TIntHashSet)it.value().clone());
     }
+  }
+
+  /**
+   * Returns true if node exists.
+   */
+  public boolean hasNode(int u) {
+    return dag.containsKey(u);
   }
 
   /**
@@ -73,14 +81,8 @@ public class DAG {
       return joinComponents(u, v);
     }
 
-    if (!dag.contains(u)) {
-      createNode(u);
-      createNode(-u);
-    }
-    if (!dag.contains(v)) {
-      createNode(v);
-      createNode(-v);
-    }
+    createNode(u);
+    createNode(v);
 
     // Connect all parents of u with all parents of v.
     int[] children = dag.get(v).toArray();
@@ -97,9 +99,9 @@ public class DAG {
 
   // Returns all nodes n such that -n => n if edge u, v is added.
   public TIntHashSet findContradictions(int u, int v) {
-    if (!dag.contains(u) || !dag.contains(v)) {
-      return null;
-    }
+    createNode(u);
+    createNode(v);
+
     TIntHashSet contradictions = new TIntHashSet();
     for (TIntIterator it = dag.get(-u).iterator(); it.hasNext(); ) {
       int node = it.next();  // -node => u
@@ -131,11 +133,10 @@ public class DAG {
       non_u[i] = -non_u[i];
     }
 
-    nodes.removeAll(u);
-    nodes.removeAll(non_u);
-    TIntIterator it;
-    for (it = nodes.iterator(); it.hasNext();) {
-      TIntHashSet arcs = dag.get(it.next());
+    TIntObjectIterator<TIntHashSet> it;
+    for (it = dag.iterator(); it.hasNext();) {
+      it.advance();
+      TIntHashSet arcs = it.value();
       arcs.removeAll(u);
       arcs.removeAll(non_u);
     }
@@ -145,19 +146,29 @@ public class DAG {
     }
   }
 
+  /**
+   * Creates a new nodes u and -u if they don't exist.
+   */
+  private void createNode(int u) {
+    if (!dag.contains(u)) {
+      assert !dag.contains(-u);
+      createNodeHelper(u);
+      createNodeHelper(-u);
+    }
+  }
 
   /**
    * Creates a new node u.
    */
-  private void createNode(int u) {
-    assert !nodes.contains(u);
-    nodes.add(u);
+  private void createNodeHelper(int u) {
     TIntHashSet neighbours = new TIntHashSet();
     neighbours.add(u);
     dag.put(u, neighbours);
   }
 
-  // @return true if there is a path between node u and v
+  /**
+   * @return true if there is a path between node u and v
+   */
   public boolean containsEdge(int u, int v) {
     TIntHashSet neighbours = neighbours(u);
     return neighbours != null && neighbours.contains(v);
@@ -168,10 +179,10 @@ public class DAG {
   private Join joinComponents(int u, int v) {
     // Finds all compoenents to be replaced by v.
     TIntHashSet replaced = new TIntHashSet();
-    for (TIntIterator it = nodes.iterator(); it.hasNext();) {
-      int node = it.next();
-      if (containsEdge(v, node) && containsEdge(node, u)) {
-        replaced.add(node);
+    for (TIntObjectIterator<TIntHashSet> it = dag.iterator(); it.hasNext();) {
+      it.advance();
+      if (containsEdge(v, it.key()) && containsEdge(it.key(), u)) {
+        replaced.add(it.key());
       }
     }
 
@@ -228,9 +239,7 @@ public class DAG {
     // Removes replaced nodes.
     for (TIntIterator it = replaced.iterator(); it.hasNext();) {
       int node = it.next();
-      nodes.remove(node);
       dag.remove(node);
-      nodes.remove(-node);
       dag.remove(-node);
     }
 

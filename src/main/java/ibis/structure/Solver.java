@@ -158,7 +158,7 @@ public class Solver {
           // logger.debug("Found binary {" + u + ", " + v + "}");
 
           TIntHashSet contradictions = dag.findContradictions(-u, v);
-          if (contradictions == null || contradictions.isEmpty()) {
+          if (contradictions.isEmpty()) {
             DAG.Join join = dag.addEdge(-u, v);
             if (join != null) {
               TIntIterator it;
