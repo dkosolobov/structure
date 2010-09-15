@@ -108,8 +108,20 @@ public class Solver {
       logger.info("Simplyfing... " + clauses.size() + " literals and " +
                   units.size() + " units");
 
-      for (int i = 0; i < clauses.size(); ++i) {
-        int literal = clauses.get(i);
+      clauses.remove(clauses.size() - 1);
+      while (true) {
+        // Pops one literal.
+        int size = clauses.size();
+        int literal;
+        if (size == 0) {
+          if (tmp.isEmpty()) {
+            break;
+          }
+          literal = 0;
+        } else {
+          literal = clauses.get(size - 1);
+          clauses.remove(size - 1);
+        }
         if (literal != 0) {
           tmp.add(literal);
           continue;
@@ -222,7 +234,8 @@ public class Solver {
                          (new TIntArrayList(contradictions.toArray())));
             TIntIterator it;
             for (it = contradictions.iterator(); it.hasNext();) {
-              newClauses.add(new int[] { it.next(), 0 });
+              // Adds units as clauses to be processed next.
+              clauses.add(new int[] { 0, it.next() });
             }
             newClauses.add(new int[] { u, v, 0 });
           }
