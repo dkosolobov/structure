@@ -10,37 +10,31 @@ import gnu.trove.TIntObjectHashMap;
 
 public class DAG {
   public static class Join {
-    public int component;
-    public TIntHashSet components;
+    public int parent;
+    public TIntHashSet children;
 
-    public Join(int component, TIntHashSet components) {
-      this.component = component;
-      this.components = components;
+    public Join(int parent, TIntHashSet children) {
+      this.parent = parent;
+      this.children = children;
     }
   }
 
-  // The set of strongly connected components components.
-  // The elements in this set is included in the keys of proxies.
-  private TIntHashSet components;
-  // Maps nodes to the component they belong.
-  // If a key is in components then the value associated equals the key.
-  private TIntIntHashMap proxies;
-  // Maps proxies to set of neighbours.
+  // The set of strongly connected nodes.
+  private TIntHashSet nodes;
+  // Maps proxies to set of neighbours (including the node itself).
   private TIntObjectHashMap<TIntHashSet> dag;
 
   public DAG() {
-    components = new TIntHashSet();
-    proxies = new TIntIntHashMap();
+    nodes = new TIntHashSet();
     dag = new TIntObjectHashMap<TIntHashSet>();
   }
 
   public DAG(DAG other) {
-    components = (TIntHashSet)other.components.clone();
-    proxies = (TIntIntHashMap)other.proxies.clone();
+    nodes = (TIntHashSet)other.nodes.clone();
     dag = new TIntObjectHashMap<TIntHashSet>();
 
     TIntIterator it;
-    for (it = components.iterator(); it.hasNext();) {
+    for (it = nodes.iterator(); it.hasNext();) {
       int node = it.next();
       dag.put(node, (TIntHashSet)other.dag.get(node).clone());
     }
@@ -61,34 +55,31 @@ public class DAG {
         }
       }
     }
-    for (int u: proxies.keys()) {
-      int v = component(u);
-      if (u != v && u < 0) {
-        skeleton.addArgs(u, -v);
-        skeleton.addArgs(-u, v);
-      }
-    }
     return skeleton;
   }
 
-  // @return true if there is a path between u and v
-  public boolean containsEdge(int u, int v) {
-    return containsComponentEdge(component(u), component(v));
-  }
-
-  // Adds a new edge between u and v, joining
-  // proxies to maintain the graph acyclic,
+  /**
+   * Adds a new edge between u and v, joining
+   * proxies to maintain the graph acyclic.
+   */
   public Join addEdge(int u, int v) {
     assert u != 0 && v != 0;
-    u = component(u);
-    v = component(v);
-
-    if (containsComponentEdge(u, v)) {
+    if (containsEdge(u, v)) {
+      assert containsEdge(-v, -u);
       return null;
     }
-    if (containsComponentEdge(v, u)) {
-      assert containsComponentEdge(-u, -v);
+    if (containsEdge(v, u)) {
+      assert containsEdge(-u, -v);
       return joinComponents(u, v);
+    }
+
+    if (!dag.contains(u)) {
+      createNode(u);
+      createNode(-u);
+    }
+    if (!dag.contains(v)) {
+      createNode(v);
+      createNode(-v);
     }
 
     // Connect all parents of u with all parents of v.
@@ -104,60 +95,33 @@ public class DAG {
     return null;
   }
 
-  // Returns all components n such that -n => n if edge u, v is added.
+  // Returns all nodes n such that -n => n if edge u, v is added.
   public TIntHashSet findContradictions(int u, int v) {
-    u = component(u);
-    v = component(v);
-
+    if (!dag.contains(u) || !dag.contains(v)) {
+      return null;
+    }
     TIntHashSet contradictions = new TIntHashSet();
-    TIntIterator it;
-    for (it = dag.get(-u).iterator(); it.hasNext(); ) {
+    for (TIntIterator it = dag.get(-u).iterator(); it.hasNext(); ) {
       int node = it.next();  // -node => u
-      if (containsComponentEdge(v, node)) {
-        // -node => u => v => node
+      if (containsEdge(v, node)) {  // -node => u => v => node
         contradictions.add(node);
       }
-      if (containsComponentEdge(-node, -v)) {
-        // -node => -v => -u => node
+      if (containsEdge(-node, -v)) {  // -node => -v => -u => node
         contradictions.add(node);
       }
     }
-
     return contradictions;
   }
 
   /**
-   * Returns all components of adjacent with the component of u.
+   * Returns all nodes of adjacent with the node of u.
    */
-  public TIntHashSet edges(int u) {
-    return dag.get(component(u));
+  public TIntHashSet neighbours(int u) {
+    return dag.get(u);
   }
 
   /**
-   * @return the component of node u.
-   * If n is a new node a component is created for it.
-   */
-  public int component(int u) {
-    if (proxies.contains(u)) {
-      return findComponent(u);
-    }
-    createComponent(u);
-    createComponent(-u);
-    return u;
-  }
-
-  // @return the set of components
-  public TIntHashSet components() {
-    return components;
-  }
-
-  // @return true if u is a component.
-  public boolean hasComponent(int component) {
-    return components.contains(component);
-  }
-
-  /**
-   * Deletes all components in u_.
+   * Deletes all nodes in u_.
    * Proxies are not modified.
    */
   public void delete(TIntHashSet u_) {
@@ -167,11 +131,10 @@ public class DAG {
       non_u[i] = -non_u[i];
     }
 
-    components.removeAll(u);
-    components.removeAll(non_u);
-
+    nodes.removeAll(u);
+    nodes.removeAll(non_u);
     TIntIterator it;
-    for (it = components.iterator(); it.hasNext();) {
+    for (it = nodes.iterator(); it.hasNext();) {
       TIntHashSet arcs = dag.get(it.next());
       arcs.removeAll(u);
       arcs.removeAll(non_u);
@@ -182,49 +145,39 @@ public class DAG {
     }
   }
 
-  private int findComponent(int u) {
-    int v = proxies.get(u);
-    if (u != v) {
-      v = findComponent(v);
-      proxies.put(u, v);
-    }
-    return v;
+
+  /**
+   * Creates a new node u.
+   */
+  private void createNode(int u) {
+    assert !nodes.contains(u);
+    nodes.add(u);
+    TIntHashSet neighbours = new TIntHashSet();
+    neighbours.add(u);
+    dag.put(u, neighbours);
   }
 
-  // Creates two new components u and -u.
-  private void createComponent(int u) {
-    assert !components.contains(u) && !proxies.containsKey(u);
-    components.add(u);
-    proxies.put(u, u);
-    TIntHashSet arcs = new TIntHashSet();
-    arcs.add(u);
-    dag.put(u, arcs);
+  // @return true if there is a path between node u and v
+  public boolean containsEdge(int u, int v) {
+    TIntHashSet neighbours = neighbours(u);
+    return neighbours != null && neighbours.contains(v);
   }
 
-  // @return true if there is a path between proxies u and v
-  private boolean containsComponentEdge(int u, int v) {
-    assert dag.containsKey(u);
-    return dag.get(u).contains(v);
-  }
-
-  // If u and v are in the same strongly connected component after
-  // the addition of arc (u, v) joins all proxies on the cycle.
+  // If u and v are in the same strongly connected node after
+  // the addition of arc (u, v) joins all nodes on the cycle.
   private Join joinComponents(int u, int v) {
-    assert containsComponentEdge(v, u);
-    TIntIterator it;
-
-    // Finds all proxies to be replaced by v.
+    // Finds all compoenents to be replaced by v.
     TIntHashSet replaced = new TIntHashSet();
-    for (it = components.iterator(); it.hasNext();) {
+    for (TIntIterator it = nodes.iterator(); it.hasNext();) {
       int node = it.next();
-      if (containsComponentEdge(v, node) && containsComponentEdge(node, u)) {
+      if (containsEdge(v, node) && containsEdge(node, u)) {
         replaced.add(node);
       }
     }
 
-    // The name of the new component is the smallest component.
+    // The name of the new node is the smallest node.
     int name = u;
-    for (it = replaced.iterator(); it.hasNext();) {
+    for (TIntIterator it = replaced.iterator(); it.hasNext();) {
       int node = it.next();
       if (Math.abs(name) > Math.abs(node)) {
         name = node;
@@ -232,27 +185,27 @@ public class DAG {
     }
     replaced.remove(name);
 
-    // Parents of the new component are parents of u.
+    // Parents of the new node are parents of u.
     TIntHashSet parents = new TIntHashSet();
     assert dag.containsKey(-u);
-    for (it = dag.get(-u).iterator(); it.hasNext();) {
+    for (TIntIterator it = dag.get(-u).iterator(); it.hasNext();) {
       int node = -it.next();
       if (!replaced.contains(node)) {
         parents.add(node);
       }
     }
 
-    // Children of the new component are children of v.
+    // Children of the new node are children of v.
     TIntHashSet children = new TIntHashSet();
     assert dag.containsKey(v);
-    for (it = dag.get(v).iterator(); it.hasNext();) {
+    for (TIntIterator it = dag.get(v).iterator(); it.hasNext();) {
       int node = it.next();
       if (!replaced.contains(node)) {
         children.add(node);
       }
     }
 
-    // Connects all parents with all children and removes replaced proxies.
+    // Connects all parents with all children and .
     for (TIntIterator parent = parents.iterator(); parent.hasNext();) {
       TIntHashSet arcs = dag.get(parent.next());
       for (TIntIterator child = children.iterator(); child.hasNext();) {
@@ -272,16 +225,13 @@ public class DAG {
       }
     }
 
-    // Joins all components.
-    for (it = replaced.iterator(); it.hasNext();) {
+    // Removes replaced nodes.
+    for (TIntIterator it = replaced.iterator(); it.hasNext();) {
       int node = it.next();
-      components.remove(node);
+      nodes.remove(node);
       dag.remove(node);
-      proxies.put(node, name);
-
-      components.remove(-node);
+      nodes.remove(-node);
       dag.remove(-node);
-      proxies.put(-node, -name);
     }
 
     return new Join(name, replaced);
