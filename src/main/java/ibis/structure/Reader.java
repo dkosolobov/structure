@@ -75,6 +75,7 @@ public final class Reader {
     } catch (NoSuchElementException e) {
       throw new ParseException("Incomplete header");
     }
+    logger.debug("p cnf " + numVariables + " " + numClauses);
 
     // Reads clauses
     Skeleton skeleton = new Skeleton();
