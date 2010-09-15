@@ -16,6 +16,10 @@ public final class Solver {
   private TIntIntHashMap proxies = new TIntIntHashMap();
   private TIntArrayList clauses;
 
+  public Solver(Skeleton instance) {
+    this(instance, 0);
+  }
+
   public Solver(Skeleton instance, int branch) {
     clauses = (TIntArrayList)instance.clauses.clone();
     if (branch != 0) {
@@ -103,8 +107,11 @@ public final class Solver {
     boolean simplified = true;
     while (simplified) {
       simplified = false;
-      logger.info("Simplyfing... " + clauses.size() + " literals and " +
-                  units.size() + " units");
+      logger.info("Simplyfing... " + clauses.size() + " literal(s) and " +
+                  units.size() + " unit(s)");
+      if (clauses.isEmpty()) {
+        break;
+      }
 
       clauses.remove(clauses.size() - 1);
       while (true) {
@@ -140,10 +147,10 @@ public final class Solver {
             neighbours = new TIntHashSet();
             neighbours.add(clause[0]);
           }
-          units.addAll(neighbours.toArray());
-          dag.delete(neighbours);
           // logger.debug("Found unit(s) " + (new TIntArrayList(set.toArray())) +
                        // ", " + units.size() + " unit(s) discovered");
+          units.addAll(neighbours.toArray());
+          dag.delete(neighbours);
         } else if (clause.length == 2) {  // Found a binary.
           simplified = true;
           int u = clause[0];

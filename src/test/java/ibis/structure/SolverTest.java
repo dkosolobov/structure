@@ -64,7 +64,7 @@ public class SolverTest {
   }
 
   private void compare(int... clauses) {
-    Skeleton skeleton = solver.skeleton();
+    Skeleton skeleton = solver.skeleton(true);
     skeleton.canonicalize();
     assertEquals(new TIntArrayList(clauses),
                  skeleton.clauses);
