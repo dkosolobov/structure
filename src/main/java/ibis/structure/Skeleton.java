@@ -1,5 +1,8 @@
 package ibis.structure;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Vector;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIterator;
@@ -12,129 +15,120 @@ import org.apache.log4j.Logger;
 public final class Skeleton implements Serializable {
   private static final Logger logger = Logger.getLogger(Skeleton.class);
 
-  public TIntArrayList[] clauses;
+  private static Comparator literalComparator = new Comparator<Integer>() {
+    public int compare(Integer o1, Integer o2) {
+      if (Math.abs(o1) < Math.abs(o2)) return -1;
+      if (Math.abs(o1) > Math.abs(o2)) return +1;
+      if (o1 < 0 && o2 > 0) return -1;
+      if (o1 > 0 && o2 < 0) return +1;
+      return 0;
+    }
+  };
 
-  /**
-   * Constructor.
-   */
-  public Skeleton() {
-    this.clauses = new TIntArrayList[] {
-       new TIntArrayList(),  // clauses, delimited by 0
-       new TIntArrayList(),  // units
-       new TIntArrayList(),  // binaries
-    };
-  }
+  private static Comparator clauseComparator = new Comparator<Vector<Integer>>() {
+    public int compare(Vector<Integer> o1, Vector<Integer> o2) {
+      if (o1.size() != o2.size()) {
+        return o1.size() - o2.size();
+      }
+      for (int i = 0; i < o1.size() && i < o2.size(); ++i) {
+        int r = literalComparator.compare(o1.get(i), o2.get(i));
+        if (r != 0) {
+          return r;
+        }
+      }
+      return 0;
+    }
+  };
 
-  /**
-   * @return number of units
-   */
-  public int numUnits() {
-    return clauses[1].size();
-  }
-
-  /**
-   * @return a simple difficulty evaluator.
-   */
-  public int difficulty() {
-    return clauses[0].size() + clauses[1].size() + clauses[2].size();
-  }
+  public TIntArrayList clauses = new TIntArrayList();
 
   /**
    * Adds a clause.
    */
   public void add(int[] clause) {
     assert clause.length > 0;
-    if (clause.length == 1) {
-      clauses[1].add(clause[0]);
-    } else if (clause.length == 2) {
-      clauses[2].add(clause);
-    } else if (clause.length >= 3) {
-      clauses[0].add(clause);
-      clauses[0].add(0);
-    }
+    clauses.add(clause);
+    clauses.add(0);
   }
 
   /**
-   * Canonicalize instance.
-   *
-   * Removes duplicate variables from clauses.
-   * Detects some simple contradictions like a &amp; -a.
-   * Simplifies clauses if literals are known, however clauses
-   * are passed only once.
-   *
-   * Binaries and clauses will appear in the same order with same
-   * literal order except, of course, for the removed literals.
+   * Adds a clause.
    */
-  public void canonicalize()
-      throws ContradictionException {
-    TIntHashSet units = new TIntHashSet(clauses[1].toNativeArray());
+  public void addArgs(int... clause) {
+    add(clause);
+  }
 
-    TIntArrayList binaries = new TIntArrayList();
-    for (int i = 0; i < clauses[2].size(); i += 2) {
-      int u = clauses[2].get(i);
-      int v = clauses[2].get(i + 1);
-      if (u == -v) {
-      } else if (u == v) {
-        if (units.contains(u)) {
-        } else if (units.contains(-u)) {
-          throw new ContradictionException();
-        } else {
-          units.add(u);
-        }
-      } else if (units.contains(u) || units.contains(v)) {
-      } else if (units.contains(-u)) {
-        if (units.contains(-v)) {
-          throw new ContradictionException();
-        } else {
-          units.add(v);
-        }
-      } else if (units.contains(-v)) {
-        units.add(u);
-      } else {
-        binaries.add(u);
-        binaries.add(v);
-      }
-    }
+  /**
+   * Concatenates anoter instance.
+   */
+  public void append(TIntArrayList other) {
+    clauses.add(other.toNativeArray());
+  }
 
-    TIntArrayList clauses = new TIntArrayList();
-    TIntArrayList clause = new TIntArrayList();
-    boolean satisfied = false;
-    for (int i = 0; i < this.clauses[0].size(); ++i) {
-      int literal = this.clauses[0].get(i);
+  /**
+   * Concatenates anoter instance.
+   */
+  public void append(Skeleton other) {
+    append(other.clauses);
+  }
+
+  /**
+   * Returns a number representing the dificulty of
+   * the stored instance.
+   */
+  public int difficulty() {
+    return clauses.size();
+  }
+
+  public String toString() {
+    int numVariables = 0, numClauses = 0;
+    for (int i = 0; i < clauses.size(); ++i) {
+      int literal = clauses.get(i);
       if (literal == 0) {
-        if (!satisfied) {
-          if (clause.size() == 0) {
-            throw new ContradictionException();
-          } else if (clause.size() == 1) {
-            units.add(clause.get(0));
-          } else if (clause.size() == 2) {
-            binaries.add(clause.get(0));
-            binaries.add(clause.get(1));
-          } else {
-            clauses.add(clause.toNativeArray());
-            clauses.add(0);
-          }
-        }
-        clause.clear();
-        satisfied = false;
-      } else if (!satisfied) {
-        if (units.contains(literal) || clause.contains(-literal)) {
-          satisfied = true;
-        } else if (!units.contains(-literal) && !clause.contains(literal)) {
-          clause.add(literal);
-        }
+        ++numClauses;
+      } else {
+        numVariables = Math.max(numVariables, Math.abs(literal));
       }
     }
-
-    TIntIterator it;
-    for (it = units.iterator(); it.hasNext(); ) {
-      if (units.contains(-it.next())) {
-        throw new ContradictionException();
+    StringBuffer result = new StringBuffer();
+    result.append("p cnf " + numVariables + " " + numClauses + "\n");
+    for (int i = 0; i < clauses.size(); ++i) {
+      int literal = clauses.get(i);
+      if (literal == 0) {
+        result.append("0\n");
+      } else {
+        result.append(literal + " ");
       }
     }
+    return result.toString();
+  }
 
-    this.clauses[0] = clauses;
-    this.clauses[1] = new TIntArrayList(units.toArray());
-    this.clauses[2] = binaries;
+  /**
+   * Sorts clauses and literals in clauses.
+   */
+  public void canonicalize() {
+    Vector<Vector<Integer>> clauses = new Vector<Vector<Integer>>();
+    clauses.add(new Vector<Integer>());
+
+    for (int i = 0; i < this.clauses.size(); ++i) {
+      int literal = this.clauses.get(i);
+      if (literal == 0) {
+        Collections.sort(clauses.lastElement(), literalComparator);
+        clauses.add(new Vector<Integer>());
+      } else {
+        clauses.lastElement().add(literal);
+      }
+    }
+    clauses.remove(clauses.size() - 1);
+    Collections.sort(clauses, clauseComparator);
+
+    this.clauses.clear();
+    for (int  i = 0; i < clauses.size(); ++i) {
+      Vector<Integer> clause = clauses.elementAt(i);
+      for (int j = 0; j < clause.size(); ++j) {
+        this.clauses.add(clause.elementAt(j));
+      }
+      this.clauses.add(0);
+    }
   }
 }

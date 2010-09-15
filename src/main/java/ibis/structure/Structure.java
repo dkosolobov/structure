@@ -3,6 +3,7 @@ package ibis.structure;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.FileInputStream;
+import java.io.PrintStream;
 import java.util.Queue;
 import java.util.Vector;
 import java.util.Collections;
@@ -10,9 +11,7 @@ import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Stack;
 import java.util.Random;
-
 import org.apache.log4j.Logger;
-
 import ibis.cohort.Activity;
 import ibis.cohort.ActivityIdentifier;
 import ibis.cohort.Cohort;
@@ -23,10 +22,10 @@ import ibis.cohort.MultiEventCollector;
 import ibis.cohort.SingleEventCollector;
 
 public class Structure {
-  private static Logger logger = Logger.getLogger(Structure.class);
+  private static final Logger logger = Logger.getLogger(Structure.class);
 
   private static void displayHeader() {
-    logger.info("Structure: a SATisfiability library for Java (c) 2009-2010 Alexandru Moșoi");
+    logger.info("STRUCTure: a SATisfiability library for Java (c) 2009-2010 Alexandru Moșoi");
     logger.info("This is free software under the MIT licence except where otherwise noted.");
 
     Runtime runtime = Runtime.getRuntime();
@@ -43,6 +42,9 @@ public class Structure {
   }
 
   public static void main(String[] args) throws Exception {
+    ClassLoader.getSystemClassLoader().
+      setPackageAssertionStatus("ibis.structure", true);
+
     Cohort cohort = CohortFactory.createCohort();
     cohort.activate();
     try {
@@ -50,11 +52,35 @@ public class Structure {
       if (cohort.isMaster()) {
         Skeleton skeleton = configure(args);
         logger.info("Read problem, difficulty " + skeleton.difficulty());
-        skeleton.canonicalize();
-        logger.info("Canonicalized instace, difficulty " + skeleton.difficulty());
+        Solver solver = new Solver(skeleton);
+        solver.simplify();
+        logger.info("all done");
+        System.out.println(solver);
       }
+    } catch (ContradictionException e) {
+      logger.info("Clause unsatisfiable", e);
+      printUnsatisfiable(System.out);
+    } catch (Exception e) {
+      logger.error("Caught unhandled exception", e);
+      printUnknown(System.out);
     } finally {
       cohort.done();
     }
+  }
+
+  private static void printSolution(PrintStream out, int[] model) {
+    out.println("s SATISFIABLE");
+    out.print("v");
+    for (int i = 0; i < model.length; ++i) {
+      out.print(" " + model[i]);
+    }
+  }
+
+  private static void printUnsatisfiable(PrintStream out) {
+    out.println("s UNSATISFIABLE");
+  }
+
+  private static void printUnknown(PrintStream out) {
+    out.println("s UNKNOWN");
   }
 }
