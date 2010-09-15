@@ -7,7 +7,7 @@ import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIterator;
 
-public class Solver {
+public final class Solver {
   private static final Logger logger = Logger.getLogger(Solver.class);
   private static final int REMOVED = Integer.MAX_VALUE;
 
@@ -103,15 +103,14 @@ public class Solver {
     boolean simplified = true;
     while (simplified) {
       simplified = false;
-      logger.info("**************************************************");
       logger.info("Simplyfing... " + clauses.size() + " literals and " +
                   units.size() + " units");
 
       clauses.remove(clauses.size() - 1);
       while (true) {
         // Pops one literal.
-        int size = clauses.size();
         int literal;
+        int size = clauses.size();
         if (size == 0) {
           if (tmp.isEmpty()) {
             break;
@@ -126,78 +125,13 @@ public class Solver {
           continue;
         }
 
-        // logger.debug("Current clause " + tmp);
-        boolean satisfied = false;
-        int[] clause = tmp.toNativeArray();
+        int[] clause = cleanClause(tmp.toNativeArray());
         tmp.clear();
 
-        // Renames literals to component.
-        for (int j = 0; j < clause.length; ++j) {
-          clause[j] = getProxy(clause[j]);
-        }
-        // logger.debug("Renamed to " + (new TIntArrayList(clause)));
-
-        // Checks if the clause is satisfied, removes unsatisfied
-        // literals and does binary resolution.
-        for (int j = 0; j < clause.length && !satisfied; ++j) {
-          if (clause[j] == REMOVED) {
-            continue;
-          }
-          if (units.contains(clause[j])) {
-            satisfied = true;
-            break;
-          }
-          if (units.contains(-clause[j])) {
-            // logger.debug("Removed " + clause[j]);
-            clause[j] = REMOVED;
-            simplified = true;
-            continue;
-          }
-          for (int k = 0; k < clause.length; ++k) {
-            if (j == k || clause[k] == REMOVED) {
-              continue;
-            }
-            if (clause[j] == clause[k]) {
-              // j + j = j
-              clause[k] = REMOVED;
-              simplified = true;
-              continue;
-            }
-            if (clause[j] == -clause[k]) {
-              // j + -j = true
-              satisfied = true;
-              break;
-            }
-            if (dag.containsEdge(-clause[j], -clause[k])) {
-              // if j + k + ... and -j => -k
-              // then j + ...
-              clause[k] = REMOVED;
-              simplified = true;
-              continue;
-            }
-          }
-        }
-        if (satisfied) {
-          simplified = true;
+        if (clause == null) {
           continue;
-        }
-
-        // Removes REMOVED from clause.
-        int length = 0;
-        for (int j = 0; j < clause.length; ++j) {
-          length += clause[j] != REMOVED ? 1 : 0;
-        }
-        int[] cleanClause = new int[length];
-        length = 0;
-        for (int j = 0; j < clause.length; ++j) {
-          if (clause[j] != REMOVED) {
-            cleanClause[length++] = clause[j];
-          }
-        }
-        clause = cleanClause;
-        // logger.debug("Cleaned clause " + (new TIntArrayList(clause)));
-      
-        if (clause.length == 0) {
+        } else if (clause.length == 0) {
+          // All literals were falsified.
           throw new ContradictionException();
         } else if (clause.length == 1) {  // Found a unit.
           simplified = true;
@@ -229,8 +163,6 @@ public class Solver {
               }
             }
           } else {
-            logger.debug("Contradictions " +
-                         (new TIntArrayList(contradictions.toArray())));
             TIntIterator it;
             for (it = contradictions.iterator(); it.hasNext();) {
               // Adds units as clauses to be processed next.
@@ -248,7 +180,6 @@ public class Solver {
       TIntArrayList swap = clauses;
       clauses = newClauses;
       newClauses = swap;
-      newClauses.clear();
     }
   }
 
@@ -257,10 +188,72 @@ public class Solver {
   }
 
   /**
+   * @return cleand clause or null if clause is satisfied
+   */
+  private int[] cleanClause(int[] clause) {
+    // Renames literals to component.
+    for (int j = 0; j < clause.length; ++j) {
+      clause[j] = getProxy(clause[j]);
+    }
+
+    // Checks if the clause is satisfied, removes unsatisfied
+    // literals and does binary resolution.
+    for (int j = 0; j < clause.length; ++j) {
+      if (clause[j] == REMOVED) {
+        continue;
+      }
+      if (units.contains(clause[j])) {
+        return null;
+      }
+      if (units.contains(-clause[j])) {
+        clause[j] = REMOVED;
+        continue;
+      }
+      for (int k = 0; k < clause.length; ++k) {
+        if (j == k || clause[k] == REMOVED) {
+          continue;
+        }
+        if (clause[j] == clause[k]) {
+          // j + j = j
+          clause[k] = REMOVED;
+          continue;
+        }
+        if (clause[j] == -clause[k]) {
+          // j + -j = true
+          return null;
+        }
+        if (dag.containsEdge(-clause[j], -clause[k])) {
+          // if j + k + ... and -j => -k
+          // then j + ...
+          clause[k] = REMOVED;
+          continue;
+        }
+      }
+    }
+   
+    // Removes REMOVED from clause.
+    int length = 0;
+    for (int j = 0; j < clause.length; ++j) {
+      length += clause[j] != REMOVED ? 1 : 0;
+    }
+    if (length != clause.length) {
+      int[] tmp = new int[length];
+      length = 0;
+      for (int j = 0; j < clause.length; ++j) {
+        if (clause[j] != REMOVED) {
+          tmp[length++] = clause[j];
+        }
+      }
+      clause = tmp;
+    }
+    return clause;
+  }
+
+  /**
    * Returns the proxy of u.
    * The returned value doesn't have any proxy.
    */
-  private int getProxy(int u) {
+  private final int getProxy(int u) {
     if (proxies.contains(u)) {
       int v = getProxy(proxies.get(u));
       proxies.put(u, v);
