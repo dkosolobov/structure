@@ -143,6 +143,7 @@ public class Solver {
         if (clause.length == 0) {
           throw new ContradictionException();
         } else if (clause.length == 1) {  // Found a unit.
+          simplified = true;
           TIntHashSet neighbours = dag.neighbours(clause[0]);
           if (neighbours == null) {
             neighbours = new TIntHashSet();
@@ -153,6 +154,7 @@ public class Solver {
           // logger.debug("Found unit(s) " + (new TIntArrayList(set.toArray())) +
                        // ", " + units.size() + " unit(s) discovered");
         } else if (clause.length == 2) {  // Found a binary.
+          simplified = true;
           int u = clause[0];
           int v = clause[1];
           // logger.debug("Found binary {" + u + ", " + v + "}");
@@ -172,7 +174,6 @@ public class Solver {
           } else {
             logger.debug("Contradictions " +
                          (new TIntArrayList(contradictions.toArray())));
-            simplified = true;
             TIntIterator it;
             for (it = contradictions.iterator(); it.hasNext();) {
               newClauses.add(new int[] { it.next(), 0 });
@@ -191,8 +192,6 @@ public class Solver {
       newClauses = swap;
       newClauses.clear();
     }
-
-    logger.info("Finished simplifying... " + clauses.size());
   }
 
   private int getProxy(int u) {
