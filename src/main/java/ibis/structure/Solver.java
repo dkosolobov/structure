@@ -40,7 +40,6 @@ public class Solver {
           skeleton.addArgs(literal);
         }
       } else if (!units.contains(-proxy)) {
-        skeleton.addArgs(-literal, proxy);
         skeleton.addArgs(literal, -proxy);
       }
     }
