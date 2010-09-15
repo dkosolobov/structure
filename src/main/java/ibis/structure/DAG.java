@@ -63,7 +63,7 @@ public class DAG {
     }
     for (int u: proxies.keys()) {
       int v = component(u);
-      if (u != v) {
+      if (u != v && u < 0) {
         skeleton.addArgs(u, -v);
         skeleton.addArgs(-u, v);
       }
@@ -79,6 +79,7 @@ public class DAG {
   // Adds a new edge between u and v, joining
   // proxies to maintain the graph acyclic,
   public Join addEdge(int u, int v) {
+    assert u != 0 && v != 0;
     u = component(u);
     v = component(v);
 
@@ -125,6 +126,9 @@ public class DAG {
     return contradictions;
   }
 
+  /**
+   * Returns all components of adjacent with the component of u.
+   */
   public TIntHashSet edges(int u) {
     return dag.get(component(u));
   }
@@ -152,7 +156,10 @@ public class DAG {
     return components.contains(component);
   }
 
-  // Deletes all components in u_.
+  /**
+   * Deletes all components in u_.
+   * Proxies are not modified.
+   */
   public void delete(TIntHashSet u_) {
     int u[] = u_.toArray();
     int non_u[] = u_.toArray();
@@ -162,10 +169,6 @@ public class DAG {
 
     components.removeAll(u);
     components.removeAll(non_u);
-    for (int i = 0; i < u.length; ++i) {
-      proxies.remove(u[i]);
-      proxies.remove(non_u[i]);
-    }
 
     TIntIterator it;
     for (it = components.iterator(); it.hasNext();) {
@@ -173,12 +176,15 @@ public class DAG {
       arcs.removeAll(u);
       arcs.removeAll(non_u);
     }
+    for (int i = 0; i < u.length; ++i) {
+      dag.remove(u[i]);
+      dag.remove(non_u[i]);
+    }
   }
 
   private int findComponent(int u) {
     int v = proxies.get(u);
     if (u != v) {
-      System.out.println("v = " + v);
       v = findComponent(v);
       proxies.put(u, v);
     }
@@ -245,10 +251,6 @@ public class DAG {
         children.add(node);
       }
     }
-
-    System.out.println("name = " + name +
-                       " list = " + (new TIntArrayList(replaced.toArray())));
-
 
     // Connects all parents with all children and removes replaced proxies.
     for (TIntIterator parent = parents.iterator(); parent.hasNext();) {
