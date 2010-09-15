@@ -20,10 +20,15 @@ public class Solver {
     clauses = (TIntArrayList)instance.clauses.clone();
   }
 
-  public Skeleton skeleton() {
+  /**
+   * Returns the current instance.
+   */
+  public Skeleton skeleton(boolean includeUnits) {
     Skeleton skeleton = new Skeleton();
-    for (TIntIterator it = units.iterator(); it.hasNext();) {
-      skeleton.addArgs(it.next());
+    if (includeUnits) {
+      for (TIntIterator it = units.iterator(); it.hasNext();) {
+        skeleton.addArgs(it.next());
+      }
     }
     for (int literal: proxies.keys()) {
       int proxy = getProxy(literal);
@@ -40,15 +45,13 @@ public class Solver {
   }
 
   public String toString() {
-    Skeleton skeleton = skeleton();
+    Skeleton skeleton = skeleton(true);
     skeleton.canonicalize();
     return skeleton.toString();
   }
 
   /**
-   * Simplifies the instances.
-   *
-   * Does all unit propagations. Renames all units.
+   * Simplifies the instance.
    */
   public void simplify()
       throws ContradictionException {
