@@ -11,18 +11,24 @@ public final class Solver {
   private static final Logger logger = Logger.getLogger(Solver.class);
   private static final int REMOVED = Integer.MAX_VALUE;
 
-  private TIntHashSet units = new TIntHashSet();
+  private TIntHashSet units;
   private DAG dag = new DAG();
   private TIntIntHashMap proxies = new TIntIntHashMap();
   private TIntArrayList clauses;
 
-  public Solver(Skeleton instance) {
+  public Solver(Skeleton instance)
+      throws ContradictionException {
     this(instance, 0);
   }
 
-  public Solver(Skeleton instance, int branch) {
+  public Solver(Skeleton instance, int branch)
+      throws ContradictionException {
     clauses = (TIntArrayList)instance.clauses.clone();
+    units = extractUnits(clauses);
     if (branch != 0) {
+      if (units.contains(-branch)) {
+        throw new ContradictionException();
+      }
       units.add(branch);
     }
   }
@@ -154,20 +160,18 @@ public final class Solver {
               }
             }
           } else {
-            TIntIterator it;
-            for (it = contradictions.iterator(); it.hasNext();) {
+            for (TIntIterator it = contradictions.iterator(); it.hasNext();) {
               // Adds units as clauses to be processed next.
-              clauses.add(new int[] { it.next(), 0 });
+              pushClause(clauses, new int[] { it.next() });
             }
-            newClauses.add(new int[] { u, v, 0 });
+            pushClause(newClauses, new int[] { u, v });
           }
         } else {
           // Found a clause with at least 3 literals.
           if (hyperBinaryResolution(newClauses, clause)) {
             simplified = true;
           }
-          newClauses.add(clause);
-          newClauses.add(0);
+          pushClause(newClauses, clause);
         }
       }
 
@@ -181,6 +185,10 @@ public final class Solver {
     return (1 / (1 + Math.exp(-x)));
   }
 
+  /**
+   * Removes and returns a clause from the list.
+   * If clauses is empty returns null.
+   */
   private static int[] popClause(TIntArrayList clauses) {
     int size = clauses.size();
     if (size == 0) {
@@ -193,8 +201,40 @@ public final class Solver {
     return clause;
   }
 
+  private static void pushClause(TIntArrayList clauses, int[] clause) {
+    clauses.add(clause);
+    clauses.add(0);
+  }
+
   /**
-   * @return cleand clause or null if clause is satisfied
+   * Finds all units in clauses.
+   *
+   * @return a set with all units in clauses.
+   */
+  private static TIntHashSet extractUnits(TIntArrayList clauses)
+      throws ContradictionException {
+    TIntHashSet units = new TIntHashSet();
+    int pos = 0;
+    while (true) {
+      int next = clauses.indexOf(pos, 0);
+      if (next == -1) {
+        break;
+      }
+      if (next == pos + 1) {
+        int literal = clauses.get(pos);        
+        if (units.contains(-literal)) {
+          throw new ContradictionException();
+        }
+        units.add(literal);
+      }
+      pos = next + 1;
+    }
+    logger.debug("Found " + units.size() + " units");
+    return units;
+  }
+
+  /**
+   * @return cleaned clause or null if clause is satisfied
    */
   private int[] cleanClause(int[] clause) {
     // Renames literals to component.
