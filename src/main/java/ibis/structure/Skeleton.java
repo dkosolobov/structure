@@ -1,12 +1,12 @@
 package ibis.structure;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Vector;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIterator;
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Vector;
 import org.apache.log4j.Logger;
 
 /**
@@ -15,7 +15,8 @@ import org.apache.log4j.Logger;
 public final class Skeleton implements Serializable {
   private static final Logger logger = Logger.getLogger(Skeleton.class);
 
-  private static Comparator literalComparator = new Comparator<Integer>() {
+  private static Comparator literalComparator =
+      new Comparator<Integer>() {
     public int compare(Integer o1, Integer o2) {
       if (Math.abs(o1) < Math.abs(o2)) return -1;
       if (Math.abs(o1) > Math.abs(o2)) return +1;
@@ -25,7 +26,8 @@ public final class Skeleton implements Serializable {
     }
   };
 
-  private static Comparator clauseComparator = new Comparator<Vector<Integer>>() {
+  private static Comparator clauseComparator =
+      new Comparator<Vector<Integer>>() {
     public int compare(Vector<Integer> o1, Vector<Integer> o2) {
       if (o1.size() != o2.size()) {
         return o1.size() - o2.size();
@@ -59,21 +61,21 @@ public final class Skeleton implements Serializable {
   }
 
   /**
-   * Concatenates anoter instance.
+   * Concatenates another instance.
    */
   public void append(TIntArrayList other) {
     clauses.add(other.toNativeArray());
   }
 
   /**
-   * Concatenates anoter instance.
+   * Concatenates another instance.
    */
   public void append(Skeleton other) {
     append(other.clauses);
   }
 
   /**
-   * Returns a number representing the dificulty of
+   * Returns a number representing the difficulty of
    * the stored instance.
    */
   public int difficulty() {

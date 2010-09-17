@@ -14,7 +14,7 @@ public class Simplify {
   private static String inputFile = null;
   private static String outputFile = null;
 
-  public static void main(String[] args)
+  public static void main(final String[] args)
       throws Exception {
     if (!configure(args)) {
       return;
@@ -37,9 +37,9 @@ public class Simplify {
     output.canonicalize();
 
     long endTime = System.currentTimeMillis();
-    logger.info("Reduced from " + input.difficulty() + " literal(s) to " +
-                output.difficulty() + " literal(s) in " +
-                ((endTime - startTime) / 1000.) + "s");
+    logger.info("Reduced from " + input.difficulty() + " literal(s) to "
+                + output.difficulty() + " literal(s) in "
+                + ((endTime - startTime) / 1000.) + "s");
 
     PrintStream outputStream;
     if (outputFile == null) {
@@ -71,5 +71,8 @@ public class Simplify {
     }
     inputFile = args[0];
     return true;
+  }
+
+  private Simplify() {
   }
 }

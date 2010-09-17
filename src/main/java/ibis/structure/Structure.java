@@ -1,24 +1,10 @@
 package ibis.structure;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.FileInputStream;
 import java.io.PrintStream;
-import java.util.Queue;
-import java.util.Vector;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.Properties;
-import java.util.Stack;
-import java.util.Random;
 import org.apache.log4j.Logger;
-import ibis.cohort.Activity;
-import ibis.cohort.ActivityIdentifier;
 import ibis.cohort.Cohort;
 import ibis.cohort.CohortFactory;
-import ibis.cohort.Event;
 import ibis.cohort.MessageEvent;
-import ibis.cohort.MultiEventCollector;
 import ibis.cohort.SingleEventCollector;
 
 public class Structure {

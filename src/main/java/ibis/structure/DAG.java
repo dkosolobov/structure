@@ -1,12 +1,9 @@
 package ibis.structure;
 
 import gnu.trove.TIntHashSet;
-import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIterator;
-import gnu.trove.TIntIntIterator;
-import gnu.trove.TIntArrayList;
-import gnu.trove.TIntObjectIterator;
 import gnu.trove.TIntObjectHashMap;
+import gnu.trove.TIntObjectIterator;
 
 public class DAG {
   public static class Join {
@@ -32,7 +29,7 @@ public class DAG {
   /**
    * Creates a copy of the given dag.
    */
-  public DAG(DAG other) {
+  public DAG(final DAG other) {
     dag = new TIntObjectHashMap<TIntHashSet>();
     TIntObjectIterator<TIntHashSet> it;
     for (it = other.dag.iterator(); it.hasNext();) {
@@ -44,7 +41,7 @@ public class DAG {
   /**
    * Returns true if node exists.
    */
-  public boolean hasNode(int u) {
+  public boolean hasNode(final int u) {
     return dag.containsKey(u);
   }
 
@@ -77,7 +74,7 @@ public class DAG {
    * Adds a new edge between u and v, joining
    * proxies to maintain the graph acyclic.
    */
-  public Join addEdge(int u, int v) {
+  public Join addEdge(final int u, final int v) {
     assert u != 0 && v != 0;
     if (containsEdge(u, v)) {
       assert containsEdge(-v, -u);
@@ -104,8 +101,10 @@ public class DAG {
     return null;
   }
 
-  // Returns all nodes n such that -n => n if edge u, v is added.
-  public TIntHashSet findContradictions(int u, int v) {
+  /**
+   * Returns all nodes n such that -n => n if edge u, v is added.
+   */
+  public TIntHashSet findContradictions(final int u, final int v) {
     createNode(u);
     createNode(v);
 
@@ -181,8 +180,10 @@ public class DAG {
     return neighbours != null && neighbours.contains(v);
   }
 
-  // If u and v are in the same strongly connected node after
-  // the addition of arc (u, v) joins all nodes on the cycle.
+  /**
+   * If u and v are in the same strongly connected node after
+   * the addition of arc (u, v) joins all nodes on the cycle.
+   */
   private Join joinComponents(int u, int v) {
     // Finds all compoenents to be replaced by v.
     TIntHashSet replaced = new TIntHashSet();
