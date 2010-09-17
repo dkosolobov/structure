@@ -29,6 +29,7 @@ public class Simplify {
       solver.simplify();
       output = solver.skeleton(true);
     } catch (ContradictionException e) {
+      logger.info("Found trivial contradiction", e);
       output = new Skeleton();
       output.addArgs(1);
       output.addArgs(-1);
