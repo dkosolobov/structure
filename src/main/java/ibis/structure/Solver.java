@@ -179,6 +179,9 @@ public final class Solver {
           }
         } else {
           // Found a clause with at least 3 literals.
+          if (hyperBinaryResolution(newClauses, clause)) {
+            simplified = true;
+          }
           newClauses.add(clause);
           newClauses.add(0);
         }
@@ -229,6 +232,9 @@ public final class Solver {
           // j + -j = true
           return null;
         }
+        if (dag.containsEdge(-clause[j], clause[k])) {
+          return null;
+        }
         if (dag.containsEdge(-clause[j], -clause[k])) {
           // if j + k + ... and -j => -k
           // then j + ...
@@ -237,7 +243,7 @@ public final class Solver {
         }
       }
     }
-   
+
     // Removes REMOVED from clause.
     int length = 0;
     for (int j = 0; j < clause.length; ++j) {
@@ -253,7 +259,38 @@ public final class Solver {
       }
       clause = tmp;
     }
+
     return clause;
+  }
+
+  /**
+   * Hyper-binary resolution.
+   */
+  private final boolean hyperBinaryResolution(
+      TIntArrayList clauses, int[] clause) {
+    boolean simplified = false;
+    for (int node: dag.nodes()) {
+      TIntHashSet neighbours = dag.neighbours(-node);
+      int numMissing = 0;
+      int literal = 0;
+      for (int i = 0; i < clause.length && numMissing < 2; ++i) {
+        if (!neighbours.contains(-clause[i])) {
+          literal = clause[i];
+          ++numMissing;
+        }
+      }
+
+      if (numMissing == 0) {
+        // logger.debug("Discovered unit " + node);
+        simplified = true;
+        clauses.add(new int[] { node, 0 });
+      } else if (numMissing == 1 && !neighbours.contains(literal)) {
+        logger.debug("Discovered binary {" + node + ", " + literal + "} " + clause.length);
+        simplified = true;
+        clauses.add(new int[] { node, literal, 0 });
+      }
+    }
+    return simplified;
   }
 
   /**
