@@ -134,13 +134,11 @@ public final class Solver {
           simplified = true;
           TIntHashSet neighbours = dag.neighbours(clause[0]);
           if (neighbours == null) {
-            neighbours = new TIntHashSet();
-            neighbours.add(clause[0]);
+            units.addAll(clause);
+          } else {
+            units.addAll(neighbours.toArray());
+            dag.delete(neighbours);
           }
-          // logger.debug("Found unit(s) " + (new TIntArrayList(set.toArray())) +
-                       // ", " + units.size() + " unit(s) discovered");
-          units.addAll(neighbours.toArray());
-          dag.delete(neighbours);
         } else if (clause.length == 2) {  // Found a binary.
           simplified = true;
           int u = clause[0];
@@ -160,11 +158,11 @@ public final class Solver {
               }
             }
           } else {
+            pushClause(clauses, new int[] { u, v });
             for (TIntIterator it = contradictions.iterator(); it.hasNext();) {
               // Adds units as clauses to be processed next.
               pushClause(clauses, new int[] { it.next() });
             }
-            pushClause(newClauses, new int[] { u, v });
           }
         } else {
           // Found a clause with at least 3 literals.
@@ -268,10 +266,16 @@ public final class Solver {
           // j + -j = true
           return null;
         }
-        if (dag.containsEdge(-clause[j], clause[k])) {
+        TIntHashSet neighbours = dag.neighbours(-clause[j]);
+        if (neighbours == null) {
+          continue;
+        }
+        if (neighbours.contains(clause[k])) {
+          // if j + k ... and -j => k
+          // then true
           return null;
         }
-        if (dag.containsEdge(-clause[j], -clause[k])) {
+        if (neighbours.contains(-clause[k])) {
           // if j + k + ... and -j => -k
           // then j + ...
           clause[k] = REMOVED;
