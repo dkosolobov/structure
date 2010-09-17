@@ -101,7 +101,6 @@ public final class Solver {
    * Simplifies the instance.
    */
   public void simplify() throws ContradictionException {
-    TIntArrayList tmp = new TIntArrayList();
     TIntArrayList newClauses = new TIntArrayList();
 
     boolean simplified = true;
@@ -113,27 +112,12 @@ public final class Solver {
         break;
       }
 
-      clauses.remove(clauses.size() - 1);
       while (true) {
-        // Pops one literal.
-        int literal;
-        int size = clauses.size();
-        if (size == 0) {
-          if (tmp.isEmpty()) {
-            break;
-          }
-          literal = 0;
-        } else {
-          literal = clauses.get(size - 1);
-          clauses.remove(size - 1);
+        int[] clause = popClause(clauses);
+        if (clause == null) {
+          break;
         }
-        if (literal != 0) {
-          tmp.add(literal);
-          continue;
-        }
-
-        int[] clause = cleanClause(tmp.toNativeArray());
-        tmp.clear();
+        clause = cleanClause(clause);
 
         if (clause == null) {
           continue;
@@ -173,7 +157,7 @@ public final class Solver {
             TIntIterator it;
             for (it = contradictions.iterator(); it.hasNext();) {
               // Adds units as clauses to be processed next.
-              clauses.add(new int[] { 0, it.next() });
+              clauses.add(new int[] { it.next(), 0 });
             }
             newClauses.add(new int[] { u, v, 0 });
           }
@@ -195,6 +179,18 @@ public final class Solver {
 
   private static double sigmoid(double x) {
     return (1 / (1 + Math.exp(-x)));
+  }
+
+  private static int[] popClause(TIntArrayList clauses) {
+    int size = clauses.size();
+    if (size == 0) {
+      return null;
+    }
+
+    int offset = clauses.lastIndexOf(size - 2, 0) + 1;
+    int[] clause = clauses.toNativeArray(offset, size - offset - 1);
+    clauses.remove(offset, size - offset);
+    return clause;
   }
 
   /**
@@ -285,7 +281,7 @@ public final class Solver {
         simplified = true;
         clauses.add(new int[] { node, 0 });
       } else if (numMissing == 1 && !neighbours.contains(literal)) {
-        logger.debug("Discovered binary {" + node + ", " + literal + "} " + clause.length);
+        // logger.debug("Discovered binary {" + node + ", " + literal + "} " + clause.length);
         simplified = true;
         clauses.add(new int[] { node, literal, 0 });
       }
