@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import java.util.BitSet;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
@@ -27,11 +28,8 @@ public final class Solver {
   public Solver(final Skeleton instance, final int branch)
       throws ContradictionException {
     clauses = (TIntArrayList) instance.clauses.clone();
-    units = extractUnits(clauses);
+    units = new TIntHashSet();
     if (branch != 0) {
-      if (units.contains(-branch)) {
-        throw new ContradictionException();
-      }
       units.add(branch);
     }
   }
@@ -135,52 +133,25 @@ public final class Solver {
         } else if (clause.length == 0) {
           // All literals were falsified.
           throw new ContradictionException();
-        } else if (clause.length == 1) { // Found a unit.
+        } else if (clause.length == 1) {
           simplified = true;
-          TIntHashSet neighbours = dag.neighbours(clause[0]);
-          if (neighbours == null) {
-            units.addAll(clause);
-          } else {
-            units.addAll(neighbours.toArray());
-            dag.delete(neighbours);
-          }
-        } else if (clause.length == 2) { // Found a binary.
+          addUnit(clause[0]);
+        } else if (clause.length == 2) {
           simplified = true;
-          int u = clause[0];
-          int v = clause[1];
-          // logger.debug("Found binary {" + u + ", " + v + "}");
-
-          TIntHashSet contradictions = dag.findContradictions(-u, v);
-          if (contradictions.isEmpty()) {
-            DAG.Join join = dag.addEdge(-u, v);
-            if (join != null) {
-              TIntIterator it;
-              for (it = join.children.iterator(); it.hasNext();) {
-                int node = it.next();
-                assert !proxies.contains(node) && !proxies.contains(-node);
-                proxies.put(node, join.parent);
-                proxies.put(-node, -join.parent);
-              }
-            }
-          } else {
-            pushClause(clauses, new int[] {u, v});
-            for (TIntIterator it = contradictions.iterator(); it.hasNext();) {
-              // Adds units as clauses to be processed next.
-              pushClause(clauses, new int[] {it.next()});
-            }
-          }
+          addBinary(clause[0], clause[1]);
         } else {
           // Found a clause with at least 3 literals.
-          if (hyperBinaryResolution(newClauses, clause)) {
-            simplified = true;
-          }
           pushClause(newClauses, clause);
         }
       }
-
       TIntArrayList swap = clauses;
       clauses = newClauses;
       newClauses = swap;
+
+      if (!simplified) {
+        logger.debug("Hyper binary resolution");
+        simplified = hyperBinaryResolution();
+      }
     }
   }
 
@@ -214,33 +185,40 @@ public final class Solver {
     clauses.add(0);
   }
 
-  /**
-   * Finds all units in clauses.
-   *
-   * @param clauses the list of clauses
-   * @return a set with all units in clauses
-   * @throws ContradictionException if a trivial contradiction is found
-   */
-  private static TIntHashSet extractUnits(final TIntArrayList clauses)
-      throws ContradictionException {
-    TIntHashSet units = new TIntHashSet();
-    int pos = 0;
-    while (true) {
-      int next = clauses.indexOf(pos, 0);
-      if (next == -1) {
-        break;
-      }
-      if (next == pos + 1) {
-        int literal = clauses.get(pos);
-        if (units.contains(-literal)) {
-          throw new ContradictionException();
-        }
-        units.add(literal);
-      }
-      pos = next + 1;
+  private void addUnit(int u) {
+    // logger.debug("Found unit " + u);
+    TIntHashSet neighbours = dag.neighbours(u);
+    if (neighbours == null) {
+      units.add(u);
+    } else {
+      int[] neighbours_ = neighbours.toArray();
+      units.addAll(neighbours_);
+      dag.delete(neighbours_);
     }
-    logger.debug("Found " + units.size() + " units");
-    return units;
+  }
+
+  private void addBinary(int u, int v) {
+    // logger.debug("Found binary " + u + " or " + v);
+    TIntHashSet contradictions = dag.findContradictions(-u, v);
+    if (!contradictions.isEmpty()) {
+      int[] contradictions_ = contradictions.toArray();
+      units.addAll(contradictions_);
+      dag.delete(contradictions_);
+      if (contradictions.contains(u) || contradictions.contains(v)) {
+        return;
+      }
+    }
+
+    DAG.Join join = dag.addEdge(-u, v);
+    if (join != null) {
+      TIntIterator it;
+      for (it = join.children.iterator(); it.hasNext();) {
+        int node = it.next();
+        assert !proxies.contains(node) && !proxies.contains(-node);
+        proxies.put(node, join.parent);
+        proxies.put(-node, -join.parent);
+      }
+    }
   }
 
   /**
@@ -323,30 +301,56 @@ public final class Solver {
   }
 
   /**
+   * Maps Z to N.
+   */
+  private final int convert(int a) {
+    return 2 * a * (1 + 2 * (a >> 31)) - (a >>> 31);
+  }
+
+  /**
    * Hyper-binary resolution.
    *
    * @return true if an unit or a binary was discovered.
    */
-  private boolean hyperBinaryResolution(
-      final TIntArrayList clauses, final int[] clause) {
+  private boolean hyperBinaryResolution() {
     boolean simplified = false;
+    int size = clauses.size();
+    int[] unit = new int[1];
+    int[] binary = new int[2];
+
     for (int node: dag.nodes()) {
       TIntHashSet neighbours = dag.neighbours(-node);
-      int numMissing = 0;
-      int literal = 0;
-      for (int i = 0; i < clause.length && numMissing < 2; ++i) {
-        if (!neighbours.contains(-clause[i])) {
-          literal = clause[i];
-          ++numMissing;
-        }
+      if (neighbours == null) {
+        continue;
       }
 
-      if (numMissing == 0) {
-        simplified = true;
-        clauses.add(new int[] {node, 0});
-      } else if (numMissing == 1 && !neighbours.contains(literal)) {
-        simplified = true;
-        clauses.add(new int[] {node, literal, 0});
+      // Usign bitset insted of hashset operations is somehow faster.
+      BitSet bs = new BitSet();
+      for (int u: neighbours.toArray()) {
+        bs.set(convert(u));
+      }
+
+      int numMissing = 0;
+      int missingLiteral = 0;
+      for (int i = 0; i < size; ++i) {
+        int literal = clauses.get(i);
+        if (literal == 0) {
+          if (numMissing == 0) {
+            simplified = true;
+            unit[0] = node;
+            pushClause(clauses, unit);
+            break;
+          } else if (numMissing == 1 && !bs.get(convert(missingLiteral))) {
+            simplified = true;
+            binary[0] = node;
+            binary[1] = missingLiteral;
+            pushClause(clauses, binary);
+          }
+          numMissing = 0;
+        } else if (numMissing < 2 && !bs.get(convert(-literal))) {
+          missingLiteral = literal;
+          ++numMissing;
+        }
       }
     }
     return simplified;

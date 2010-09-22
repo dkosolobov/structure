@@ -132,11 +132,10 @@ public class DAG {
    * Deletes all nodes in u_.
    * Proxies are not modified.
    */
-  public void delete(TIntHashSet u_) {
-    int u[] = u_.toArray();
-    int non_u[] = u_.toArray();
-    for (int i = 0; i < non_u.length; ++i) {
-      non_u[i] = -non_u[i];
+  public void delete(int[] u) {
+    int[] nonU = new int[u.length];
+    for (int i = 0; i < nonU.length; ++i) {
+      nonU[i] = -u[i];
     }
 
     TIntObjectIterator<TIntHashSet> it;
@@ -144,11 +143,11 @@ public class DAG {
       it.advance();
       TIntHashSet arcs = it.value();
       arcs.removeAll(u);
-      arcs.removeAll(non_u);
+      arcs.removeAll(nonU);
     }
     for (int i = 0; i < u.length; ++i) {
       dag.remove(u[i]);
-      dag.remove(non_u[i]);
+      dag.remove(nonU[i]);
     }
   }
 

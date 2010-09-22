@@ -191,7 +191,7 @@ public class DAGTest {
 
     TIntHashSet u = new TIntHashSet();
     u.add(2);
-    dag.delete(u);
+    dag.delete(u.toArray());
     assertTrue(!dag.hasNode(2));
     assertTrue(dag.containsEdge(1, 3));
     assertTrue(!dag.containsEdge(1, 2));
