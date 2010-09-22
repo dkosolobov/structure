@@ -329,25 +329,34 @@ public final class Solver {
    */
   private boolean hyperBinaryResolution(
       final TIntArrayList clauses, final int[] clause) {
+    assert clause.length >= 3;
     boolean simplified = false;
-    for (int node: dag.nodes()) {
-      TIntHashSet neighbours = dag.neighbours(-node);
-      int numMissing = 0;
-      int literal = 0;
-      for (int i = 0; i < clause.length && numMissing < 2; ++i) {
-        if (!neighbours.contains(-clause[i])) {
-          literal = clause[i];
-          ++numMissing;
+
+    int[] nonLiterals = new int[clause.length];
+    for (int i = 0; i < clause.length; ++i) {
+      nonLiterals[i] = -clause[i];
+    }
+
+    for (int i = 0; i < 2; ++i) {
+      nonLiterals[i ^ 1] = nonLiterals[i];
+
+      TIntHashSet neighbours = dag.neighbours(clause[i]);
+      if (neighbours == null) {
+        continue;
+      }
+
+      for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
+        int node = it.next();
+        TIntHashSet nodeNeighbours = dag.neighbours(-node);
+        if (nodeNeighbours.containsAll(nonLiterals)) {
+          if (!nodeNeighbours.contains(clause[i ^ 1])) {
+            pushClause(clauses, new int [] { node, clause[i ^ 1] });
+            simplified = true;
+          }
         }
       }
 
-      if (numMissing == 0) {
-        simplified = true;
-        clauses.add(new int[] {node, 0});
-      } else if (numMissing == 1 && !neighbours.contains(literal)) {
-        simplified = true;
-        clauses.add(new int[] {node, literal, 0});
-      }
+      nonLiterals[i ^ 1] = -clause[i ^ 1];
     }
     return simplified;
   }
