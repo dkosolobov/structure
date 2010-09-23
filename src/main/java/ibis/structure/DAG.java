@@ -130,24 +130,24 @@ public class DAG {
 
   /**
    * Deletes all nodes in u_.
-   * Proxies are not modified.
+   *
+   * Constraint: if n in u and n => m then m in u.
+   *
+   * @param u nodes to remove from graph
    */
-  public void delete(int[] u) {
-    int[] nonU = new int[u.length];
-    for (int i = 0; i < nonU.length; ++i) {
-      nonU[i] = -u[i];
+  public void delete(final int[] u) {
+    for (int a: u) {
+      TIntHashSet neighbours = dag.get(-a);
+      if (neighbours != null) {
+        for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
+          dag.get(-it.next()).remove(a);
+        }
+      }
     }
 
-    TIntObjectIterator<TIntHashSet> it;
-    for (it = dag.iterator(); it.hasNext();) {
-      it.advance();
-      TIntHashSet arcs = it.value();
-      arcs.removeAll(u);
-      arcs.removeAll(nonU);
-    }
     for (int i = 0; i < u.length; ++i) {
       dag.remove(u[i]);
-      dag.remove(nonU[i]);
+      dag.remove(-u[i]);
     }
   }
 
