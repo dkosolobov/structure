@@ -197,12 +197,12 @@ public final class DAG {
    * the addition of arc (u, v) joins all nodes on the cycle.
    */
   private Join joinComponents(int u, int v) {
-    // Finds all compoenents to be replaced by v.
+    // Finds all components to be replaced.
     TIntHashSet replaced = new TIntHashSet();
-    for (TIntObjectIterator<TIntHashSet> it = dag.iterator(); it.hasNext();) {
-      it.advance();
-      if (containsEdge(v, it.key()) && containsEdge(it.key(), u)) {
-        replaced.add(it.key());
+    for (TIntIterator it = dag.get(v).iterator(); it.hasNext();) {
+      int node = it.next();
+      if (dag.get(node).contains(u)) {
+        replaced.add(node);
       }
     }
 
