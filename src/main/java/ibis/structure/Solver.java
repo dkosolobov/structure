@@ -110,11 +110,22 @@ public final class Solver {
    * Simplifies the instance.
    */
   public void simplify() throws ContradictionException {
+    logger.info("Simplyfing: " + clauses.size() + " literal(s)");
     propagateAll();
 
     boolean simplified = true;
     while (simplified) {
+      logger.info("Simplyfing: " + clauses.size() + " literal(s), "
+                  + dag.size() + " binary(ies) and "
+                  + units.size() + " unit(s)");
       simplified = false;
+
+      TIntArrayList newClauses = hyperBinaryResolution();
+      if (!newClauses.isEmpty()) {
+        simplified = true;
+        clauses.add(newClauses.toNativeArray());
+        propagate();
+      }
 
       TIntArrayList literals = pureLiterals();
       if (!literals.isEmpty()) {
@@ -122,13 +133,6 @@ public final class Solver {
         for (int i = 0; i < literals.size(); ++i) {
           addUnit(literals.get(i));
         }
-        propagate();
-      }
-
-      TIntArrayList newClauses = hyperBinaryResolution();
-      if (!newClauses.isEmpty()) {
-        simplified = true;
-        clauses.add(newClauses.toNativeArray());
         propagate();
       }
     }
@@ -143,7 +147,6 @@ public final class Solver {
   }
 
   public boolean propagate() throws ContradictionException {
-    logger.info("Simplyfing... " + clauses.size() + " literal(s) ");
     if (clauses.isEmpty()) {
       return false;
     }

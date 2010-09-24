@@ -53,6 +53,19 @@ public final class DAG {
   }
 
   /**
+   * Returns the number of edges in the graph.
+   */
+  public int size() {
+    int size = -dag.size();
+    TIntObjectIterator<TIntHashSet> it;
+    for (it = dag.iterator(); it.hasNext();) {
+      it.advance();
+      size += it.value().size();
+    }
+    return size;
+  }
+
+  /**
    * Returns an instance containing all edges in the graph.
    */
   public Skeleton skeleton() {
