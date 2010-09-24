@@ -1,6 +1,5 @@
 package ibis.structure;
 
-import java.util.BitSet;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
@@ -124,8 +123,9 @@ public final class Solver {
       if (!newClauses.isEmpty()) {
         simplified = true;
         clauses.add(newClauses.toNativeArray());
-        propagate();
       }
+
+      simplified = propagate() || simplified;
 
       TIntArrayList literals = pureLiterals();
       if (!literals.isEmpty()) {
@@ -133,7 +133,6 @@ public final class Solver {
         for (int i = 0; i < literals.size(); ++i) {
           addUnit(literals.get(i));
         }
-        propagate();
       }
     }
   }
@@ -323,13 +322,6 @@ public final class Solver {
     return clause;
   }
 
-  private final int convert(int a) {
-    return a < 0 ? (1 - a - a) : a + a;
-  }
-
-  private final int deconvert(int a) {
-    return (a & 1) != 0 ? - (a - 1) / 2 : a / 2;
-  }
 
   /**
    * Hyper-binary resolution.
@@ -346,7 +338,7 @@ public final class Solver {
       TIntHashSet neighbours = dag.neighbours(-node);
       BitSet bs = new BitSet();
       for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
-        bs.set(convert(it.next()));
+        bs.set(it.next());
       }
 
       int numMissing = 0;
@@ -359,14 +351,14 @@ public final class Solver {
             pushClause(newClauses, unit);
             ++numUnits;
             break;
-          } else if (numMissing == 1 && !bs.get(convert(missingLiteral))) {
+          } else if (numMissing == 1 && !bs.get(missingLiteral)) {
             binary[0] = node;
             binary[1] = missingLiteral;
             pushClause(newClauses, binary);
             ++numBinaries;
           }
           numMissing = 0;
-        } else if (numMissing < 2 && !bs.get(convert(-literal))) {
+        } else if (numMissing < 2 && !bs.get(-literal)) {
           missingLiteral = literal;
           ++numMissing;
         }
@@ -383,25 +375,23 @@ public final class Solver {
   public TIntArrayList pureLiterals() {
     BitSet bs = new BitSet();
     for (int i = 0; i < clauses.size(); ++i) {
-      bs.set(convert(clauses.get(i)));
+      bs.set(clauses.get(i));
     }
     for (int u: dag.nodes()) {
       if (dag.neighbours(u).size() > 1) {
-        bs.set(convert(-u));
+        bs.set(-u);
       }
     }
     for (int u: units.toArray()) {
-      bs.set(convert(u));
+      bs.set(u);
     }
 
-    bs.clear(0);
+    // 0 is in bs, but -0 is also so
+    // 0 will not be considered a pure literal.
     TIntArrayList pureLiterals = new TIntArrayList();
-    for (int pos = bs.nextSetBit(0); pos >= 0; pos = bs.nextSetBit(pos + 1)) {
-      if (!bs.get(pos ^ 1)) {
-        int literal = deconvert(pos);
-        if (!units.contains(literal)) {
-          pureLiterals.add(literal);
-        }
+    for (int literal: bs.elements()) {
+      if (!bs.get(-literal) && !units.contains(literal)) {
+        pureLiterals.add(literal);
       }
     }
 
