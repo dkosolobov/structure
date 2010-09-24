@@ -5,7 +5,7 @@ import gnu.trove.TIntIterator;
 import gnu.trove.TIntObjectHashMap;
 import gnu.trove.TIntObjectIterator;
 
-public class DAG {
+public final class DAG {
   public static class Join {
     public int parent;
     public TIntHashSet children;

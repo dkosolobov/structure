@@ -110,49 +110,70 @@ public final class Solver {
    * Simplifies the instance.
    */
   public void simplify() throws ContradictionException {
-    TIntArrayList newClauses = new TIntArrayList();
+    propagateAll();
 
     boolean simplified = true;
     while (simplified) {
       simplified = false;
-      logger.info("Simplyfing... " + clauses.size() + " literal(s) and "
-                  + units.size() + " unit(s)");
-      if (clauses.isEmpty()) {
-        break;
+
+      TIntArrayList literals = pureLiterals();
+      if (!literals.isEmpty()) {
+        simplified = true;
+        for (int i = 0; i < literals.size(); ++i) {
+          addUnit(literals.get(i));
+        }
+        propagate();
       }
 
-      while (true) {
-        int[] clause = popClause(clauses);
-        if (clause == null) {
-          break;
-        }
-        clause = cleanClause(clause);
-
-        if (clause == null) {
-          continue;
-        } else if (clause.length == 0) {
-          // All literals were falsified.
-          throw new ContradictionException();
-        } else if (clause.length == 1) {
-          simplified = true;
-          addUnit(clause[0]);
-        } else if (clause.length == 2) {
-          simplified = true;
-          addBinary(clause[0], clause[1]);
-        } else {
-          // Found a clause with at least 3 literals.
-          pushClause(newClauses, clause);
-        }
-      }
-      TIntArrayList swap = clauses;
-      clauses = newClauses;
-      newClauses = swap;
-
-      if (!simplified) {
-        logger.debug("Hyper binary resolution");
-        simplified = hyperBinaryResolution();
+      TIntArrayList newClauses = hyperBinaryResolution();
+      if (!newClauses.isEmpty()) {
+        simplified = true;
+        clauses.add(newClauses.toNativeArray());
+        propagate();
       }
     }
+  }
+
+  public boolean propagateAll() throws ContradictionException {
+    boolean simplified = false;
+    while (propagate()) {
+      simplified = true;
+    }
+    return simplified;
+  }
+
+  public boolean propagate() throws ContradictionException {
+    logger.info("Simplyfing... " + clauses.size() + " literal(s) ");
+    if (clauses.isEmpty()) {
+      return false;
+    }
+
+    boolean simplified = false;
+    TIntArrayList oldClauses = clauses;
+    clauses = new TIntArrayList();
+    while (!oldClauses.isEmpty()) {
+      int[] clause = popClause(oldClauses);
+      clause = cleanClause(clause);
+
+      if (clause == null) {
+        // Clause was satisfied.
+        continue;
+      } else if (clause.length == 0) {
+        // All literals were falsified.
+        throw new ContradictionException();
+      } else if (clause.length == 1) {
+        simplified = true;
+        addUnit(clause[0]);
+      } else if (clause.length == 2) {
+        simplified = true;
+        addBinary(clause[0], clause[1]);
+      } else {
+        // Found a clause with at least 3 literals.
+        pushClause(clauses, clause);
+      }
+    }
+
+    return simplified;
   }
 
   private static double sigmoid(double x) {
@@ -163,8 +184,7 @@ public final class Solver {
    * Removes and returns a clause from the list.
    * If clauses is empty returns null.
    */
-  private static int[] popClause(
-      final TIntArrayList clauses) {
+  private static int[] popClause(final TIntArrayList clauses) {
     int size = clauses.size();
     if (size == 0) {
       return null;
@@ -300,11 +320,12 @@ public final class Solver {
     return clause;
   }
 
-  /**
-   * Maps Z to N.
-   */
   private final int convert(int a) {
-    return 2 * a * (1 + 2 * (a >> 31)) - (a >>> 31);
+    return a < 0 ? (1 - a - a) : a + a;
+  }
+
+  private final int deconvert(int a) {
+    return (a & 1) != 0 ? - (a - 1) / 2 : a / 2;
   }
 
   /**
@@ -312,39 +333,34 @@ public final class Solver {
    *
    * @return true if an unit or a binary was discovered.
    */
-  private boolean hyperBinaryResolution() {
-    boolean simplified = false;
-    int size = clauses.size();
-    int[] unit = new int[1];
-    int[] binary = new int[2];
+  private TIntArrayList hyperBinaryResolution() {
+    int[] unit = new int[1], binary = new int[2];
+    int numUnits = 0, numBinaries = 0;
 
+    TIntArrayList newClauses = new TIntArrayList();
     for (int node: dag.nodes()) {
-      TIntHashSet neighbours = dag.neighbours(-node);
-      if (neighbours == null) {
-        continue;
-      }
-
       // Usign bitset insted of hashset operations is somehow faster.
+      TIntHashSet neighbours = dag.neighbours(-node);
       BitSet bs = new BitSet();
-      for (int u: neighbours.toArray()) {
-        bs.set(convert(u));
+      for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
+        bs.set(convert(it.next()));
       }
 
       int numMissing = 0;
       int missingLiteral = 0;
-      for (int i = 0; i < size; ++i) {
+      for (int i = 0; i < clauses.size(); ++i) {
         int literal = clauses.get(i);
         if (literal == 0) {
           if (numMissing == 0) {
-            simplified = true;
             unit[0] = node;
-            pushClause(clauses, unit);
+            pushClause(newClauses, unit);
+            ++numUnits;
             break;
           } else if (numMissing == 1 && !bs.get(convert(missingLiteral))) {
-            simplified = true;
             binary[0] = node;
             binary[1] = missingLiteral;
-            pushClause(clauses, binary);
+            pushClause(newClauses, binary);
+            ++numBinaries;
           }
           numMissing = 0;
         } else if (numMissing < 2 && !bs.get(convert(-literal))) {
@@ -353,7 +369,41 @@ public final class Solver {
         }
       }
     }
-    return simplified;
+    logger.debug("Hyper binary resolution found " + numUnits + " unit(s) and "
+                 + numBinaries + " binary(ies)");
+    return newClauses;
+  }
+
+  /**
+   * Pure literal assignment.
+   */
+  public TIntArrayList pureLiterals() {
+    BitSet bs = new BitSet();
+    for (int i = 0; i < clauses.size(); ++i) {
+      bs.set(convert(clauses.get(i)));
+    }
+    for (int u: dag.nodes()) {
+      if (dag.neighbours(u).size() > 1) {
+        bs.set(convert(-u));
+      }
+    }
+    for (int u: units.toArray()) {
+      bs.set(convert(u));
+    }
+
+    bs.clear(0);
+    TIntArrayList pureLiterals = new TIntArrayList();
+    for (int pos = bs.nextSetBit(0); pos >= 0; pos = bs.nextSetBit(pos + 1)) {
+      if (!bs.get(pos ^ 1)) {
+        int literal = deconvert(pos);
+        if (!units.contains(literal)) {
+          pureLiterals.add(literal);
+        }
+      }
+    }
+
+    logger.debug("Discovered " + pureLiterals.size() + " pure literal(s)");
+    return pureLiterals;
   }
 
   /**
