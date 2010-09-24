@@ -90,11 +90,9 @@ public final class DAG {
   public Join addEdge(final int u, final int v) {
     assert u != 0 && v != 0;
     if (containsEdge(u, v)) {
-      assert containsEdge(-v, -u);
       return null;
     }
     if (containsEdge(v, u)) {
-      assert containsEdge(-u, -v);
       return joinComponents(u, v);
     }
 
@@ -118,17 +116,18 @@ public final class DAG {
    * Returns all nodes n such that -n => n if edge u, v is added.
    */
   public TIntHashSet findContradictions(final int u, final int v) {
-    createNode(u);
-    createNode(v);
-
     TIntHashSet contradictions = new TIntHashSet();
-    for (TIntIterator it = dag.get(-u).iterator(); it.hasNext(); ) {
-      int node = it.next();  // -node => u
-      if (containsEdge(v, node)) {  // -node => u => v => node
-        contradictions.add(node);
+    if (!dag.containsKey(u) || !dag.containsKey(v)) {
+      if (-u == v) {
+        contradictions.add(v);
       }
-      if (containsEdge(-node, -v)) {  // -node => -v => -u => node
-        contradictions.add(node);
+    } else {
+      TIntHashSet neighbours = dag.get(v);
+      for (TIntIterator it = dag.get(-u).iterator(); it.hasNext(); ) {
+        int node = it.next();  // -node => u
+        if (neighbours.contains(node)) {  // -node => u => v => node
+          contradictions.add(node);
+        }
       }
     }
     return contradictions;

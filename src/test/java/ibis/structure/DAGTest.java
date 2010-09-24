@@ -105,11 +105,6 @@ public class DAGTest {
     checkJoin(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
   }
 
-  @Test
-  public void contradiction() throws Exception {
-    TIntHashSet contradictions = dag.findContradictions(1, -1);
-    assertTrue(contradictions.contains(-1));
-  }
 
   @Test
   public void cyclePathsAndContradiction() throws Exception {
@@ -181,6 +176,12 @@ public class DAGTest {
 
     dag.addEdge(2, -1);
     contradictions = dag.findContradictions(1, 2);
+    assertTrue(contradictions.contains(-1));
+  }
+
+  @Test
+  public void findContradictions5() throws Exception {
+    TIntHashSet contradictions = dag.findContradictions(1, -1);
     assertTrue(contradictions.contains(-1));
   }
 
