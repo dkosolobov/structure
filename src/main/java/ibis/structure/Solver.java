@@ -135,11 +135,13 @@ public final class Solver {
 
       simplified = propagate() || simplified;
 
-      TIntArrayList literals = pureLiterals();
-      if (!literals.isEmpty()) {
-        simplified = true;
-        for (int i = 0; i < literals.size(); ++i) {
-          addUnit(literals.get(i));
+      if (!simplified) {
+        TIntArrayList literals = pureLiterals();
+        if (!literals.isEmpty()) {
+          simplified = true;
+          for (int i = 0; i < literals.size(); ++i) {
+            addUnit(literals.get(i));
+          }
         }
       }
     }
@@ -399,7 +401,7 @@ public final class Solver {
   public TIntArrayList pureLiterals() {
     BitSet bs = new BitSet();
     for (int i = 0; i < clauses.size(); ++i) {
-      bs.set(clauses.get(i));
+      bs.set(getProxy(clauses.get(i)));
     }
     for (int u: dag.nodes()) {
       if (dag.neighbours(u).size() > 1) {
@@ -435,5 +437,4 @@ public final class Solver {
     }
     return u;
   }
-
 }
