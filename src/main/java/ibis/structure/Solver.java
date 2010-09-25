@@ -215,6 +215,19 @@ public final class Solver {
     clauses.add(0);
   }
 
+  private static void pushClause(
+      final TIntArrayList clauses, final int u0) {
+    clauses.add(u0);
+    clauses.add(0);
+  }
+
+  private static void pushClause(
+      final TIntArrayList clauses, final int u0, final int u1) {
+    clauses.add(u0);
+    clauses.add(u1);
+    clauses.add(0);
+  }
+
   private void addUnit(int u) {
     // logger.debug("Found unit " + u);
     TIntHashSet neighbours = dag.neighbours(u);
@@ -333,17 +346,12 @@ public final class Solver {
 
   /**
    * Hyper-binary resolution.
-   *
-   * @return true if an unit or a binary was discovered.
    */
   public TIntArrayList hyperBinaryResolution() {
-    int[] unit = new int[1], binary = new int[2];
     int numUnits = 0, numBinaries = 0;
-
-    int numLiterals = 0;
+    int numLiterals = 0, clauseSum = 0;
     TIntIntHashMap counts = new TIntIntHashMap();
-    int clauseXOR = 0;
-    TIntIntHashMap xors = new TIntIntHashMap();
+    TIntIntHashMap sums = new TIntIntHashMap();
 
     TIntArrayList newClauses = new TIntArrayList();
     for (int i = 0; i < clauses.size(); ++i) {
@@ -352,32 +360,29 @@ public final class Solver {
         for (TIntIntIterator it = counts.iterator(); it.hasNext(); ) {
           it.advance();
           if (it.value() == numLiterals && !units.contains(-it.key())) {
-            unit[0] = -it.key();
-            pushClause(newClauses, unit);
+            pushClause(newClauses, -it.key());
             ++numUnits;
           } else if (it.value() == numLiterals - 1) {
-            int missingLiteral = xors.get(it.key()) ^ clauseXOR;
+            int missingLiteral = clauseSum - sums.get(it.key());
             if (!dag.containsEdge(it.key(), missingLiteral)) {
-              binary[0] = -it.key();
-              binary[1] = missingLiteral;
-              pushClause(newClauses, binary);
+              pushClause(newClauses, -it.key(), missingLiteral);
               ++numBinaries;
             }
           }
         }
         numLiterals = 0;
+        clauseSum = 0;
         counts.clear();
-        clauseXOR = 0;
-        xors.clear();
+        sums.clear();
       } else {
         ++numLiterals;
-        clauseXOR ^= literal;
+        clauseSum += literal;
         TIntHashSet neighbours = dag.neighbours(literal);
         if (neighbours != null) {
           for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
             int node = -it.next();
             counts.adjustOrPutValue(node, 1, 1);
-            xors.put(node, xors.get(node) ^ literal);
+            sums.adjustOrPutValue(node, literal, literal);
           }
         }
       }
