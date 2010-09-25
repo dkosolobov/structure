@@ -1,6 +1,6 @@
 #!/bin/sh
 
-mvn compile exec:java -e                         \
+mvn compile exec:java -e --offline               \
     -Dibis.cohort.impl="mt"                      \
     -Dexec.mainClass="ibis.structure.Structure"  \
     -Dexec.args="$*"

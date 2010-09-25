@@ -1,5 +1,5 @@
 #!/bin/sh
 
-mvn compile exec:java -e                      \
+mvn --offline compile exec:java -e            \
     -Dexec.mainClass=ibis.structure.Simplify  \
     -Dexec.args="$*"
