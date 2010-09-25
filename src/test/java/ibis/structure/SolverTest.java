@@ -119,7 +119,7 @@ public class SolverTest {
 
     parse("p cnf 5 5\n5 -1 0 1 2 0 1 3 0 1 4 0 -2 -3 -4 0");
     solver.propagateAll();
-    compare(solver.hyperBinaryResolution(), 5, 0, 1, 0);
+    compare(solver.hyperBinaryResolution(), 1, 0, 5, 0);
   }
 
   @Test

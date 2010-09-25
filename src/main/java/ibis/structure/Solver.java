@@ -3,6 +3,7 @@ package ibis.structure;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
+import gnu.trove.TIntIntIterator;
 import gnu.trove.TIntIterator;
 import org.apache.log4j.Logger;
 import java.text.DecimalFormat;
@@ -339,38 +340,49 @@ public final class Solver {
     int[] unit = new int[1], binary = new int[2];
     int numUnits = 0, numBinaries = 0;
 
-    TIntArrayList newClauses = new TIntArrayList();
-    for (int node: dag.nodes()) {
-      // Usign bitset instead of hashset operations is somehow faster.
-      TIntHashSet neighbours = dag.neighbours(-node);
-      BitSet bs = new BitSet();
-      for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
-        bs.set(it.next());
-      }
+    int numLiterals = 0;
+    TIntIntHashMap counts = new TIntIntHashMap();
+    int clauseXOR = 0;
+    TIntIntHashMap xors = new TIntIntHashMap();
 
-      int numMissing = 0;
-      int missingLiteral = 0;
-      for (int i = 0; i < clauses.size(); ++i) {
-        int literal = clauses.get(i);
-        if (literal == 0) {
-          if (numMissing == 0) {
-            unit[0] = node;
+    TIntArrayList newClauses = new TIntArrayList();
+    for (int i = 0; i < clauses.size(); ++i) {
+      int literal = clauses.get(i);
+      if (literal == 0) {
+        for (TIntIntIterator it = counts.iterator(); it.hasNext(); ) {
+          it.advance();
+          if (it.value() == numLiterals && !units.contains(-it.key())) {
+            unit[0] = -it.key();
             pushClause(newClauses, unit);
             ++numUnits;
-            break;
-          } else if (numMissing == 1 && !bs.get(missingLiteral)) {
-            binary[0] = node;
-            binary[1] = missingLiteral;
-            pushClause(newClauses, binary);
-            ++numBinaries;
+          } else if (it.value() == numLiterals - 1) {
+            int missingLiteral = xors.get(it.key()) ^ clauseXOR;
+            if (!dag.containsEdge(it.key(), missingLiteral)) {
+              binary[0] = -it.key();
+              binary[1] = missingLiteral;
+              pushClause(newClauses, binary);
+              ++numBinaries;
+            }
           }
-          numMissing = 0;
-        } else if (numMissing < 2 && !bs.get(-literal)) {
-          missingLiteral = literal;
-          ++numMissing;
+        }
+        numLiterals = 0;
+        counts.clear();
+        clauseXOR = 0;
+        xors.clear();
+      } else {
+        ++numLiterals;
+        clauseXOR ^= literal;
+        TIntHashSet neighbours = dag.neighbours(literal);
+        if (neighbours != null) {
+          for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
+            int node = -it.next();
+            counts.adjustOrPutValue(node, 1, 1);
+            xors.put(node, xors.get(node) ^ literal);
+          }
         }
       }
     }
+
     logger.debug("Hyper binary resolution found " + numUnits + " unit(s) and "
                  + numBinaries + " binary(ies)");
     return newClauses;
