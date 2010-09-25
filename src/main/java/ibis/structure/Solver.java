@@ -136,11 +136,11 @@ public final class Solver {
       simplified = propagate() || simplified;
 
       if (!simplified) {
-        TIntArrayList literals = pureLiterals();
-        if (!literals.isEmpty()) {
+        TIntArrayList pureLiterals = pureLiterals();
+        if (!pureLiterals.isEmpty()) {
           simplified = true;
-          for (int i = 0; i < literals.size(); ++i) {
-            addUnit(literals.get(i));
+          for (int i = 0; i < pureLiterals.size(); i += 2) {
+            addUnit(pureLiterals.get(i));
           }
         }
       }
@@ -348,6 +348,8 @@ public final class Solver {
 
   /**
    * Hyper-binary resolution.
+   *
+   * @return clauses representing binaries and units discovered.
    */
   public TIntArrayList hyperBinaryResolution() {
     int numUnits = 0, numBinaries = 0;
@@ -357,7 +359,7 @@ public final class Solver {
 
     TIntArrayList newClauses = new TIntArrayList();
     for (int i = 0; i < clauses.size(); ++i) {
-      int literal = clauses.get(i);
+      int literal = clauses.getQuick(i);
       if (literal == 0) {
         for (TIntIntIterator it = counts.iterator(); it.hasNext(); ) {
           it.advance();
@@ -397,6 +399,8 @@ public final class Solver {
 
   /**
    * Pure literal assignment.
+   *
+   * @return clauses representing units discovered.
    */
   public TIntArrayList pureLiterals() {
     BitSet bs = new BitSet();
@@ -415,13 +419,15 @@ public final class Solver {
     // 0 is in bs, but -0 is also so
     // 0 will not be considered a pure literal.
     TIntArrayList pureLiterals = new TIntArrayList();
+    int numUnits = 0;
     for (int literal: bs.elements()) {
       if (!bs.get(-literal) && !units.contains(literal)) {
-        pureLiterals.add(literal);
+        pushClause(pureLiterals, literal);
+        ++numUnits;
       }
     }
 
-    logger.debug("Discovered " + pureLiterals.size() + " pure literal(s)");
+    logger.debug("Discovered " + numUnits + " pure literal(s)");
     return pureLiterals;
   }
 

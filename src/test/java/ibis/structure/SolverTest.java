@@ -62,14 +62,14 @@ public class SolverTest {
   public void pureLiterals1() throws Exception {
     parse("p cnf 3 2\n1 2 3 0 1 -2 -3 0");
     solver.propagateAll();
-    compare(solver.pureLiterals(), 1);
+    compare(solver.pureLiterals(), 1, 0);
   }
 
   @Test
   public void pureLiterals2() throws Exception {
     parse("p cnf 4 5\n1 2 3 0 1 -2 -3 0 1 4 0 -4 -2 -3 0 2 3 4 0");
     solver.propagateAll();
-    compare(solver.pureLiterals(), 1);
+    compare(solver.pureLiterals(), 1, 0);
   }
 
   @Test
@@ -90,14 +90,14 @@ public class SolverTest {
   public void pureLiterals5() throws Exception {
     parse("p cnf 3 3\n-1 0 2 3 4 0 2 -3 -4 0");
     solver.propagateAll();
-    compare(solver.pureLiterals(), 2);
+    compare(solver.pureLiterals(), 2, 0);
   }
 
   @Test
   public void pureLiterals6() throws Exception {
     parse("p cnf 3 4\n-1 2 0 -1 -3 0 -2 3 4 0 -2 -3 -4 0");
     solver.propagateAll();
-    compare(solver.pureLiterals(), -1);
+    compare(solver.pureLiterals(), -1, 0);
   }
 
   @Test
@@ -108,7 +108,7 @@ public class SolverTest {
 
     parse("p cnf 5 5\n-1 2 0 -1 3 0 -1 4 5 0 2 3 4 5 0 -2 -3 -4 -5 0");
     solver.propagateAll();
-    compare(solver.pureLiterals(), -1);
+    compare(solver.pureLiterals(), -1, 0);
   }
 
   @Test
