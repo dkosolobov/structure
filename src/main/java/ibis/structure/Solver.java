@@ -335,7 +335,7 @@ public final class Solver {
    *
    * @return true if an unit or a binary was discovered.
    */
-  private TIntArrayList hyperBinaryResolution() {
+  public TIntArrayList hyperBinaryResolution() {
     int[] unit = new int[1], binary = new int[2];
     int numUnits = 0, numBinaries = 0;
 

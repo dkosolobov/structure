@@ -38,21 +38,21 @@ public class SolverTest {
   }
 
   @Test
-  public void simplify1() throws Exception {
+  public void propagate1() throws Exception {
     parse("p cnf 1 4\n1 0 1 -1 0 1 1 0 1 -1 -1 0");
     solver.propagateAll();
     compare(solver, 1, 0);
   }
 
   @Test
-  public void simplify2() throws Exception {
+  public void propagate2() throws Exception {
     parse("p cnf 3 3\n1 -1 2 0 1 1 1 0 -2 -2 -3 0");
     solver.propagateAll();
     compare(solver, 1, 0, -2, -3, 0);
   }
 
   @Test
-  public void simplify3() throws Exception {
+  public void propagate3() throws Exception {
     parse("p cnf 3 4\n-3 -2 0 -2 1 0 2 3 0 -2 -1 0");
     solver.propagateAll();
     compare(solver, -2, 0, 3, 0);
@@ -109,6 +109,24 @@ public class SolverTest {
     parse("p cnf 5 5\n-1 2 0 -1 3 0 -1 4 5 0 2 3 4 5 0 -2 -3 -4 -5 0");
     solver.propagateAll();
     compare(solver.pureLiterals(), -1);
+  }
+
+  @Test
+  public void hyperBinaryResolution1() throws Exception {
+    parse("p cnf 4 4\n1 2 0 1 3 0 1 4 0 -2 -3 -4 0");
+    solver.propagateAll();
+    compare(solver.hyperBinaryResolution(), 1, 0);
+
+    parse("p cnf 5 5\n5 -1 0 1 2 0 1 3 0 1 4 0 -2 -3 -4 0");
+    solver.propagateAll();
+    compare(solver.hyperBinaryResolution(), 5, 0, 1, 0);
+  }
+
+  @Test
+  public void hyperBinaryResolution2() throws Exception {
+    parse("p cnf 4 3\n1 2 0 1 3 0 -2 -3 -4 0");
+    solver.propagateAll();
+    compare(solver.hyperBinaryResolution(), 1, -4, 0);
   }
 
   private void parse(String text) throws Exception {
