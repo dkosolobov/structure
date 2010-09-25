@@ -5,6 +5,7 @@ import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIterator;
 import org.apache.log4j.Logger;
+import java.text.DecimalFormat;
 
 public final class Solver {
   private static final Logger logger = Logger.getLogger(Solver.class);
@@ -114,8 +115,14 @@ public final class Solver {
 
     boolean simplified = true;
     while (simplified) {
+      DecimalFormat formatter = new DecimalFormat(".###");
+      int numNodes = dag.numNodes();
+      int numEdges = dag.numEdges();
+      logger.debug("DAG has " + numNodes + " nodes and " + numEdges +
+                   " edges, " + formatter.format(1. * numEdges / numNodes)
+                   + " edges/node on average");
       logger.info("Simplyfing: " + clauses.size() + " literal(s), "
-                  + dag.size() + " binary(ies) and "
+                  + numEdges + " binary(ies) and "
                   + units.size() + " unit(s)");
       simplified = false;
 
@@ -334,7 +341,7 @@ public final class Solver {
 
     TIntArrayList newClauses = new TIntArrayList();
     for (int node: dag.nodes()) {
-      // Usign bitset insted of hashset operations is somehow faster.
+      // Usign bitset instead of hashset operations is somehow faster.
       TIntHashSet neighbours = dag.neighbours(-node);
       BitSet bs = new BitSet();
       for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {

@@ -53,9 +53,16 @@ public final class DAG {
   }
 
   /**
+   * Returns the number of nodes in the graph.
+   */
+  public int numNodes() {
+    return dag.size();
+  }
+
+  /**
    * Returns the number of edges in the graph.
    */
-  public int size() {
+  public int numEdges() {
     int size = -dag.size();
     TIntObjectIterator<TIntHashSet> it;
     for (it = dag.iterator(); it.hasNext();) {
