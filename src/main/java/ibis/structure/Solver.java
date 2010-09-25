@@ -136,6 +136,9 @@ public final class Solver {
     }
   }
 
+  /**
+   * Propagates every unit and every binary.
+   */
   public boolean propagateAll() throws ContradictionException {
     boolean simplified = false;
     while (propagate()) {
@@ -144,6 +147,9 @@ public final class Solver {
     return simplified;
   }
 
+  /**
+   * Propagates units and binary clauses (one pass only).
+   */
   public boolean propagate() throws ContradictionException {
     if (clauses.isEmpty()) {
       return false;
