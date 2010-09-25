@@ -122,27 +122,16 @@ public final class Solver {
       logger.debug("DAG has " + numNodes + " nodes and " + numEdges +
                    " edges, " + formatter.format(1. * numEdges / numNodes)
                    + " edges/node on average");
-      logger.info("Simplyfing: " + clauses.size() + " literal(s), "
+      logger.info("Simplifying: " + clauses.size() + " literal(s), "
                   + numEdges + " binary(ies) and "
                   + units.size() + " unit(s)");
+
       simplified = false;
-
-      TIntArrayList newClauses = hyperBinaryResolution();
-      if (!newClauses.isEmpty()) {
-        simplified = true;
-        clauses.add(newClauses.toNativeArray());
-      }
-
+      clauses.add(hyperBinaryResolution().toNativeArray());
       simplified = propagate() || simplified;
-
       if (!simplified) {
-        TIntArrayList pureLiterals = pureLiterals();
-        if (!pureLiterals.isEmpty()) {
-          simplified = true;
-          for (int i = 0; i < pureLiterals.size(); i += 2) {
-            addUnit(pureLiterals.get(i));
-          }
-        }
+        clauses.add(pureLiterals().toNativeArray());
+        simplified = propagate() || simplified;
       }
     }
   }
