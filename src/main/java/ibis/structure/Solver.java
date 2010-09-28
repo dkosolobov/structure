@@ -1,7 +1,6 @@
 package ibis.structure;
 
 import gnu.trove.TIntArrayList;
-import gnu.trove.HashFunctions;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIntIterator;
@@ -164,14 +163,17 @@ public final class Solver {
    * This function is better than the one provided by
    * gnu.trove.HashUtils which is the same as the one
    * provided by the Java library.
+   *
+   * @param a integer to hash
+   * @return a hash code for the given integer
    */
-  private int hash(int a) {
-    a = (a+0x7ed55d16) + (a<<12);
-    a = (a^0xc761c23c) ^ (a>>>19);
-    a = (a+0x165667b1) + (a<<5);
-    a = (a+0xd3a2646c) ^ (a<<9);
-    a = (a+0xfd7046c5) + (a<<3);
-    a = (a^0xb55a4f09) ^ (a>>>16);
+  private static int hash(int a) {
+    a = (a + 0x7ed55d16) + (a << 12);
+    a = (a ^ 0xc761c23c) ^ (a >>> 19);
+    a = (a + 0x165667b1) + (a << 5);
+    a = (a + 0xd3a2646c) ^ (a << 9);
+    a = (a + 0xfd7046c5) + (a << 3);
+    a = (a ^ 0xb55a4f09) ^ (a >>> 16);
     return a;
   }
 
@@ -197,7 +199,7 @@ public final class Solver {
     int clauseIndex = 0;
 
     // Puts every clause in a set to reduce the number of
-    // pairs to be checked. 
+    // pairs to be checked.
     for (int i = 0; i < clauses.size(); ++i) {
       int literal = clauses.get(i);
       if (literal == 0) {
@@ -223,7 +225,7 @@ public final class Solver {
         if ((first & second) != first) {
           continue;
         }
-        numTests += (long)sets[first].size() * sets[second].size();
+        numTests += (long) sets[first].size() * sets[second].size();
 
         for (int i = 0; i < sets[first].size(); ++i) {
           final int indexFirst = sets[first].get(i);
@@ -256,8 +258,8 @@ public final class Solver {
       }
     }
     logger.debug("Tested " + numTests + " pairs out of "
-                 + ((long)numClauses * numClauses) + " ("
-                 + ((double)numTests / numClauses / numClauses + ")"));
+                 + ((long) numClauses * numClauses) + " ("
+                 + ((double) numTests / numClauses / numClauses) + ")");
 
     // Removes sub-summed clauses.
     int pos = 0, startsPos = 0;
@@ -269,7 +271,7 @@ public final class Solver {
       }
       if (literal == 0) {
         removed = starts.get(++startsPos) == -1;
-      }      
+      }
     }
     logger.debug("Sub-summing removed " + (clauses.size() - pos)
                  + " literals");
@@ -554,12 +556,12 @@ public final class Solver {
     for (int i = 0; i < clauses.size(); ++i) {
       bs.set(getProxy(clauses.get(i)));
     }
-    for (int u: dag.nodes()) {
+    for (int u : dag.nodes()) {
       if (dag.neighbours(u).size() > 1) {
         bs.set(-u);
       }
     }
-    for (int u: units.toArray()) {
+    for (int u : units.toArray()) {
       bs.set(u);
     }
 
@@ -567,7 +569,7 @@ public final class Solver {
     // 0 will not be considered a pure literal.
     TIntArrayList pureLiterals = new TIntArrayList();
     int numUnits = 0;
-    for (int literal: bs.elements()) {
+    for (int literal : bs.elements()) {
       if (!bs.get(-literal) && !units.contains(literal)) {
         pushClause(pureLiterals, literal);
         ++numUnits;
