@@ -1,0 +1,15 @@
+Author
+------
+
+Alexandru Moșoi <brtzsn@gmail.com>
+Vrije Universiteit Amsterdam, http://www.vu.nl
+
+Building
+--------
+
+$ mvn assembly:assembly
+
+Running
+-------
+
+$ java -cp structure-0.1-jar-with-dependencies.jar ibis.structure.Simplify -o output.cnf input.cnf
