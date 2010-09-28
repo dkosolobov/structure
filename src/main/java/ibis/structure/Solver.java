@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import gnu.trove.TIntArrayList;
+import gnu.trove.HashFunctions;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIntIterator;
@@ -126,15 +127,160 @@ public final class Solver {
                   + numEdges + " binary(ies) and "
                   + units.size() + " unit(s)");
 
-      simplified = false;
-      clauses.add(hyperBinaryResolution().toNativeArray());
-      simplified = propagate() || simplified;
-      if (!simplified) {
-        clauses.add(pureLiterals().toNativeArray());
-        simplified = propagate() || simplified;
+      simplified = propagate(hyperBinaryResolution());
+    }
+
+    subSumming();
+    propagate(pureLiterals());
+    logger.info(clauses.size() + " literals left (excluding binaries "
+                + "and units)");
+  }
+
+  /**
+   * Tests if clause starting at startFirst is contained
+   * in clause at startSecond.
+   */
+  private boolean contained(int startFirst, int startSecond) {
+    for (int indexFirst = 0; ; ++indexFirst) {
+      int literalFirst = clauses.get(startFirst + indexFirst);
+      if (literalFirst == 0) {
+        return true;
+      }
+
+      for (int indexSecond = 0; ; ++indexSecond) {
+        int literalSecond = clauses.get(startSecond + indexSecond);
+        if (literalSecond == 0) {
+          return false;
+        }
+        if (literalFirst == literalSecond) {
+          break;
+        }
       }
     }
   }
+
+  /**
+   * Returns a hash of a.
+   * This function is better than the one provided by
+   * gnu.trove.HashUtils which is the same as the one
+   * provided by the Java library.
+   */
+  private int hash(int a) {
+    a = (a+0x7ed55d16) + (a<<12);
+    a = (a^0xc761c23c) ^ (a>>>19);
+    a = (a+0x165667b1) + (a<<5);
+    a = (a+0xd3a2646c) ^ (a<<9);
+    a = (a+0xfd7046c5) + (a<<3);
+    a = (a^0xb55a4f09) ^ (a>>>16);
+    return a;
+  }
+
+  /**
+   * Removes all clauses for which there exist
+   * another clause included.
+   *
+   * @return true if any clause was removed.
+   */
+  public boolean subSumming() {
+    final int numIndexBits = 8;  // must be a POT
+    final int indexMask = numIndexBits - 1;
+
+    TIntArrayList[] sets = new TIntArrayList[1 << numIndexBits];
+    for (int i = 0; i < (1 << numIndexBits); ++i) {
+      sets[i] = new TIntArrayList();
+    }
+    TIntArrayList starts = new TIntArrayList();
+    TIntArrayList hashes = new TIntArrayList();
+    int numClauses = 0;
+    int start = 0;
+    int clauseHash = 0;
+    int clauseIndex = 0;
+
+    // Puts every clause in a set to reduce the number of
+    // pairs to be checked. 
+    for (int i = 0; i < clauses.size(); ++i) {
+      int literal = clauses.get(i);
+      if (literal == 0) {
+        sets[clauseIndex].add(numClauses);
+        starts.add(start);
+        hashes.add(clauseHash);
+        ++numClauses;
+        start = i + 1;
+        clauseHash = 0;
+        clauseIndex = 0;
+      } else {
+        final int hash = hash(literal);
+        clauseIndex |= 1 << (hash >> (32 - numIndexBits) & indexMask);
+        clauseHash |= 1 << (hash >> (27 - numIndexBits) & 0x1f);
+      }
+    }
+    starts.add(start);  // Add a sentinel.
+
+    long numTests = 0;
+    boolean simplified = false;
+    for (int first = 0; first < (1 << numIndexBits); ++first) {
+      for (int second = first; second < (1 << numIndexBits); ++second) {
+        if ((first & second) != first) {
+          continue;
+        }
+        numTests += (long)sets[first].size() * sets[second].size();
+
+        for (int i = 0; i < sets[first].size(); ++i) {
+          final int indexFirst = sets[first].get(i);
+          final int startFirst = starts.get(indexFirst);
+          final int hashFirst = hashes.get(indexFirst);
+
+          for (int j = 0; j < sets[second].size(); ++j) {
+            final int indexSecond = sets[second].get(j);
+            final int startSecond = starts.get(indexSecond);
+            final int hashSecond = hashes.get(indexSecond);
+
+            if (indexFirst == indexSecond) {
+              continue;
+            }
+            if ((hashFirst & hashSecond) != hashFirst) {
+              continue;
+            }
+            if (contained(startFirst, startSecond)) {
+              simplified = true;
+              // Removes sets[second][j] by replacing it
+              // with the last element.
+              starts.set(indexSecond, -1);
+              int last = sets[second].size() - 1;
+              sets[second].set(j, sets[second].get(last));
+              sets[second].remove(last);
+              --j;
+            }
+          }
+        }
+      }
+    }
+    logger.debug("Tested " + numTests + " pairs out of "
+                 + ((long)numClauses * numClauses) + " ("
+                 + ((double)numTests / numClauses / numClauses + ")"));
+
+    // Removes sub-summed clauses.
+    int pos = 0, startsPos = 0;
+    boolean removed = starts.get(startsPos) == -1;
+    for (int i = 0; i < clauses.size(); ++i) {
+      int literal = clauses.get(i);
+      if (!removed) {
+        clauses.set(pos++, literal);
+      }
+      if (literal == 0) {
+        removed = starts.get(++startsPos) == -1;
+      }      
+    }
+    logger.debug("Sub-summing removed " + (clauses.size() - pos)
+                 + " literals");
+    if (pos < clauses.size()) {
+      // BUG: TIntArrayList.remove() raises ArrayIndexOutOfBoundsException
+      // if pos == clauses.size()
+      clauses.remove(pos, clauses.size() - pos);
+    }
+    return simplified;
+  }
+
 
   /**
    * Propagates every unit and every binary.
@@ -145,6 +291,12 @@ public final class Solver {
       simplified = true;
     }
     return simplified;
+  }
+
+  public boolean propagate(TIntArrayList extraClauses)
+      throws ContradictionException {
+    clauses.add(extraClauses.toNativeArray());
+    return propagate();
   }
 
   /**
