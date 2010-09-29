@@ -46,7 +46,7 @@ public final class Solver {
       }
     }
     for (int literal : proxies.keys()) {
-      int proxy = getProxy(literal);
+      int proxy = getRecursiveProxy(literal);
       if (units.contains(proxy)) {
         if (includeUnits) {
           skeleton.addArgs(literal);
@@ -76,7 +76,7 @@ public final class Solver {
     TIntArrayList allUnits = new TIntArrayList();
     allUnits.add(units.toArray());
     for (int literal : proxies.keys()) {
-      if (units.contains(getProxy(literal))) {
+      if (units.contains(getRecursiveProxy(literal))) {
         allUnits.add(literal);
       }
     }
@@ -298,7 +298,8 @@ public final class Solver {
   /**
    * Appends and propagates new clauses.
    *
-   * @return true if instance was simplified.
+   * @param extraClauses extra clauses to propagate
+   * @return true if instance was simplified
    */
   public boolean propagate(final TIntArrayList extraClauses)
       throws ContradictionException {
@@ -317,7 +318,7 @@ public final class Solver {
       int literal = clauses.get(i);
       if (literal == 0 || i == 0) {
         start = i + (i != 0 ? 1 : 0);
-        if (cleanClause(start, end)) {
+        if (cleanClause(start)) {
           end = i;
           continue;
         }
@@ -389,7 +390,7 @@ public final class Solver {
    *
    * @param u unit to add.
    */
-  private void addUnit(int u) {
+  private void addUnit(final int u) {
     // logger.debug("Found unit " + u);
     TIntHashSet neighbours = dag.neighbours(u);
     if (neighbours == null) {
@@ -401,7 +402,7 @@ public final class Solver {
     }
   }
 
-  private void addBinary(int u, int v) {
+  private void addBinary(final int u, final int v) {
     // logger.debug("Found binary " + u + " or " + v);
     TIntHashSet contradictions = dag.findContradictions(-u, v);
     if (!contradictions.isEmpty()) {
@@ -426,26 +427,30 @@ public final class Solver {
   }
 
   /**
-   * Cleans a clause.
-   *
-   * Checks if clause is trivial satisfied.
+   * Cleans a clause and checks if it is trivialy satisfied.
    * Removes falsified literals or those proved to be extraneous.
    *
-   * @param start position of the first literal
-   * @param end one after the position of the last literal
+   * @param start position of the first literal in clause
    * @return true if the clause was satisfied
    */
-  private boolean cleanClause(int start, int end) {
+  private boolean cleanClause(final int start) {
     // Renames literals to component.
-    for (int i = start; i < end; ++i) {
-      assert clauses.get(i) != REMOVED;
-      clauses.set(i, getProxy(clauses.get(i)));
+    for (int i = start; ; ++i) {
+      final int literal = clauses.get(i);
+      if (literal == 0) {
+        break;
+      }
+      assert literal != REMOVED;
+      clauses.set(i, getRecursiveProxy(literal));
     }
 
     // Checks if the clause is satisfied, removes unsatisfied
     // literals and does binary resolution.
-    for (int i = start; i < end; ++i) {
+    for (int i = start; ; ++i) {
       final int literal = clauses.get(i);
+      if (literal == 0) {
+        return false;
+      }
       if (literal == REMOVED) {
         continue;
       }
@@ -456,11 +461,14 @@ public final class Solver {
         clauses.set(i, REMOVED);
         continue;
       }
-      for (int k = start; k < end; ++k) {
+      for (int k = start; ; ++k) {
         if (i == k) {
           continue;
         }
         final int other = clauses.get(k);
+        if (other == 0) {
+          break;
+        }
         if (other == REMOVED) {
           continue;
         }
@@ -490,9 +498,7 @@ public final class Solver {
         }
       }
     }
-    return false;
   }
-
 
   /**
    * Hyper-binary resolution.
@@ -553,7 +559,7 @@ public final class Solver {
   public TIntArrayList pureLiterals() {
     BitSet bs = new BitSet();
     for (int i = 0; i < clauses.size(); ++i) {
-      bs.set(getProxy(clauses.get(i)));
+      bs.set(getRecursiveProxy(clauses.get(i)));
     }
     for (int u : dag.nodes()) {
       if (dag.neighbours(u).size() > 1) {
@@ -583,9 +589,9 @@ public final class Solver {
    * Recursively finds the proxy of u.
    * The returned value doesn't have any proxy.
    */
-  private int getProxy(final int u) {
+  private int getRecursiveProxy(final int u) {
     if (proxies.contains(u)) {
-      int v = getProxy(proxies.get(u));
+      int v = getRecursiveProxy(proxies.get(u));
       proxies.put(u, v);
       return v;
     }
