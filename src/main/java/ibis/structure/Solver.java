@@ -122,9 +122,9 @@ public final class Solver {
       logger.debug("DAG has " + numNodes + " nodes and " + numEdges +
                    " edges, " + formatter.format(1. * numEdges / numNodes)
                    + " edges/node on average");
-      logger.info("Simplifying: " + clauses.size() + " literal(s), "
+      logger.debug("Simplifying: " + clauses.size() + " literal(s), "
                   + numEdges + " binary(ies) and "
-                  + units.size() + " unit(s)");
+                  + getAllUnits().size() + " unit(s)");
 
       simplified = propagate(hyperBinaryResolution());
     }
@@ -295,7 +295,12 @@ public final class Solver {
     return simplified;
   }
 
-  public boolean propagate(TIntArrayList extraClauses)
+  /**
+   * Appends and propagates new clauses.
+   *
+   * @return true if instance was simplified.
+   */
+  public boolean propagate(final TIntArrayList extraClauses)
       throws ContradictionException {
     clauses.add(extraClauses.toNativeArray());
     return propagate();
@@ -303,58 +308,52 @@ public final class Solver {
 
   /**
    * Propagates units and binary clauses (one pass only).
+   *
+   * @return true if instances was simplified
    */
   public boolean propagate() throws ContradictionException {
-    if (clauses.isEmpty()) {
-      return false;
-    }
+    int start, end = clauses.size() - 1, pos = end;
+    for (int i = end - 1; i >= 0; --i) {
+      int literal = clauses.get(i);
+      if (literal == 0 || i == 0) {
+        start = i + (i != 0 ? 1 : 0);
+        if (cleanClause(start, end)) {
+          end = i;
+          continue;
+        }
 
-    boolean simplified = false;
-    TIntArrayList oldClauses = clauses;
-    clauses = new TIntArrayList();
-    while (!oldClauses.isEmpty()) {
-      int[] clause = popClause(oldClauses);
-      clause = cleanClause(clause);
+        int length = 0;
+        clauses.set(pos, 0);
+        for (int j = end - 1; j >= start; --j) {
+          int tmp = clauses.get(j);
+          if (tmp != REMOVED) {
+            clauses.set(pos - (++length), tmp);
+          }
+        }
 
-      if (clause == null) {
-        // Clause was satisfied.
-        continue;
-      } else if (clause.length == 0) {
-        // All literals were falsified.
-        throw new ContradictionException();
-      } else if (clause.length == 1) {
-        simplified = true;
-        addUnit(clause[0]);
-      } else if (clause.length == 2) {
-        simplified = true;
-        addBinary(clause[0], clause[1]);
-      } else {
-        // Found a clause with at least 3 literals.
-        pushClause(clauses, clause);
+        if (length == 0) {
+          throw new ContradictionException();
+        } else if (length == 1) {
+          addUnit(clauses.get(pos - 1));
+        } else if (length == 2) {
+          addBinary(clauses.get(pos - 1), clauses.get(pos - 2));
+        } else {
+          pos -= length + 1;
+        }
+
+        end = i;
       }
     }
 
-    return simplified;
+    if (pos != -1) {
+      clauses.remove(0, pos + 1);
+      return true;
+    }
+    return false;
   }
 
   private static double sigmoid(double x) {
     return (1 / (1 + Math.exp(-x)));
-  }
-
-  /**
-   * Removes and returns a clause from the list.
-   * If clauses is empty returns null.
-   */
-  private static int[] popClause(final TIntArrayList clauses) {
-    int size = clauses.size();
-    if (size == 0) {
-      return null;
-    }
-
-    int offset = clauses.lastIndexOf(size - 2, 0) + 1;
-    int[] clause = clauses.toNativeArray(offset, size - offset - 1);
-    clauses.remove(offset, size - offset);
-    return clause;
   }
 
   /**
@@ -366,12 +365,18 @@ public final class Solver {
     clauses.add(0);
   }
 
+  /**
+   * Adds unit to clauses.
+   */
   private static void pushClause(
       final TIntArrayList clauses, final int u0) {
     clauses.add(u0);
     clauses.add(0);
   }
 
+  /**
+   * Adds binary to clauses.
+   */
   private static void pushClause(
       final TIntArrayList clauses, final int u0, final int u1) {
     clauses.add(u0);
@@ -379,6 +384,11 @@ public final class Solver {
     clauses.add(0);
   }
 
+  /**
+   * Adds a new unit.
+   *
+   * @param u unit to add.
+   */
   private void addUnit(int u) {
     // logger.debug("Found unit " + u);
     TIntHashSet neighbours = dag.neighbours(u);
@@ -421,77 +431,66 @@ public final class Solver {
    * Checks if clause is trivial satisfied.
    * Removes falsified literals or those proved to be extraneous.
    *
-   * @param clause clause to clean
-   * @return cleaned clause or null if clause is satisfied
+   * @param start position of the first literal
+   * @param end one after the position of the last literal
+   * @return true if the clause was satisfied
    */
-  private int[] cleanClause(final int[] clause) {
+  private boolean cleanClause(int start, int end) {
     // Renames literals to component.
-    for (int j = 0; j < clause.length; ++j) {
-      clause[j] = getProxy(clause[j]);
+    for (int i = start; i < end; ++i) {
+      assert clauses.get(i) != REMOVED;
+      clauses.set(i, getProxy(clauses.get(i)));
     }
 
     // Checks if the clause is satisfied, removes unsatisfied
     // literals and does binary resolution.
-    for (int j = 0; j < clause.length; ++j) {
-      if (clause[j] == REMOVED) {
+    for (int i = start; i < end; ++i) {
+      final int literal = clauses.get(i);
+      if (literal == REMOVED) {
         continue;
       }
-      if (units.contains(clause[j])) {
-        return null;
+      if (units.contains(literal)) {
+        return true;
       }
-      if (units.contains(-clause[j])) {
-        clause[j] = REMOVED;
+      if (units.contains(-literal)) {
+        clauses.set(i, REMOVED);
         continue;
       }
-      for (int k = 0; k < clause.length; ++k) {
-        if (j == k || clause[k] == REMOVED) {
+      for (int k = start; k < end; ++k) {
+        if (i == k) {
           continue;
         }
-        if (clause[j] == clause[k]) {
-          // j + j = j
-          clause[k] = REMOVED;
+        final int other = clauses.get(k);
+        if (other == REMOVED) {
           continue;
         }
-        if (clause[j] == -clause[k]) {
-          // j + -j = true
-          return null;
-        }
-        TIntHashSet neighbours = dag.neighbours(-clause[j]);
+        TIntHashSet neighbours = dag.neighbours(-literal);
         if (neighbours == null) {
-          continue;
-        }
-        if (neighbours.contains(clause[k])) {
-          // if j + k ... and -j => k
-          // then true
-          return null;
-        }
-        if (neighbours.contains(-clause[k])) {
-          // if j + k + ... and -j => -k
-          // then j + ...
-          clause[k] = REMOVED;
-          continue;
+          if (literal == -other) {
+            // literal + -literal = true
+            return true;
+          }
+          if (literal == other) {
+            // literal + literal = literal
+            clauses.set(k, REMOVED);
+            continue;
+          }
+        } else {
+          if (neighbours.contains(other)) {
+            // if literal + other ... and -literal => other
+            // then true
+            return true;
+          }
+          if (neighbours.contains(-other)) {
+            // if literal + other + ... and -literal => -other
+            // then literal + ...
+            clauses.set(k, REMOVED);
+            continue;
+          }
         }
       }
     }
-
-    // Removes REMOVED from clause.
-    int length = 0;
-    for (int j = 0; j < clause.length; ++j) {
-      if (clause[j] != REMOVED) {
-        length += 1;
-      }
-    }
-    if (length != clause.length) {
-      int[] tmp = new int[length];
-      length = 0;
-      for (int j = 0; j < clause.length; ++j) {
-        if (clause[j] != REMOVED) {
-          tmp[length++] = clause[j];
-        }
-      }
-      return tmp;
-    }
-    return clause;
+    return false;
   }
 
 
