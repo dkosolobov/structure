@@ -51,7 +51,7 @@ public final class Reader {
     try {
       String token = scanner.next();
       while (token.equals("c")) {
-        logger.debug("c" + scanner.nextLine());
+        scanner.nextLine();
         token = scanner.next();
       }
       if (!token.equals("p")) {
