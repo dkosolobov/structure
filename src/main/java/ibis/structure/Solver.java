@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import gnu.trove.TIntArrayList;
+import gnu.trove.TLongArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIntIterator;
@@ -192,11 +193,11 @@ public final class Solver {
       sets[i] = new TIntArrayList();
     }
     TIntArrayList starts = new TIntArrayList();
-    TIntArrayList hashes = new TIntArrayList();
+    TLongArrayList hashes = new TLongArrayList();
     int numClauses = 0;
     int start = 0;
-    int clauseHash = 0;
     int clauseIndex = 0;
+    long clauseHash = 0;
 
     // Puts every clause in a set to reduce the number of
     // pairs to be checked.
@@ -211,31 +212,54 @@ public final class Solver {
         clauseHash = 0;
         clauseIndex = 0;
       } else {
-        final int hash = hash(literal);
-        clauseIndex |= 1 << (hash >> (32 - numIndexBits) & indexMask);
-        clauseHash |= 1 << (hash >> (27 - numIndexBits) & 0x1f);
+        // Bob Jenkins' mix64()
+        // http://burtleburtle.net/bob/c/lookup8.c
+        long a = literal, b = literal, c = 0x9e3779b97f4a7c13L;
+        a -= b; a -= c; a ^= (c>>43);
+        b -= c; b -= a; b ^= (a<<9);
+        c -= a; c -= b; c ^= (b>>8);
+        a -= b; a -= c; a ^= (c>>38);
+        b -= c; b -= a; b ^= (a<<23);
+        c -= a; c -= b; c ^= (b>>5);
+        a -= b; a -= c; a ^= (c>>35);
+        b -= c; b -= a; b ^= (a<<49);
+        c -= a; c -= b; c ^= (b>>11);
+        a -= b; a -= c; a ^= (c>>12);
+        b -= c; b -= a; b ^= (a<<18);
+        c -= a; c -= b; c ^= (b>>22);
+
+        clauseIndex |= 1 << (c & indexMask);
+        // The following idea was suggested by Warren Schudy at:
+        // http://cstheory.stackexchange.com/questions/1786/hashing-sets-of-integers
+        clauseHash |= a & b & c;
       }
     }
     starts.add(start);  // Add a sentinel.
 
-    long numTests = 0;
+    TIntArrayList histogram = new TIntArrayList();
+    for (int i = 0; i < (1 << numIndexBits); ++i) {
+      histogram.add(sets[i].size());
+    }
+    logger.debug("Histogram is " + histogram);
+
+    long numPairs = 0, numTests = 0, numHits = 0;
     boolean simplified = false;
     for (int first = 0; first < (1 << numIndexBits); ++first) {
       for (int second = first; second < (1 << numIndexBits); ++second) {
         if ((first & second) != first) {
           continue;
         }
-        numTests += (long) sets[first].size() * sets[second].size();
+        numPairs += (long) sets[first].size() * sets[second].size();
 
         for (int i = 0; i < sets[first].size(); ++i) {
           final int indexFirst = sets[first].get(i);
           final int startFirst = starts.get(indexFirst);
-          final int hashFirst = hashes.get(indexFirst);
+          final long hashFirst = hashes.get(indexFirst);
 
           for (int j = 0; j < sets[second].size(); ++j) {
             final int indexSecond = sets[second].get(j);
             final int startSecond = starts.get(indexSecond);
-            final int hashSecond = hashes.get(indexSecond);
+            final long hashSecond = hashes.get(indexSecond);
 
             if (indexFirst == indexSecond) {
               continue;
@@ -243,7 +267,9 @@ public final class Solver {
             if ((hashFirst & hashSecond) != hashFirst) {
               continue;
             }
+            ++numTests;
             if (contained(startFirst, startSecond)) {
+              ++numHits;
               simplified = true;
               // Removes sets[second][j] by replacing it
               // with the last element.
@@ -257,9 +283,11 @@ public final class Solver {
         }
       }
     }
-    logger.debug("Tested " + numTests + " pairs out of "
+    logger.debug("Tested " + numPairs + " pairs out of "
                  + ((long) numClauses * numClauses) + " ("
-                 + ((double) numTests / numClauses / numClauses) + ")");
+                 + ((double) numPairs / numClauses / numClauses) + ")");
+    logger.debug("Hit rate " + (100. * numHits / numTests) + "; "
+                 + numTests + " tests");
 
     // Removes sub-summed clauses.
     int pos = 0, startsPos = 0;
