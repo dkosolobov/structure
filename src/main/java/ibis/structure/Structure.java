@@ -44,9 +44,18 @@ public class Structure {
     final long startTime = System.currentTimeMillis();
     final PrintStream output = System.out;
 
-    Constellation constellation = ConstellationFactory.createConstellation(
+    final Constellation constellation = ConstellationFactory.createConstellation(
         createExecutors(4));
     constellation.activate();
+
+    // Stops Constellation at shutdown.
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      final Constellation constellation_ = constellation;
+
+      public void run() {
+        constellation_.done();
+      }
+    });
 
     try {
       displayHeader();
@@ -75,7 +84,6 @@ public class Structure {
       logger.error("Caught unhandled exception", e);
       printUnknown(System.out);
     } finally {
-      constellation.done();
       System.exit(0);
     }
   }
