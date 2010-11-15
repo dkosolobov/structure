@@ -84,26 +84,46 @@ public final class Solver {
     return allUnits;
   }
 
+  static private double score(int positive2, int negative2,
+                              int positive3, int negative3) {
+    return 
+      sigmoid(1 + positive2) + 5 * sigmoid(1 + positive3) +
+      sigmoid(1 + negative2) + 5 * sigmoid(1 + negative3);
+  }
+
+  /**
+   * Returns number of neighbours in DAG for node
+   * or 0 if node is not in DAG.
+   */
+  private int numBinaries(int node) {
+    TIntHashSet neighbours = dag.neighbours(node);
+    return neighbours == null ? 0 : neighbours.size();
+  }
+
   public int lookahead() throws ContradictionException {
     simplify();
     TIntIntHashMap counts = new TIntIntHashMap();
     for (int i = 0; i < clauses.size(); ++i) {
-      counts.put(clauses.get(i), counts.get(clauses.get(i)));
+      final int literal = clauses.get(i);
+      counts.put(literal, counts.get(literal) + 1);
     }
 
     int bestNode = 0;
-    double bestValue = Double.NEGATIVE_INFINITY;
-    for (int node : dag.nodes()) {
+    double bestScore = Double.NEGATIVE_INFINITY;
+    for (int node : counts.keys()) {
       if (node > 0) {
-        double value =
-            sigmoid((1 + dag.neighbours(node).size())
-                    * (1 + dag.neighbours(-node).size()))
-            + sigmoid((1 + counts.get(node)) * (1 + counts.get(-node)));
-        if (value > bestValue) {
+        double score = score(
+            numBinaries(node), numBinaries(-node),
+            counts.get(node), counts.get(-node));
+        if (score > bestScore) {
           bestNode = node;
-          bestValue = value;
+          bestScore = score;
         }
       }
+    }
+
+    if (bestNode == 0) {
+      logger.warn("Only binaries remaining, but solution not implemented.");
     }
     return bestNode;
   }
@@ -112,20 +132,22 @@ public final class Solver {
    * Simplifies the instance.
    */
   public void simplify() throws ContradictionException {
-    logger.info("Simplyfing: " + clauses.size() + " literal(s)");
+    logger.info("Simplyfing " + clauses.size() + " literal(s)");
     propagateAll();
 
     boolean simplified = true;
-    while (simplified) {
-      DecimalFormat formatter = new DecimalFormat(".###");
-      int numNodes = dag.numNodes();
-      int numEdges = dag.numEdges();
-      logger.debug("DAG has " + numNodes + " nodes and " + numEdges +
-                   " edges, " + formatter.format(1. * numEdges / numNodes)
-                   + " edges/node on average");
+    for (int step = 0; step < 4 && simplified; ++step) {
+      /*
+      final DecimalFormat formatter = new DecimalFormat(".###");
+      final int numNodes = dag.numNodes();
+      final int numEdges = dag.numEdges();
+      logger.info("DAG has " + numNodes + " nodes and " + numEdges +
+                  " edges, " + formatter.format(1. * numEdges / numNodes)
+                  + " edges/node on average");
       logger.debug("Simplifying: " + clauses.size() + " literal(s), "
                   + numEdges + " binary(ies) and "
                   + getAllUnits().size() + " unit(s)");
+      */
 
       simplified = propagate(hyperBinaryResolution());
     }
@@ -185,6 +207,7 @@ public final class Solver {
    * @return true if any clause was removed.
    */
   public boolean subSumming() {
+    logger.info("Running subSumming()");
     final int numIndexBits = 8;  // must be a POT
     final int indexMask = numIndexBits - 1;
 
@@ -240,7 +263,7 @@ public final class Solver {
     for (int i = 0; i < (1 << numIndexBits); ++i) {
       histogram.add(sets[i].size());
     }
-    logger.debug("Histogram is " + histogram);
+    // logger.debug("Histogram is " + histogram);
 
     long numPairs = 0, numTests = 0, numHits = 0;
     boolean simplified = false;
@@ -331,8 +354,11 @@ public final class Solver {
    */
   public boolean propagate(final TIntArrayList extraClauses)
       throws ContradictionException {
-    clauses.add(extraClauses.toNativeArray());
-    return propagate();
+    if (extraClauses.size() > 0) {
+      clauses.add(extraClauses.toNativeArray());
+      return propagate();
+    }
+    return false;
   }
 
   /**
@@ -341,6 +367,7 @@ public final class Solver {
    * @return true if instances was simplified
    */
   public boolean propagate() throws ContradictionException {
+    logger.info("Running propagate()");
     int start, end = clauses.size() - 1, pos = end;
     for (int i = end - 1; i >= 0; --i) {
       int literal = clauses.get(i);
@@ -534,6 +561,7 @@ public final class Solver {
    * @return clauses representing binaries and units discovered.
    */
   public TIntArrayList hyperBinaryResolution() {
+    logger.info("Running hyperBinaryResolution()");
     int numUnits = 0, numBinaries = 0;
     int numLiterals = 0, clauseSum = 0;
     TIntIntHashMap counts = new TIntIntHashMap();
@@ -585,6 +613,7 @@ public final class Solver {
    * @return clauses representing units discovered.
    */
   public TIntArrayList pureLiterals() {
+    logger.info("Running pureLiterals()");
     BitSet bs = new BitSet();
     for (int i = 0; i < clauses.size(); ++i) {
       bs.set(getRecursiveProxy(clauses.get(i)));
