@@ -2,11 +2,10 @@ package ibis.structure;
 
 import org.apache.log4j.Logger;
 import gnu.trove.TIntArrayList;
-import ibis.cohort.Activity;
-import ibis.cohort.ActivityIdentifier;
-import ibis.cohort.Event;
-import ibis.cohort.MessageEvent;
-import ibis.cohort.context.UnitActivityContext;
+import ibis.constellation.Activity;
+import ibis.constellation.ActivityIdentifier;
+import ibis.constellation.Event;
+import ibis.constellation.context.UnitActivityContext;
 
 public class Job extends Activity {
   private static final Logger logger = Logger.getLogger(Job.class);
@@ -19,7 +18,7 @@ public class Job extends Activity {
   private TIntArrayList units;
 
   public Job(ActivityIdentifier parent, Skeleton instance, int branch) {
-    super(UnitActivityContext.DEFAULT);
+    super(UnitActivityContext.DEFAULT, true);
     this.parent = parent;
     this.instance = instance;
     this.branch = branch;
@@ -27,8 +26,8 @@ public class Job extends Activity {
     
   @Override
   public void initialize() {
-    logger.info("Branching on " + branch);
-    logger.info("Instance difficulty " + instance.difficulty());
+    logger.debug("Branching on " + branch);
+    logger.debug("Instance difficulty " + instance.difficulty());
 
     try {
       Solver solver = new Solver(instance, branch);
@@ -36,23 +35,23 @@ public class Job extends Activity {
       units = solver.getAllUnits();
 
       if (literal == 0) {
-        cohort.send(identifier(), parent, units.toNativeArray());
+        executor.send(new Event(identifier(), parent, units.toNativeArray()));
         finish();
       } else {
         Skeleton skeleton = solver.skeleton(false);
-        cohort.submit(new Job(identifier(), skeleton, literal));
-        cohort.submit(new Job(identifier(), skeleton, -literal));
+        executor.submit(new Job(identifier(), skeleton, literal));
+        executor.submit(new Job(identifier(), skeleton, -literal));
         suspend();
       }
     } catch (ContradictionException e) {
-      cohort.send(identifier(), parent, null);
+      executor.send(new Event(identifier(), parent, null));
       finish();
     }
   }
 
   @Override
   public void process(Event e) throws Exception {
-    int[] reply = ((MessageEvent<int[]>)e).message;
+    int[] reply = (int[])e.data;
     firstReply = !firstReply;
 
     if (reply == null) {
@@ -60,18 +59,21 @@ public class Job extends Activity {
         // Waits for the other branch to finish.
         suspend();
       } else {
-        cohort.send(identifier(), parent, null);
+        executor.send(new Event(identifier(), parent, null));
         finish();
       }
     } else {
-      // TODO: The other branch should be canceled.
+      // TODO: The other branch should be canceled, but canceling is not
+      // implemented in constellation.
       if (!solved) {
         solved = true;
         units.add(reply);
-        cohort.send(identifier(), parent, units.toNativeArray());
+        executor.send(new Event(identifier(), parent, units.toNativeArray()));
       }
       if (!firstReply) {
         finish();
+      } else {
+        suspend();
       }
     }
   }

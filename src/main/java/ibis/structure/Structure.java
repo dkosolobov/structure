@@ -1,11 +1,14 @@
 package ibis.structure;
 
+import ibis.constellation.Constellation;
+import ibis.constellation.ConstellationFactory;
+import ibis.constellation.SimpleExecutor;;
+import ibis.constellation.Executor;;
+import ibis.constellation.SingleEventCollector;
+import ibis.constellation.StealStrategy;;
+import ibis.constellation.context.UnitWorkerContext;
 import java.io.PrintStream;
 import org.apache.log4j.Logger;
-import ibis.cohort.Cohort;
-import ibis.cohort.CohortFactory;
-import ibis.cohort.MessageEvent;
-import ibis.cohort.SingleEventCollector;
 
 public class Structure {
   private static final Logger logger = Logger.getLogger(Structure.class);
@@ -27,26 +30,42 @@ public class Structure {
     return Reader.parseURL(url);
   }
 
-  public static void main(String[] args) throws Exception {
-    ClassLoader.getSystemClassLoader().
-      setPackageAssertionStatus("ibis.structure", true);
+  private static Executor[] createExecutors(int numExecutors) {
+    Executor[] executors = new Executor[numExecutors];
+    for (int i = 0; i < numExecutors; ++i) {
+      executors[i] = new SimpleExecutor(
+          new UnitWorkerContext("DEFAULT"),
+          StealStrategy.SMALLEST, StealStrategy.BIGGEST);
+    }
+    return executors;
+  }
 
-    Cohort cohort = CohortFactory.createCohort();
-    cohort.activate();
+  public static void main(String[] args) throws Exception {
+    final long startTime = System.currentTimeMillis();
+    final PrintStream output = System.out;
+
+    Constellation constellation = ConstellationFactory.createConstellation(
+        createExecutors(4));
+    constellation.activate();
+
     try {
       displayHeader();
-      if (cohort.isMaster()) {
+      if (constellation.isMaster()) {
         Skeleton instance = configure(args);
 
         SingleEventCollector root = new SingleEventCollector();
-        cohort.submit(root);
-        cohort.submit(new Job(root.identifier(), instance, 0));
+        constellation.submit(root);
+        constellation.submit(new Job(root.identifier(), instance, 0));
 
-        int[] model = ((MessageEvent<int[]>)root.waitForEvent()).message;
+        int[] model = (int[])root.waitForEvent().data;
+        final long endTime = System.currentTimeMillis();
+        output.println("c Elapsed time " + (endTime - startTime) / 1000.);
+
         if (model == null) {
-          printUnsatisfiable(System.out);
+          printUnsatisfiable(output);
         } else {
-          printSolution(System.out, model);
+          printSatisfiable(output);
+          // printSolution(output, model);
         }
       }
     } catch (ContradictionException e) {
@@ -56,16 +75,22 @@ public class Structure {
       logger.error("Caught unhandled exception", e);
       printUnknown(System.out);
     } finally {
-      cohort.done();
+      constellation.done();
+      System.exit(0);
     }
   }
 
   private static void printSolution(PrintStream out, int[] model) {
-    out.println("s SATISFIABLE");
+    printSatisfiable(out);
     out.print("v");
     for (int i = 0; i < model.length; ++i) {
-      out.print(" " + model[i]);
+       out.print(" " + model[i]);
     }
+    out.println();
+  }
+
+  private static void printSatisfiable(PrintStream out) {
+    out.println("s SATISFIABLE");
   }
 
   private static void printUnsatisfiable(PrintStream out) {
