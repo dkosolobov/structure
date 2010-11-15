@@ -60,14 +60,27 @@ public final class DAG {
   }
 
   /**
-   * Returns the number of edges in the graph.
+   * Returns the sum of square of out degrees.
    */
-  public int numEdges() {
-    int size = -dag.size();
+  public int sumSquareDegrees() {
+    int size = 0;
     TIntObjectIterator<TIntHashSet> it;
     for (it = dag.iterator(); it.hasNext();) {
       it.advance();
-      size += it.value().size();
+      size += (it.value().size() - 1) * (it.value().size() - 1);
+    }
+    return size;
+  }
+
+  /**
+   * Returns the number of edges in the graph.
+   */
+  public int numEdges() {
+    int size = 0;
+    TIntObjectIterator<TIntHashSet> it;
+    for (it = dag.iterator(); it.hasNext();) {
+      it.advance();
+      size += it.value().size() - 1;
     }
     return size;
   }
@@ -79,10 +92,23 @@ public final class DAG {
     Skeleton skeleton = new Skeleton();
     for (TIntObjectIterator<TIntHashSet> itu = dag.iterator(); itu.hasNext();) {
       itu.advance();
-      int u = itu.key();
-      for (TIntIterator itv = itu.value().iterator(); itv.hasNext();) {
-        int v = itv.next();
-        if (-u < v && u != v) {
+      final int u = itu.key();
+      final int[] neighbours = itu.value().toArray();
+
+      for (int v: neighbours) {
+        if (!(-u < v && u != v)) {
+          continue;
+        }
+
+        boolean redundant = false;
+        for (int w: neighbours) {
+          if (w != v && w != u && dag.get(w).contains(v)) {
+            redundant = true;
+            break;
+          }
+        }
+
+        if (!redundant) {
           skeleton.addArgs(-u, v);
         }
       }
@@ -270,5 +296,46 @@ public final class DAG {
     }
 
     return new Join(name, replaced);
+  }
+
+  /**
+   * Returns the units after solving the 2SAT encoded in this DAG.
+   */
+  public TIntHashSet solve() {
+    final TIntHashSet units = new TIntHashSet();
+    final int[] nodes = dag.keys();
+
+    for (int node: nodes) {
+      if (units.contains(node) || units.contains(-node)) {
+        continue;
+      }
+
+      // Descends until node has only assigned descendents (if any).
+      while (true) {
+        int next = 0;
+        TIntIterator it = dag.get(node).iterator();
+        while (it.hasNext()) {
+          final int temp = it.next();
+          if (units.contains(-temp)) {
+            System.err.println("BULLSHIT ****************");
+            System.exit(1);
+          }
+          if (temp != node && !units.contains(temp)) {
+            next = temp;
+            break;
+          }
+        }
+
+        if (next == 0) {
+          break;
+        } else {
+          node = next;
+        }
+      }
+
+      // Propagates -node.
+      units.addAll(dag.get(-node).toArray());
+    }
+    return units;
   }
 }

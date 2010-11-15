@@ -102,6 +102,16 @@ public final class Solver {
 
   public int lookahead() throws ContradictionException {
     simplify();
+
+    if (clauses.size() == 0) {
+      logger.info("Solving 2SAT with " + dag.numNodes() + " nodes");
+      for (TIntIterator it = dag.solve().iterator(); it.hasNext(); ){
+        addUnit(it.next());
+      }
+      assert dag.numNodes() == 0;
+      return 0;
+    }
+
     TIntIntHashMap counts = new TIntIntHashMap();
     for (int i = 0; i < clauses.size(); ++i) {
       final int literal = clauses.get(i);
@@ -122,9 +132,7 @@ public final class Solver {
       }
     }
 
-    if (bestNode == 0) {
-      logger.warn("Only binaries remaining, but solution not implemented.");
-    }
+    assert bestNode != 0;
     return bestNode;
   }
 
@@ -137,17 +145,16 @@ public final class Solver {
 
     boolean simplified = true;
     for (int step = 0; step < 4 && simplified; ++step) {
-      /*
-      final DecimalFormat formatter = new DecimalFormat(".###");
+      final DecimalFormat formatter = new DecimalFormat("#.###");
       final int numNodes = dag.numNodes();
       final int numEdges = dag.numEdges();
-      logger.info("DAG has " + numNodes + " nodes and " + numEdges +
-                  " edges, " + formatter.format(1. * numEdges / numNodes)
+      logger.info("DAG has " + numNodes + " nodes (sum of squares is "
+                  + dag.sumSquareDegrees() + ") and " + numEdges
+                  + " edges, " + formatter.format(1. * numEdges / numNodes)
                   + " edges/node on average");
       logger.debug("Simplifying: " + clauses.size() + " literal(s), "
                   + numEdges + " binary(ies) and "
                   + getAllUnits().size() + " unit(s)");
-      */
 
       simplified = propagate(hyperBinaryResolution());
     }
