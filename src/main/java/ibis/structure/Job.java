@@ -13,7 +13,7 @@ public class Job extends Activity {
   private final ActivityIdentifier parent;
   private final Skeleton instance;
   private final int branch;
-  private boolean firstReply = false;
+  private int numReplies = 0;
   private boolean solved = false;
   private TIntArrayList units;
 
@@ -52,29 +52,25 @@ public class Job extends Activity {
   @Override
   public void process(Event e) throws Exception {
     int[] reply = (int[])e.data;
-    firstReply = !firstReply;
+    if (reply != null && !solved) {
+      // Sends to parent the solution.
+      solved = true;
+      units.add(reply);
+      executor.send(new Event(identifier(), parent, units.toNativeArray()));
+    }
 
-    if (reply == null) {
-      if (firstReply) {
-        // Waits for the other branch to finish.
-        suspend();
-      } else {
-        executor.send(new Event(identifier(), parent, null));
-        finish();
-      }
+    // TODO: The other branch should be canceled, but canceling is not
+    // implemented in Constellation.
+    ++numReplies;
+    if (numReplies == 1) {
+      // Waits for the other branch to finish.
+      suspend();
     } else {
-      // TODO: The other branch should be canceled, but canceling is not
-      // implemented in constellation.
+      assert numReplies == 2;
       if (!solved) {
-        solved = true;
-        units.add(reply);
-        executor.send(new Event(identifier(), parent, units.toNativeArray()));
+        executor.send(new Event(identifier(), parent, null));
       }
-      if (!firstReply) {
-        finish();
-      } else {
-        suspend();
-      }
+      finish();
     }
   }
 
