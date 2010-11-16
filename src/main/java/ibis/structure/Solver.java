@@ -13,7 +13,7 @@ import org.apache.log4j.Level;
 public final class Solver {
   private static final Logger logger = Logger.getLogger(Solver.class);
   private static final int REMOVED = Integer.MAX_VALUE;
-  private static final int BACKTRACK_THRESHOLD = 256;
+  private static final int BACKTRACK_THRESHOLD = 2048;
 
   // The set of true literals discovered.
   private TIntHashSet units;
@@ -152,9 +152,13 @@ public final class Solver {
   private void backtrack() throws ContradictionException {
     logger.info("Running backtrack() with " + clauses.size() + " literals");
     long startTime = System.currentTimeMillis();
-
     TIntIntHashMap assigned = new TIntIntHashMap();
-    if (!backtrackHelper(0, assigned)) {
+    boolean solved = !backtrackHelper(0, assigned);
+    long endTime = System.currentTimeMillis();
+    logger.info("Backtracking " + clauses.size() + " literals took "
+                + (endTime - startTime) / 1000.);
+
+    if (!solved) {
       throw new ContradictionException();
     }
 
@@ -167,10 +171,8 @@ public final class Solver {
     for (TIntIterator it = dag.solve().iterator(); it.hasNext(); ){
       addUnit(it.next());
     }
-
-    long endTime = System.currentTimeMillis();
-    logger.info("Backtracking " + clauses.size() + " literals took "
-                + (endTime - startTime) / 1000.);
+    propagate();
+    assert clauses.size() == 0;
   }
 
   private static void adjustNeighbours(
@@ -232,10 +234,10 @@ public final class Solver {
    */
   public void simplify() throws ContradictionException {
     logger.info("Simplyfing " + clauses.size() + " literal(s)");
-    propagateAll();
+    propagate();
 
     boolean simplified = true;
-    for (int step = 0; step < 4 && simplified; ++step) {
+    while (simplified) {
       if (logger.getEffectiveLevel().toInt() <= Level.DEBUG_INT) {
         final DecimalFormat formatter = new DecimalFormat("#.###");
         final int numNodes = dag.numNodes();
@@ -254,6 +256,8 @@ public final class Solver {
 
     subSumming();
     propagate(pureLiterals());
+    propagateAll();
+
     logger.debug(clauses.size() + " literals left (excluding binaries "
                  + "and units)");
   }
