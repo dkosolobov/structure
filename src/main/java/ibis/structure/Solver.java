@@ -12,6 +12,7 @@ import java.text.DecimalFormat;
 public final class Solver {
   private static final Logger logger = Logger.getLogger(Solver.class);
   private static final int REMOVED = Integer.MAX_VALUE;
+  private static final int BACKTRACK_THRESHOLD = 10;
 
   // The set of true literals discovered.
   private TIntHashSet units;
@@ -86,9 +87,8 @@ public final class Solver {
 
   static private double score(int positive2, int negative2,
                               int positive3, int negative3) {
-    return 
-      sigmoid(1 + positive2) + 5 * sigmoid(1 + positive3) +
-      sigmoid(1 + negative2) + 5 * sigmoid(1 + negative3);
+    return sigmoid(1 + positive2) + sigmoid(1 + positive3) +
+           sigmoid(1 + negative2) + sigmoid(1 + negative3);
   }
 
   /**
@@ -100,40 +100,122 @@ public final class Solver {
     return neighbours == null ? 0 : neighbours.size();
   }
 
-  public int lookahead() throws ContradictionException {
-    simplify();
-
-    if (clauses.size() == 0) {
-      logger.info("Solving 2SAT with " + dag.numNodes() + " nodes");
-      for (TIntIterator it = dag.solve().iterator(); it.hasNext(); ){
-        addUnit(it.next());
+  private static int numLookaheads = 0;
+  static {
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      public void run() {
+        logger.info("Number of lookaheads is " + numLookaheads);
       }
-      assert dag.numNodes() == 0;
-      return 0;
+    });
+  }
+
+  public int lookahead() throws ContradictionException {
+    synchronized (Job.class) {
+      ++numLookaheads;
     }
+    simplify();
 
     TIntIntHashMap counts = new TIntIntHashMap();
     for (int i = 0; i < clauses.size(); ++i) {
-      final int literal = clauses.get(i);
-      counts.put(literal, counts.get(literal) + 1);
-    }
-
-    int bestNode = 0;
-    double bestScore = Double.NEGATIVE_INFINITY;
-    for (int node : counts.keys()) {
-      if (node > 0) {
-        double score = score(
-            numBinaries(node), numBinaries(-node),
-            counts.get(node), counts.get(-node));
-        if (score > bestScore) {
-          bestNode = node;
-          bestScore = score;
-        }
+      final int literal = clauses.getQuick(i);
+      if (literal != 0) {
+        counts.put(literal, counts.get(literal) + 1);
+        counts.put(-literal, counts.get(-literal));
       }
     }
 
-    assert bestNode != 0;
-    return bestNode;
+    /* Finds all variables that appear in at least one clause */
+    int pos = 0;
+    int[] vars = new int[counts.size() / 2];
+    for (int var : counts.keys()) {
+      if (var > 0) {
+        vars[pos++] = var;
+      }
+    }
+
+    if (vars.length <= BACKTRACK_THRESHOLD) {
+      logger.info("Backtracking " + vars.length + " variables");
+      backtrack(vars);
+      return 0;
+    }
+
+    int bestVar = 0;
+    double bestScore = Double.NEGATIVE_INFINITY;
+    for (int var : vars) {
+      double score = score(numBinaries(var), numBinaries(-var),
+                           counts.get(var), counts.get(-var));
+      if (score > bestScore) {
+        bestVar = var;
+        bestScore = score;
+      }
+    }
+
+    assert bestVar != 0;
+    return bestVar;
+  }
+
+  private void backtrack(int[] vars) throws ContradictionException {
+    if (!backtrackHelper(vars, 0)) {
+      throw new ContradictionException();
+    }
+    for (int literal : vars) {
+      addUnit(literal);
+    }
+    for (TIntIterator it = dag.solve().iterator(); it.hasNext(); ){
+      addUnit(it.next());
+    }
+    assert dag.numNodes() == 0;
+  }
+
+  private boolean backtrackHelper(final int[] vars, final int depth) {
+    if (depth == vars.length) {
+      /* Checks that clauses were satisfied */
+      TIntHashSet literals = new TIntHashSet(vars);
+      boolean satisfied = false;
+      for (int i = 0; i < clauses.size(); ++i) {
+        int literal = clauses.getQuick(i);
+        if (literal == 0) {
+          if (!satisfied) {
+            return false;
+          }
+          satisfied = false;
+        } else {
+          if (!satisfied && literals.contains(literal)) {
+            satisfied = true;
+          }
+        }
+      }
+
+      return true;
+    }
+
+    /* Checks if there is a force assignment for current variable */
+    int assigned = 0;
+    for (int i = 0; i < depth; ++i) {
+      if (dag.containsEdge(vars[i], vars[depth])) {
+        assigned = vars[depth];
+        break;
+      }
+      if (dag.containsEdge(vars[i], -vars[depth])) {
+        assigned = -vars[depth];
+        break;
+      }
+    }
+
+    vars[depth] = -vars[depth];
+    if (assigned == 0 || assigned == vars[depth]) {
+      if (backtrackHelper(vars, depth + 1)) {
+        return true;
+      }
+    }
+    vars[depth] = -vars[depth];
+    if (assigned == 0 || assigned == vars[depth]) {
+      if (backtrackHelper(vars, depth + 1)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -148,11 +230,11 @@ public final class Solver {
       final DecimalFormat formatter = new DecimalFormat("#.###");
       final int numNodes = dag.numNodes();
       final int numEdges = dag.numEdges();
-      logger.info("DAG has " + numNodes + " nodes (sum of squares is "
-                  + dag.sumSquareDegrees() + ") and " + numEdges
-                  + " edges, " + formatter.format(1. * numEdges / numNodes)
-                  + " edges/node on average");
-      logger.debug("Simplifying: " + clauses.size() + " literal(s), "
+      logger.debug("DAG has " + numNodes + " nodes (sum of squares is "
+                   + dag.sumSquareDegrees() + ") and " + numEdges
+                   + " edges, " + formatter.format(1. * numEdges / numNodes)
+                   + " edges/node on average");
+      logger.debug("Simplifying " + clauses.size() + " literal(s), "
                   + numEdges + " binary(ies) and "
                   + getAllUnits().size() + " unit(s)");
 
@@ -214,7 +296,7 @@ public final class Solver {
    * @return true if any clause was removed.
    */
   public boolean subSumming() {
-    logger.info("Running subSumming()");
+    logger.debug("Running subSumming()");
     final int numIndexBits = 8;  // must be a POT
     final int indexMask = numIndexBits - 1;
 
@@ -374,7 +456,7 @@ public final class Solver {
    * @return true if instances was simplified
    */
   public boolean propagate() throws ContradictionException {
-    logger.info("Running propagate()");
+    logger.debug("Running propagate()");
     int start, end = clauses.size() - 1, pos = end;
     for (int i = end - 1; i >= 0; --i) {
       int literal = clauses.get(i);
@@ -568,7 +650,7 @@ public final class Solver {
    * @return clauses representing binaries and units discovered.
    */
   public TIntArrayList hyperBinaryResolution() {
-    logger.info("Running hyperBinaryResolution()");
+    logger.debug("Running hyperBinaryResolution()");
     int numUnits = 0, numBinaries = 0;
     int numLiterals = 0, clauseSum = 0;
     TIntIntHashMap counts = new TIntIntHashMap();
@@ -620,7 +702,7 @@ public final class Solver {
    * @return clauses representing units discovered.
    */
   public TIntArrayList pureLiterals() {
-    logger.info("Running pureLiterals()");
+    logger.debug("Running pureLiterals()");
     BitSet bs = new BitSet();
     for (int i = 0; i < clauses.size(); ++i) {
       bs.set(getRecursiveProxy(clauses.get(i)));
