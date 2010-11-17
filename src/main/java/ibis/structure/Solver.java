@@ -13,8 +13,8 @@ import org.apache.log4j.Level;
 public final class Solver {
   private static final Logger logger = Logger.getLogger(Solver.class);
   private static final int REMOVED = Integer.MAX_VALUE;
-  private static final int BACKTRACK_THRESHOLD = 1 << 8;
-  private static final int BACKTRACK_MAX_CALLS = 1 << 20;
+  private static final int BACKTRACK_THRESHOLD = 1 << 9;
+  private static final int BACKTRACK_MAX_CALLS = 1 << 14;
 
   // The set of true literals discovered.
   private TIntHashSet units;
