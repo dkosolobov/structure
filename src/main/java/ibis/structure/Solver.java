@@ -13,7 +13,8 @@ import org.apache.log4j.Level;
 public final class Solver {
   private static final Logger logger = Logger.getLogger(Solver.class);
   private static final int REMOVED = Integer.MAX_VALUE;
-  private static final int BACKTRACK_THRESHOLD = 2048;
+  private static final int BACKTRACK_THRESHOLD = 1 << 8;
+  private static final int BACKTRACK_MAX_CALLS = 1 << 20;
 
   // The set of true literals discovered.
   private TIntHashSet units;
@@ -89,8 +90,8 @@ public final class Solver {
   static private double score(int positive2, int negative2,
                               int positive3, int negative3) {
     return 
-      sigmoid(1 + positive2) + 5 * sigmoid(1 + positive3) +
-      sigmoid(1 + negative2) + 5 * sigmoid(1 + negative3);
+      sigmoid(1 + positive2) + 8 * sigmoid(1 + positive3) +
+      sigmoid(1 + negative2) + 8 * sigmoid(1 + negative3);
   }
 
   /**
@@ -117,10 +118,10 @@ public final class Solver {
     }
 
     simplify();
-
     if (clauses.size() <= BACKTRACK_THRESHOLD) {
-      backtrack();
-      return 0;
+      if (backtrack()) {
+        return 0;
+      }
     }
 
     TIntIntHashMap counts = new TIntIntHashMap();
@@ -149,15 +150,20 @@ public final class Solver {
     return bestNode;
   }
 
-  private void backtrack() throws ContradictionException {
-    logger.info("Running backtrack() with " + clauses.size() + " literals");
+  private int backtrackCalls = 0;
+
+  private boolean backtrack() throws ContradictionException {
     long startTime = System.currentTimeMillis();
     TIntIntHashMap assigned = new TIntIntHashMap();
-    boolean solved = !backtrackHelper(0, assigned);
+    boolean solved = backtrackHelper(0, assigned);
     long endTime = System.currentTimeMillis();
     logger.info("Backtracking " + clauses.size() + " literals took "
-                + (endTime - startTime) / 1000.);
+                + (endTime - startTime) / 1000. + " using "
+                + backtrackCalls + " calls");
 
+    if (backtrackCalls == BACKTRACK_MAX_CALLS) {
+      return false;
+    }
     if (!solved) {
       throw new ContradictionException();
     }
@@ -173,6 +179,7 @@ public final class Solver {
     }
     propagate();
     assert clauses.size() == 0;
+    return true;
   }
 
   private static void adjustNeighbours(
@@ -199,6 +206,11 @@ public final class Solver {
       return true;
     }
 
+    if (backtrackCalls == BACKTRACK_MAX_CALLS) {
+      return false;
+    }
+    ++backtrackCalls;
+
     /* Finds end of clause */
     int end = start;
     while (clauses.getQuick(end) != 0) {
@@ -215,15 +227,14 @@ public final class Solver {
 
     for (int i = start; i < end; ++i) {
       int literal = clauses.getQuick(i);
-      if (assigned.get(-literal) > 0) {
-        continue;
+      if (assigned.get(-literal) == 0) {
+        TIntHashSet neighbours = dag.neighbours(literal);
+        adjustNeighbours(literal, neighbours, assigned, 1);
+        if (backtrackHelper(end + 1, assigned)) {
+          return true;
+        }
+        adjustNeighbours(literal, neighbours, assigned, -1);
       }
-      TIntHashSet neighbours = dag.neighbours(literal);
-      adjustNeighbours(literal, neighbours, assigned, 1);
-      if (backtrackHelper(end + 1, assigned)) {
-        return true;
-      }
-      adjustNeighbours(literal, neighbours, assigned, -1);
     }
 
     return false;
