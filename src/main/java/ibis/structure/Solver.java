@@ -2,6 +2,7 @@ package ibis.structure;
 
 import java.text.DecimalFormat;
 import gnu.trove.TIntArrayList;
+import gnu.trove.TIntObjectHashMap;;
 import gnu.trove.TLongArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
@@ -16,6 +17,10 @@ public final class Solver {
   private static final int BACKTRACK_THRESHOLD = 1 << 9;
   private static final int BACKTRACK_MAX_CALLS = 1 << 14;
 
+  public static double[] WEIGHTS = {
+      15.843, 28.753, 26.465, 26.854, 25.294, -0.985
+    };
+
   // The set of true literals discovered.
   private TIntHashSet units;
   // The implication graph.
@@ -24,6 +29,7 @@ public final class Solver {
   private TIntIntHashMap proxies = new TIntIntHashMap();
   // List of clauses separated by 0.
   private TIntArrayList clauses;
+  private int backtrackCalls = 0;
 
   public Solver(Skeleton instance)
       throws ContradictionException {
@@ -87,12 +93,6 @@ public final class Solver {
     return allUnits;
   }
 
-  static private double score(int positive2, int negative2,
-                              int positive3, int negative3) {
-    return 
-      sigmoid(1 + positive2) + 8 * sigmoid(1 + positive3) +
-      sigmoid(1 + negative2) + 8 * sigmoid(1 + negative3);
-  }
 
   /**
    * Returns number of neighbours in DAG for node
@@ -108,37 +108,107 @@ public final class Solver {
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
         logger.info("Number of lookaheads is " + numLookaheads);
+
+        try {
+          java.io.File file = new java.io.File("lookaheads");
+          java.io.FileOutputStream fos = new java.io.FileOutputStream(file);
+          java.io.PrintStream dos = new java.io.PrintStream(fos);
+          dos.println(numLookaheads);
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
       }
     });
+  }
+
+  private TIntObjectHashMap<int[]> countLiterals() {
+    TIntObjectHashMap<int[]> counts = new TIntObjectHashMap<int[]>();
+    int start = 0;
+    while (start < clauses.size()) {
+      int end = start;
+      while (clauses.getQuick(end) != 0) {
+        ++end;
+      }
+      for (int i = start; i < end; ++i) {
+        int literal = clauses.getQuick(i);
+        int[] temp = counts.get(literal);
+        if (temp == null) {
+          temp = new int[WEIGHTS.length];
+          counts.put(literal, temp);
+          counts.put(-literal, new int[WEIGHTS.length]);
+        }
+        if (end - start >= WEIGHTS.length) {
+          ++temp[WEIGHTS.length - 1];
+        } else {
+          ++temp[end - start];
+        }
+      }
+      start = end + 1;
+    }
+    return counts;
+  }
+
+  private static void addCounts(final int[] to, final int[] from) {
+    if (from != null) {
+      for (int i = 3; i < WEIGHTS.length; ++i) {
+        to[i] += from[i];
+      }
+    }
+  }
+
+  private TIntObjectHashMap<int[]> agregateCounts(final TIntObjectHashMap<int[]> counts) {
+    TIntObjectHashMap<int[]> agregate = new TIntObjectHashMap<int[]>();
+    for (int literal: counts.keys()) {
+      int[] weights = new int[WEIGHTS.length];
+      weights[2] = numBinaries(literal);
+      agregate.put(literal, weights);
+
+      TIntHashSet neighbours = dag.neighbours(literal);
+      if (neighbours == null) {
+        addCounts(weights, counts.get(literal));
+      } else {
+        for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
+          addCounts(weights, counts.get(it.next()));
+        }
+      }
+    }
+    return agregate;
+  }
+
+  private static double sigmoid(double x) {
+    return (1 / (1 + Math.exp(-x)));
+  }
+  
+  private static double score(int[] positive, int[] negative) {
+    double positiveScore = 0., negativeScore = 0.;
+    for (int i = 2; i < WEIGHTS.length; ++i) {
+      positiveScore += positive[i] * WEIGHTS[i];
+      negativeScore += negative[i] * WEIGHTS[i];
+    }
+    return - (positiveScore * positiveScore + negativeScore * negativeScore
+              + WEIGHTS[0] * (positiveScore * negativeScore)
+              + WEIGHTS[1] * (positiveScore + negativeScore));
   }
   
   public int lookahead() throws ContradictionException {
     synchronized (Job.class) {
       ++numLookaheads;
     }
-
+ 
     simplify();
-    if (clauses.size() <= BACKTRACK_THRESHOLD) {
-      if (backtrack()) {
-        return 0;
-      }
+    if (clauses.size() <= BACKTRACK_THRESHOLD && backtrack()) {
+      return 0;
     }
 
-    TIntIntHashMap counts = new TIntIntHashMap();
-    for (int i = 0; i < clauses.size(); ++i) {
-      final int literal = clauses.get(i);
-      if (literal != 0) {
-        counts.put(literal, counts.get(literal) + 1);
-      }
-    }
+    TIntObjectHashMap<int[]> counts = countLiterals();
+    counts = agregateCounts(counts);
 
     int bestNode = 0;
     double bestScore = Double.NEGATIVE_INFINITY;
+    double scale = Math.sqrt(1. * counts.size());
     for (int node : counts.keys()) {
       if (node > 0) {
-        double score = score(
-            numBinaries(node), numBinaries(-node),
-            counts.get(node), counts.get(-node));
+        double score = score(counts.get(node), counts.get(-node));
         if (score > bestScore) {
           bestNode = node;
           bestScore = score;
@@ -150,7 +220,6 @@ public final class Solver {
     return bestNode;
   }
 
-  private int backtrackCalls = 0;
 
   private boolean backtrack() throws ContradictionException {
     long startTime = System.currentTimeMillis();
@@ -182,6 +251,9 @@ public final class Solver {
     return true;
   }
 
+  /**
+   * Adds delta to all neighbours of literal.
+   */
   private static void adjustNeighbours(
       final int literal, final TIntHashSet neighbours,
       final TIntIntHashMap assigned, final int delta) {
@@ -205,7 +277,6 @@ public final class Solver {
     if (start == clauses.size()) {
       return true;
     }
-
     if (backtrackCalls == BACKTRACK_MAX_CALLS) {
       return false;
     }
@@ -244,7 +315,8 @@ public final class Solver {
    * Simplifies the instance.
    */
   public void simplify() throws ContradictionException {
-    logger.info("Simplyfing " + clauses.size() + " literal(s)");
+    logger.info("Simplyfing " + clauses.size() + " literal(s) on "
+                + Thread.currentThread().getName());
     propagate();
 
     boolean simplified = true;
@@ -521,10 +593,6 @@ public final class Solver {
       return true;
     }
     return false;
-  }
-
-  private static double sigmoid(double x) {
-    return (1 / (1 + Math.exp(-x)));
   }
 
   /**
