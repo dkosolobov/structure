@@ -14,12 +14,85 @@ import org.apache.log4j.Level;
 public final class Solver {
   private static final Logger logger = Logger.getLogger(Solver.class);
   private static final int REMOVED = Integer.MAX_VALUE;
-  private static final int BACKTRACK_THRESHOLD = 1 << 9;
-  private static final int BACKTRACK_MAX_CALLS = 1 << 14;
+  private static final int BACKTRACK_THRESHOLD = 1 << 8;
+  private static final int BACKTRACK_MAX_CALLS = 1 << 12;
 
   public static double[] WEIGHTS = {
       15.843, 28.753, 26.465, 26.854, 25.294, -0.985
     };
+
+  private static class ClauseIterator {
+    private final Solver solver;
+    private int oldStart, oldEnd;
+    private int newStart, newEnd;
+    private boolean simplified = false;
+
+    public ClauseIterator(Solver solver_) {
+      logger.debug("Running ClauseIterator()");
+      solver = solver_;
+      oldEnd = -1;
+      newEnd = 0;
+    }
+
+    public int start() {
+      return newStart;
+    }
+
+    public int end() {
+      return newEnd - 1;
+    }
+
+    public boolean simplified() {
+      return simplified;
+    }
+
+    public boolean next() throws ContradictionException {
+      final TIntArrayList clauses = solver.clauses;
+
+      while (true) {
+        // Find end of the next clause
+        oldStart = ++oldEnd;
+        while (oldEnd < clauses.size() && clauses.get(oldEnd) != 0) {
+          ++oldEnd;
+        }
+        if (oldEnd == clauses.size()) {
+          if (newEnd != clauses.size()) {
+            clauses.remove(newEnd, clauses.size() - newEnd);
+            simplified = true;
+          }
+          return false;
+        }
+
+        if (solver.cleanClause(oldStart, oldEnd)) {
+          continue;
+        }
+
+        // Removes all REMOVED and compacts clauses
+        newStart = newEnd;
+        for (int i = oldStart; i <= oldEnd; ++i) {
+          int literal = clauses.get(i);
+          if (literal != REMOVED) {
+            clauses.set(newEnd++, literal);
+          }
+        }
+
+        int length = newEnd - newStart - 1;
+        if (length == 0) {
+          throw new ContradictionException();
+        }
+        if (length == 1) {
+          solver.addUnit(clauses.get(newStart));
+        }
+        if (length == 2) {
+          solver.addBinary(clauses.get(newStart), clauses.get(newStart + 1));
+        } 
+
+        return true;
+      }
+    }
+  }
+
+  private static java.util.Random random = new java.util.Random(1);
 
   // The set of true literals discovered.
   private TIntHashSet units;
@@ -71,6 +144,13 @@ public final class Solver {
   }
 
   /**
+   * Returns the current DAG.
+   */
+  public DAG dag() {
+    return dag;
+  }
+
+  /**
    * Returns string representation of stored instance.
    */
   public String toString() {
@@ -99,15 +179,18 @@ public final class Solver {
    * or 0 if node is not in DAG.
    */
   private int numBinaries(int node) {
-    TIntHashSet neighbours = dag.neighbours(node);
+    TIntHashSet neighbours = dag.neighbours(-node);
     return neighbours == null ? 0 : neighbours.size();
   }
 
   private static int numLookaheads = 0;
+  private static int numHypers = 0;
+
   static {
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
         logger.info("Number of lookaheads is " + numLookaheads);
+        logger.info("Number of hypers is " + numHypers);
 
         try {
           java.io.File file = new java.io.File("lookaheads");
@@ -121,74 +204,8 @@ public final class Solver {
     });
   }
 
-  private TIntObjectHashMap<int[]> countLiterals() {
-    TIntObjectHashMap<int[]> counts = new TIntObjectHashMap<int[]>();
-    int start = 0;
-    while (start < clauses.size()) {
-      int end = start;
-      while (clauses.getQuick(end) != 0) {
-        ++end;
-      }
-      for (int i = start; i < end; ++i) {
-        int literal = clauses.getQuick(i);
-        int[] temp = counts.get(literal);
-        if (temp == null) {
-          temp = new int[WEIGHTS.length];
-          counts.put(literal, temp);
-          counts.put(-literal, new int[WEIGHTS.length]);
-        }
-        if (end - start >= WEIGHTS.length) {
-          ++temp[WEIGHTS.length - 1];
-        } else {
-          ++temp[end - start];
-        }
-      }
-      start = end + 1;
-    }
-    return counts;
-  }
 
-  private static void addCounts(final int[] to, final int[] from) {
-    if (from != null) {
-      for (int i = 3; i < WEIGHTS.length; ++i) {
-        to[i] += from[i];
-      }
-    }
-  }
-
-  private TIntObjectHashMap<int[]> agregateCounts(final TIntObjectHashMap<int[]> counts) {
-    TIntObjectHashMap<int[]> agregate = new TIntObjectHashMap<int[]>();
-    for (int literal: counts.keys()) {
-      int[] weights = new int[WEIGHTS.length];
-      weights[2] = numBinaries(literal);
-      agregate.put(literal, weights);
-
-      TIntHashSet neighbours = dag.neighbours(literal);
-      if (neighbours == null) {
-        addCounts(weights, counts.get(literal));
-      } else {
-        for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
-          addCounts(weights, counts.get(it.next()));
-        }
-      }
-    }
-    return agregate;
-  }
-
-  private static double sigmoid(double x) {
-    return (1 / (1 + Math.exp(-x)));
-  }
   
-  private static double score(int[] positive, int[] negative) {
-    double positiveScore = 0., negativeScore = 0.;
-    for (int i = 2; i < WEIGHTS.length; ++i) {
-      positiveScore += positive[i] * WEIGHTS[i];
-      negativeScore += negative[i] * WEIGHTS[i];
-    }
-    return - (positiveScore * positiveScore + negativeScore * negativeScore
-              + WEIGHTS[0] * (positiveScore * negativeScore)
-              + WEIGHTS[1] * (positiveScore + negativeScore));
-  }
   
   public int lookahead() throws ContradictionException {
     synchronized (Job.class) {
@@ -200,24 +217,22 @@ public final class Solver {
       return 0;
     }
 
-    TIntObjectHashMap<int[]> counts = countLiterals();
-    counts = agregateCounts(counts);
-
-    int bestNode = 0;
-    double bestScore = Double.NEGATIVE_INFINITY;
-    double scale = Math.sqrt(1. * counts.size());
-    for (int node : counts.keys()) {
-      if (node > 0) {
-        double score = score(counts.get(node), counts.get(-node));
-        if (score > bestScore) {
-          bestNode = node;
-          bestScore = score;
+    // The idea here is that if a literal is frequent
+    // it will have a higher chance to be selected
+    int bestLiteral = 0, bestValue = Integer.MIN_VALUE;
+    TIntHashSet literals = new TIntHashSet();
+    for (int i = 0; i < clauses.size(); ++i) {
+      int literal = clauses.get(i);
+      if (literal != 0) {
+        int value = random.nextInt();
+        if (value > bestValue) {
+          bestLiteral = literal;
+          bestValue = value;
         }
       }
     }
 
-    assert bestNode != 0;
-    return bestNode;
+    return bestLiteral;
   }
 
 
@@ -284,20 +299,20 @@ public final class Solver {
 
     /* Finds end of clause */
     int end = start;
-    while (clauses.getQuick(end) != 0) {
+    while (clauses.get(end) != 0) {
       ++end;
     }
 
     /* If the clause is already satisfied don't backtrack */
     for (int i = start; i < end; ++i) {
-      int literal = clauses.getQuick(i);
+      int literal = clauses.get(i);
       if (assigned.get(literal) > 0) {
         return backtrackHelper(end + 1, assigned);
       }
     }
 
     for (int i = start; i < end; ++i) {
-      int literal = clauses.getQuick(i);
+      int literal = clauses.get(i);
       if (assigned.get(-literal) == 0) {
         TIntHashSet neighbours = dag.neighbours(literal);
         adjustNeighbours(literal, neighbours, assigned, 1);
@@ -315,34 +330,25 @@ public final class Solver {
    * Simplifies the instance.
    */
   public void simplify() throws ContradictionException {
-    logger.info("Simplyfing " + clauses.size() + " literal(s) on "
-                + Thread.currentThread().getName());
-    propagate();
-
-    boolean simplified = true;
-    while (simplified) {
-      if (logger.getEffectiveLevel().toInt() <= Level.DEBUG_INT) {
-        final DecimalFormat formatter = new DecimalFormat("#.###");
-        final int numNodes = dag.numNodes();
-        final int numEdges = dag.numEdges();
-        logger.debug("DAG has " + numNodes + " nodes (sum of squares is "
-                     + dag.sumSquareDegrees() + ") and " + numEdges
-                     + " edges, " + formatter.format(1. * numEdges / numNodes)
-                     + " edges/node on average");
-        logger.debug("Simplifying " + clauses.size() + " literal(s), "
-                    + numEdges + " binary(ies) and "
-                    + getAllUnits().size() + " unit(s)");
-      }
-
-      simplified = propagate(hyperBinaryResolution());
-    }
-
+    // pureLiterals();
+    while (hyperBinaryResolution());
     subSumming();
-    propagate(pureLiterals());
-    propagateAll();
+    while (pureLiterals());
 
-    logger.debug(clauses.size() + " literals left (excluding binaries "
-                 + "and units)");
+    if (logger.getEffectiveLevel().toInt() <= Level.DEBUG_INT) {
+      final DecimalFormat formatter = new DecimalFormat("#.###");
+      final int numNodes = dag.numNodes();
+      final int numEdges = dag.numEdges();
+      logger.debug("DAG has " + numNodes + " nodes (sum of squares is "
+                   + dag.sumSquareDegrees() + ") and " + numEdges
+                   + " edges, " + formatter.format(1. * numEdges / numNodes)
+                   + " edges/node on average");
+      logger.debug("Simplifying " + clauses.size() + " literal(s), "
+                  + numEdges + " binary(ies) and "
+                  + getAllUnits().size() + " unit(s)");
+      logger.debug(clauses.size() + " literals left (excluding binaries "
+                   + "and units)");
+    }
   }
 
   /**
@@ -554,45 +560,9 @@ public final class Solver {
    * @return true if instances was simplified
    */
   public boolean propagate() throws ContradictionException {
-    logger.debug("Running propagate()");
-    int start, end = clauses.size() - 1, pos = end;
-    for (int i = end - 1; i >= 0; --i) {
-      int literal = clauses.get(i);
-      if (literal == 0 || i == 0) {
-        start = i + (i != 0 ? 1 : 0);
-        if (cleanClause(start)) {
-          end = i;
-          continue;
-        }
-
-        int length = 0;
-        clauses.set(pos, 0);
-        for (int j = end - 1; j >= start; --j) {
-          int tmp = clauses.get(j);
-          if (tmp != REMOVED) {
-            clauses.set(pos - (++length), tmp);
-          }
-        }
-
-        if (length == 0) {
-          throw new ContradictionException();
-        } else if (length == 1) {
-          addUnit(clauses.get(pos - 1));
-        } else if (length == 2) {
-          addBinary(clauses.get(pos - 1), clauses.get(pos - 2));
-        } else {
-          pos -= length + 1;
-        }
-
-        end = i;
-      }
-    }
-
-    if (pos != -1) {
-      clauses.remove(0, pos + 1);
-      return true;
-    }
-    return false;
+    ClauseIterator it = new ClauseIterator(this);
+    while (it.next());
+    return it.simplified();
   }
 
   /**
@@ -671,24 +641,19 @@ public final class Solver {
    * @param start position of the first literal in clause
    * @return true if the clause was satisfied
    */
-  private boolean cleanClause(final int start) {
+  private boolean cleanClause(final int start, final int end) {
     // Renames literals to component.
-    for (int i = start; ; ++i) {
-      final int literal = clauses.get(i);
-      if (literal == 0) {
-        break;
+    for (int i = start; i < end; ++i) {
+      int literal = clauses.get(i);
+      if (literal != REMOVED) {
+        clauses.set(i, getRecursiveProxy(literal));
       }
-      assert literal != REMOVED;
-      clauses.set(i, getRecursiveProxy(literal));
     }
 
     // Checks if the clause is satisfied, removes unsatisfied
     // literals and does binary resolution.
-    for (int i = start; ; ++i) {
-      final int literal = clauses.get(i);
-      if (literal == 0) {
-        return false;
-      }
+    for (int i = start; i < end; ++i) {
+      int literal = clauses.get(i);
       if (literal == REMOVED) {
         continue;
       }
@@ -696,20 +661,19 @@ public final class Solver {
         return true;
       }
       if (units.contains(-literal)) {
-        clauses.set(i, REMOVED);
+        clauses.setQuick(i, REMOVED);
         continue;
       }
-      for (int k = start; ; ++k) {
+
+      for (int k = start; k < end; ++k) {
         if (i == k) {
           continue;
         }
-        final int other = clauses.get(k);
-        if (other == 0) {
-          break;
-        }
+        int other = clauses.get(k);
         if (other == REMOVED) {
           continue;
         }
+
         TIntHashSet neighbours = dag.neighbours(-literal);
         if (neighbours == null) {
           if (literal == -other) {
@@ -718,7 +682,7 @@ public final class Solver {
           }
           if (literal == other) {
             // literal + literal = literal
-            clauses.set(k, REMOVED);
+            clauses.setQuick(k, REMOVED);
             continue;
           }
         } else {
@@ -730,49 +694,38 @@ public final class Solver {
           if (neighbours.contains(-other)) {
             // if literal + other + ... and -literal => -other
             // then literal + ...
-            clauses.set(k, REMOVED);
+            clauses.setQuick(k, REMOVED);
             continue;
           }
         }
       }
     }
+    return false;
   }
 
   /**
    * Hyper-binary resolution.
    *
-   * @return clauses representing binaries and units discovered.
+   * @return true if instances was simplified
    */
-  public TIntArrayList hyperBinaryResolution() {
+  public boolean hyperBinaryResolution() throws ContradictionException {
+    ++numHypers;
     logger.debug("Running hyperBinaryResolution()");
+    ClauseIterator cit = new ClauseIterator(this);
+
     int numUnits = 0, numBinaries = 0;
-    int numLiterals = 0, clauseSum = 0;
     TIntIntHashMap counts = new TIntIntHashMap();
     TIntIntHashMap sums = new TIntIntHashMap();
 
-    TIntArrayList newClauses = new TIntArrayList();
-    for (int i = 0; i < clauses.size(); ++i) {
-      int literal = clauses.getQuick(i);
-      if (literal == 0) {
-        for (TIntIntIterator it = counts.iterator(); it.hasNext(); ) {
-          it.advance();
-          if (it.value() == numLiterals && !units.contains(-it.key())) {
-            pushClause(newClauses, -it.key());
-            ++numUnits;
-          } else if (it.value() == numLiterals - 1) {
-            int missingLiteral = clauseSum - sums.get(it.key());
-            if (!dag.containsEdge(it.key(), missingLiteral)) {
-              pushClause(newClauses, -it.key(), missingLiteral);
-              ++numBinaries;
-            }
-          }
-        }
-        numLiterals = 0;
-        clauseSum = 0;
-        counts.clear();
-        sums.clear();
-      } else {
-        ++numLiterals;
+    while (cit.next()) {
+      int start = cit.start(), end = cit.end();
+      int numLiterals = end - start;
+      int clauseSum = 0;
+      counts.clear();
+      sums.clear();
+
+      for (int i = start; i < end; ++i) {
+        int literal = clauses.get(i);
         clauseSum += literal;
         TIntHashSet neighbours = dag.neighbours(literal);
         if (neighbours != null) {
@@ -783,46 +736,65 @@ public final class Solver {
           }
         }
       }
+
+      for (TIntIntIterator it = counts.iterator(); it.hasNext(); ) {
+        it.advance();
+        int literal = it.key();
+        int count = it.value();
+        if (count == end - start) {
+          if (!units.contains(-literal)) {
+            addUnit(-literal);
+            ++numUnits;
+          }
+        } else if (count + 1 == end - start) {
+          int other = clauseSum - sums.get(literal);
+          if (!dag.containsEdge(literal, other)) {
+            addBinary(-literal, other);
+            ++numBinaries;
+          }
+        }
+      }
     }
 
     logger.debug("Hyper binary resolution found " + numUnits + " unit(s) and "
                  + numBinaries + " binary(ies)");
-    return newClauses;
+    return numUnits > 0 || numBinaries > 0 || cit.simplified();
   }
 
   /**
    * Pure literal assignment.
    *
-   * @return clauses representing units discovered.
+   * @return true if instances was simplified
    */
-  public TIntArrayList pureLiterals() {
+  public boolean pureLiterals() throws ContradictionException {
     logger.debug("Running pureLiterals()");
     BitSet bs = new BitSet();
-    for (int i = 0; i < clauses.size(); ++i) {
-      bs.set(getRecursiveProxy(clauses.get(i)));
+
+    ClauseIterator cit = new ClauseIterator(this);
+    while (cit.next()) {
+      int start = cit.start(), end = cit.end();
+      for (int i = start; i < end; ++i) {
+        bs.set(clauses.get(i));
+      }
     }
     for (int u : dag.nodes()) {
       if (dag.neighbours(u).size() > 1) {
         bs.set(-u);
       }
     }
-    for (int u : units.toArray()) {
-      bs.set(u);
-    }
 
     // 0 is in bs, but -0 is also so
     // 0 will not be considered a pure literal.
-    TIntArrayList pureLiterals = new TIntArrayList();
     int numUnits = 0;
     for (int literal : bs.elements()) {
       if (!bs.get(-literal) && !units.contains(literal)) {
-        pushClause(pureLiterals, literal);
+        addUnit(literal);
         ++numUnits;
       }
     }
 
     logger.debug("Discovered " + numUnits + " pure literal(s)");
-    return pureLiterals;
+    return numUnits > 0 || cit.simplified();
   }
 
   /**
