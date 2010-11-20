@@ -316,10 +316,6 @@ public final class DAG {
         TIntIterator it = dag.get(node).iterator();
         while (it.hasNext()) {
           final int temp = it.next();
-          if (units.contains(-temp)) {
-            System.err.println("BULLSHIT ****************");
-            System.exit(1);
-          }
           if (temp != node && !units.contains(temp)) {
             next = temp;
             break;
