@@ -3,6 +3,7 @@ package ibis.structure;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIterator;
+import gnu.trove.TIntIntHashMap;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Comparator;
@@ -56,8 +57,10 @@ public final class Skeleton implements Serializable {
   /**
    * Adds a clause.
    */
-  public void addArgs(int... clause) {
-    add(clause);
+  public void add(int clause0, int... clause) {
+    clauses.add(clause0);
+    clauses.add(clause);
+    clauses.add(0);
   }
 
   /**

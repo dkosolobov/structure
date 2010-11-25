@@ -109,7 +109,7 @@ public final class DAG {
         }
 
         if (!redundant) {
-          skeleton.addArgs(-u, v);
+          skeleton.add(-u, v);
         }
       }
     }
