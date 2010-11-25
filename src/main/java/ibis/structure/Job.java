@@ -8,62 +8,63 @@ import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import ibis.constellation.context.UnitActivityContext;
 
-public class Job extends Activity {
+public final class Job extends Activity {
   private static final Logger logger = Logger.getLogger(Job.class);
 
+  private static int maxDepth = Integer.MIN_VALUE;
+  private static int minDepth = Integer.MAX_VALUE;;
+
   private ActivityIdentifier parent;
+  private int depth;
   private Skeleton instance;
   private int branch;
+  private Solver solver;
 
   private int numReplies = 0;
   private boolean solved = false;
-  private TIntArrayList units;
 
-  transient private boolean canceled = false;
-  transient private WeakReference weakPositive, weakNegative;
-
-  public Job(ActivityIdentifier parent, Skeleton instance, int branch) {
+  public Job(final ActivityIdentifier parent_, final int depth_,
+             final Skeleton instance_, final int branch_) {
     super(UnitActivityContext.DEFAULT, true);
-    this.parent = parent;
-    this.instance = instance;
-    this.branch = branch;
+    parent = parent_;
+    depth = depth_;
+    instance = instance_;
+    branch = branch_;
   }
-    
+
   @Override
   public void initialize() {
-    if (canceled) {
-      executor.send(new Event(identifier(), parent, null));
-      finish();
-      return;
-    }
-
-    logger.debug("Branching on " + branch + ". Instance difficulty "
-                 + instance.difficulty());
-
     try {
-      Solver solver = new Solver(instance, branch);
-      instance = null;  // helps GC
+      logger.info("Solving " + instance.clauses.size()
+                  + " literals branching on " + branch 
+                  + " at depth " + depth
+                  + " (" + minDepth + "/" + maxDepth + ")"
+                  + " on " + Thread.currentThread().getName());
+      synchronized (Job.class) {
+        if (maxDepth < depth) {
+          maxDepth = depth;
+        }
+      }
+
+      solver = new Solver(instance, branch);
       int literal = solver.lookahead();
-      units = solver.getAllUnits();
 
       if (literal == 0) {
-        executor.send(new Event(identifier(), parent, units.toNativeArray()));
+        int[] units = solver.getSolution(null);
+        executor.send(new Event(identifier(), parent, units));
         finish();
       } else {
-        Skeleton skeleton = solver.skeleton(false);
-        
-        Job job = new Job(identifier(), skeleton, literal);
-        executor.submit(job);
-        weakPositive = new WeakReference(job);
-        job = new Job(identifier(), skeleton, -literal);
-        executor.submit(job);
-        weakNegative = new WeakReference(job);
-
+        Skeleton skeleton = solver.coreSkeleton();
+        executor.submit(new Job(identifier(), depth + 1, skeleton, literal));
+        executor.submit(new Job(identifier(), depth + 1, skeleton, -literal));
         suspend();
       }
     } catch (ContradictionException e) {
+      // logger.debug("Instance is a contradiction");
       executor.send(new Event(identifier(), parent, null));
       finish();
+    } catch (Exception e) {
+      logger.info("Unhandled error", e);
     }
   }
 
@@ -73,8 +74,8 @@ public class Job extends Activity {
     if (reply != null && !solved) {
       /* Sends the solution to parent. */
       solved = true;
-      units.add(reply);
-      executor.send(new Event(identifier(), parent, units.toNativeArray()));
+      int[] units = solver.getSolution(reply);
+      executor.send(new Event(identifier(), parent, units));
       cancel();
     }
 
@@ -87,6 +88,11 @@ public class Job extends Activity {
     } else {
       assert numReplies == 2;
       if (!solved) {
+        synchronized (Job.class) {
+          if (minDepth > depth) {
+            minDepth = depth;
+          }
+        }
         executor.send(new Event(identifier(), parent, null));
       }
       finish();
@@ -99,14 +105,5 @@ public class Job extends Activity {
 
   @Override
   public void cancel() throws Exception {
-    canceled = true;
-    Job job = weakPositive == null ? null : (Job)weakPositive.get();
-    if (job != null) {
-      job.cancel();
-    }
-    job = weakNegative == null ? null : (Job)weakNegative.get();
-    if (job != null) {
-      job.cancel();
-    }
   }
 }
