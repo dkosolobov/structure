@@ -18,18 +18,18 @@ public final class Job extends Activity {
   private int depth;
   private Skeleton instance;
   private int branch;
-  private Solver solver;
 
+  private Solution solution = null;
   private int numReplies = 0;
   private boolean solved = false;
 
-  public Job(final ActivityIdentifier parent_, final int depth_,
-             final Skeleton instance_, final int branch_) {
+  public Job(final ActivityIdentifier parent, final int depth,
+             final Skeleton instance, final int branch) {
     super(UnitActivityContext.DEFAULT, true);
-    parent = parent_;
-    depth = depth_;
-    instance = instance_;
-    branch = branch_;
+    this.parent = parent;
+    this.depth = depth;
+    this.instance = instance;
+    this.branch = branch;
   }
 
   @Override
@@ -46,17 +46,19 @@ public final class Job extends Activity {
         }
       }
 
-      solver = new Solver(instance, branch);
-      int literal = solver.lookahead();
+      Solver solver = new Solver(instance, branch);
+      instance = null;  // helps GC
+      solution = solver.solve();
 
-      if (literal == 0) {
-        int[] units = solver.getSolution(null);
+      if (solution.satisfied()) {
+        int[] units = solution.solution(null);
         executor.send(new Event(identifier(), parent, units));
         finish();
       } else {
-        Skeleton skeleton = solver.coreSkeleton();
-        executor.submit(new Job(identifier(), depth + 1, skeleton, literal));
-        executor.submit(new Job(identifier(), depth + 1, skeleton, -literal));
+        executor.submit(new Job(identifier(), depth + 1,
+                        solution.core(), solution.branch()));
+        executor.submit(new Job(identifier(), depth + 1,
+                        solution.core(), -solution.branch()));
         suspend();
       }
     } catch (ContradictionException e) {
@@ -74,7 +76,7 @@ public final class Job extends Activity {
     if (reply != null && !solved) {
       /* Sends the solution to parent. */
       solved = true;
-      int[] units = solver.getSolution(reply);
+      int[] units = solution.solution(reply);
       executor.send(new Event(identifier(), parent, units));
       cancel();
     }

@@ -44,18 +44,9 @@ public class Structure {
     final long startTime = System.currentTimeMillis();
     final PrintStream output = System.out;
 
-    final Constellation constellation = ConstellationFactory.createConstellation(
-        createExecutors(4));
+    final Constellation constellation =
+        ConstellationFactory.createConstellation(createExecutors(4));
     constellation.activate();
-
-    // Stops Constellation at shutdown.
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-      final Constellation constellation_ = constellation;
-
-      public void run() {
-        constellation_.done();
-      }
-    });
 
     try {
       displayHeader();
@@ -64,7 +55,7 @@ public class Structure {
 
         SingleEventCollector root = new SingleEventCollector();
         constellation.submit(root);
-        constellation.submit(new Job(root.identifier(), instance, 0));
+        constellation.submit(new Job(root.identifier(), 0, instance, 0));
 
         int[] model = (int[])root.waitForEvent().data;
         final long endTime = System.currentTimeMillis();
@@ -74,7 +65,7 @@ public class Structure {
           printUnsatisfiable(output);
         } else {
           printSatisfiable(output);
-          // printSolution(output, model);
+          printSolution(output, model);
         }
       }
     } catch (ContradictionException e) {
@@ -84,6 +75,7 @@ public class Structure {
       logger.error("Caught unhandled exception", e);
       printUnknown(System.out);
     } finally {
+      constellation.done();
       System.exit(0);
     }
   }

@@ -23,7 +23,7 @@ import org.apache.log4j.Level;
 public final class Solver {
   private static final Logger logger = Logger.getLogger(Solver.class);
   private static final int REMOVED = Integer.MAX_VALUE;
-  private static final int BACKTRACK_THRESHOLD = 0;
+  private static final int BACKTRACK_THRESHOLD = 1 << 8;
   private static final int BACKTRACK_MAX_CALLS = 1 << 12;
 
   /**
@@ -275,35 +275,26 @@ public final class Solver {
    * Doesn't include units or equivalent literals.
    * TODO: Removes mutexes.
    *
+   * @param branch
    * @return a normalized skeleton
    */
-  public Skeleton coreSkeleton() {
-    Skeleton skeleton = new Skeleton();
-    skeleton.append(dag.skeleton());
-    skeleton.append(clauses);
-    return skeleton;
-  }
-
-  /**
-   * Returns a list with all units including units from proxies.
-   */
-  public int[] getSolution(int[] coreSolution) {
-    BitSet allUnits = (BitSet) units.clone();
-    if (coreSolution != null) {
-      allUnits.addAll(coreSolution);
-    }
-    for (int literal = -numVariables; literal <= numVariables; ++literal) {
-      if (literal != 0) {
-        int proxy = getRecursiveProxy(literal);
-        if (allUnits.contains(proxy)) {
-          allUnits.add(literal);
-        }
-      }
+  private Solution getSolution(int branch) {
+    // Keeps only positive literals
+    int[] proxies = new int[numVariables + 1];
+    for (int literal = 1; literal <= numVariables; ++literal) {
+      proxies[literal] = getRecursiveProxy(literal);
     }
 
-    int[] response = allUnits.elements();
-    denormalize(response);
-    return response;
+    // Gets the core instance that needs to be solved further
+    Skeleton skeleton = null;
+    if (branch != 0) {
+      skeleton = new Skeleton();
+      skeleton.append(dag.skeleton());
+      skeleton.append(clauses);
+    }
+
+    return new Solution(variableMap, units.elements(),
+                        proxies, skeleton, branch);
   }
 
   /**
@@ -334,10 +325,12 @@ public final class Solver {
   /**
    * Returns a normalized literal to branch on.
    */
-  public int lookahead() throws ContradictionException {
+  public Solution solve() throws ContradictionException {
     simplify();
-    if (clauses.size() <= BACKTRACK_THRESHOLD && backtrack()) {
-      return 0;
+    if (clauses.size() <= BACKTRACK_THRESHOLD) {
+      if (backtrack()) {
+        return getSolution(0);
+      }
     }
 
     // The idea here is that if a literal is frequent
@@ -355,10 +348,12 @@ public final class Solver {
       }
     }
 
-    return bestLiteral;
+    return getSolution(bestLiteral);
   }
 
-
+  /**
+   * Attempts to find a solution by backtracking.
+   */
   private boolean backtrack() throws ContradictionException {
     long startTime = System.currentTimeMillis();
     TIntIntHashMap assigned = new TIntIntHashMap();
@@ -369,11 +364,14 @@ public final class Solver {
                 + backtrackCalls + " calls");
 
     if (backtrackCalls == BACKTRACK_MAX_CALLS) {
+      logger.info("Backtracking readched maximum number of calls");
       return false;
     }
     if (!solved) {
+      logger.info("Backtracking found a contradiction");
       throw new ContradictionException();
     }
+    logger.info("Backtracking found a solution");
 
     for (TIntIntIterator it = assigned.iterator(); it.hasNext(); ) {
       it.advance();
