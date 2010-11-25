@@ -149,12 +149,12 @@ public final class Solver {
   private int numVariables;
   // The set of true literals discovered.
   private BitSet units = new BitSet();
-  // Stores equalities between literals.
-  private int[] proxies;
   // Stores the normalization
   public int[] variableMap;
+  // Stores equalities between literals.
+  private int[] proxies;
   // The implication graph.
-  private DAG dag = new DAG();
+  private DAG dag;
   // List of clauses separated by 0.
   private TIntArrayList clauses;
   private int backtrackCalls = 0;
@@ -162,6 +162,7 @@ public final class Solver {
   public Solver(final Skeleton instance, final int branch) {
     normalize(instance, branch);
     proxies = new int[2 * numVariables + 1];
+    dag = new DAG(numVariables);
     for (int literal = -numVariables; literal <= numVariables; ++literal) {
       if (literal != 0) {
         proxies[BitSet.mapZtoN(literal)] = literal;
@@ -455,18 +456,6 @@ public final class Solver {
     while (hyperBinaryResolution());
     // subSumming();
     while (pureLiterals());
-
-    if (logger.getEffectiveLevel().toInt() <= Level.DEBUG_INT) {
-      final DecimalFormat formatter = new DecimalFormat("#.###");
-      final int numNodes = dag.numNodes();
-      final int numEdges = dag.numEdges();
-      logger.debug("DAG has " + numNodes + " nodes (sum of squares is "
-                   + dag.sumSquareDegrees() + ") and " + numEdges
-                   + " edges, " + formatter.format(1. * numEdges / numNodes)
-                   + " edges/node on average");
-      logger.debug(clauses.size() + " literals left (excluding binaries "
-                   + "and units)");
-    }
   }
 
   /**
@@ -762,7 +751,8 @@ public final class Solver {
         clauseSum += literal;
         TIntHashSet neighbours = dag.neighbours(literal);
         if (neighbours != null) {
-          for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
+          TIntIterator it = neighbours.iterator();
+          for (int size = neighbours.size(); size > 0; --size) {
             int node = BitSet.mapZtoN(-it.next());
             if (counts[node] == 0) {
               touched[numTouched++] = node;
