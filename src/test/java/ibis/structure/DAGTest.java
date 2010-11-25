@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
 public class DAGTest {
-  private DAG dag = new DAG();
+  private DAG dag = new DAG(100);
   private DAG.Join join;
 
   @Test
@@ -198,14 +198,5 @@ public class DAGTest {
     assertTrue(!dag.containsEdge(-2, -1));
     assertTrue(!dag.containsEdge(2, 3));
     assertTrue(!dag.containsEdge(-3, -2));
-  }
-
-  @Test
-  public void simpleClone() throws Exception {
-    dag.addEdge(1, 2);
-    dag.addEdge(2, 4);
-
-    DAG clone = new DAG(dag);
-    assertTrue(clone.containsEdge(-4, -1));
   }
 }
