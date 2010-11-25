@@ -3,9 +3,18 @@ package ibis.structure;
 import gnu.trove.TIntArrayList;
 
 public final class BitSet {
-  java.util.BitSet bs = new java.util.BitSet();
+  java.util.BitSet bs;
 
   public BitSet() {
+    bs = new java.util.BitSet();
+  }
+
+  private BitSet(BitSet copy) {
+    bs = (java.util.BitSet) copy.bs.clone();
+  }
+
+  public Object clone() {
+    return new BitSet(this);
   }
 
   /**
@@ -15,11 +24,25 @@ public final class BitSet {
     bs.set(mapZtoN(index));
   }
 
+  public void add(int index) {
+    set(index);
+  }
+
+  public void addAll(int[] indexes) {
+    for (int index : indexes) {
+      set(index);
+    }
+  }
+
   /**
    * Gets the value at index.
    */
   public boolean get(int index) {
     return bs.get(mapZtoN(index));
+  }
+
+  public boolean contains(int index) {
+    return get(index);
   }
 
   /**
@@ -36,14 +59,14 @@ public final class BitSet {
   /**
    * Bijective function mapping Z to N.
    */
-  private int mapZtoN(int a) {
+  public static final int mapZtoN(int a) {
     return a < 0 ? (- 1 - a - a) : a + a;
   }
 
   /**
    * Inverse of mapZtoN.
    */
-  private int mapNtoZ(int a) {
+  public static final int mapNtoZ(int a) {
     return (a & 1) != 0 ? - (a + 1) / 2 : a / 2;
   }
 }

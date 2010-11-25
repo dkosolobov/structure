@@ -25,14 +25,14 @@ public class Simplify {
     Skeleton input = Reader.parseURL(inputFile);
     Skeleton output;
     try {
-      Solver solver = new Solver(input, 0);
+      Solver solver = null; // new Solver(input, 0);
       solver.simplify();
-      output = solver.skeleton(true);
+      output = solver.skeleton();
     } catch (ContradictionException e) {
       logger.info("Found trivial contradiction", e);
       output = new Skeleton();
-      output.addArgs(1);
-      output.addArgs(-1);
+      output.add(1);
+      output.add(-1);
     }
     output.canonicalize();
 
