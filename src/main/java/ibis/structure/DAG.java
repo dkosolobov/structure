@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import gnu.trove.TIntHashSet;
+import gnu.trove.TIntArrayList;
 import gnu.trove.TIntIterator;
 import gnu.trove.TIntObjectHashMap;
 import gnu.trove.TIntObjectIterator;
@@ -17,72 +18,38 @@ public final class DAG {
   }
 
   // Maps nodes to set of neighbours (including the node itself).
-  private TIntObjectHashMap<TIntHashSet> dag;
+  private int numVariables;
+  private TIntHashSet[] dag;
 
   /**
    * Creates an empty dag.
    */
-  public DAG() {
-    dag = new TIntObjectHashMap<TIntHashSet>();
-  }
-
-  /**
-   * Creates a copy of the given dag.
-   */
-  public DAG(final DAG other) {
-    dag = new TIntObjectHashMap<TIntHashSet>();
-    TIntObjectIterator<TIntHashSet> it;
-    for (it = other.dag.iterator(); it.hasNext();) {
-      it.advance();
-      dag.put(it.key(), (TIntHashSet)it.value().clone());
-    }
+  public DAG(final int numVariables_) {
+    numVariables = numVariables_;
+    dag = new TIntHashSet[2 * numVariables + 1];
   }
 
   /**
    * Returns true if node exists.
    */
   public boolean hasNode(final int u) {
-    return dag.containsKey(u);
+    return dag[BitSet.mapZtoN(u)] != null;
   }
 
   /**
    * Return an array containing all nodes in the graph.
    */
   public int[] nodes() {
-    return dag.keys();
-  }
-
-  /**
-   * Returns the number of nodes in the graph.
-   */
-  public int numNodes() {
-    return dag.size();
-  }
-
-  /**
-   * Returns the sum of square of out degrees.
-   */
-  public int sumSquareDegrees() {
-    int size = 0;
-    TIntObjectIterator<TIntHashSet> it;
-    for (it = dag.iterator(); it.hasNext();) {
-      it.advance();
-      size += (it.value().size() - 1) * (it.value().size() - 1);
+    TIntArrayList array = new TIntArrayList();
+    for (int literal = -numVariables; literal <= numVariables; ++literal) {
+      if (literal != 0) {
+        TIntHashSet neighbours = dag[BitSet.mapZtoN(literal)];
+        if (neighbours != null && neighbours.size() > 1) {
+          array.add(literal);
+        }
+      }
     }
-    return size;
-  }
-
-  /**
-   * Returns the number of edges in the graph.
-   */
-  public int numEdges() {
-    int size = 0;
-    TIntObjectIterator<TIntHashSet> it;
-    for (it = dag.iterator(); it.hasNext();) {
-      it.advance();
-      size += it.value().size() - 1;
-    }
-    return size;
+    return array.toNativeArray();
   }
 
   /**
@@ -90,26 +57,27 @@ public final class DAG {
    */
   public Skeleton skeleton() {
     Skeleton skeleton = new Skeleton();
-    for (TIntObjectIterator<TIntHashSet> itu = dag.iterator(); itu.hasNext();) {
-      itu.advance();
-      final int u = itu.key();
-      final int[] neighbours = itu.value().toArray();
+    for (int u = -numVariables; u <= numVariables; ++u) {
+      if (u != 0 && dag[BitSet.mapZtoN(u)] != null) {
+        final int[] neighbours = dag[BitSet.mapZtoN(u)].toArray();
 
-      for (int v: neighbours) {
-        if (!(-u < v && u != v)) {
-          continue;
-        }
-
-        boolean redundant = false;
-        for (int w: neighbours) {
-          if (w != v && w != u && dag.get(w).contains(v)) {
-            redundant = true;
-            break;
+        for (int v: neighbours) {
+          if (!(-u < v && u != v)) {
+            continue;
           }
-        }
 
-        if (!redundant) {
-          skeleton.add(-u, v);
+          // Transitive reduction
+          boolean redundant = false;
+          for (int w : neighbours) {
+            if (w != v && w != u && dag[BitSet.mapZtoN(w)].contains(v)) {
+              redundant = true;
+              break;
+            }
+          }
+
+          if (!redundant) {
+            skeleton.add(-u, v);
+          }
         }
       }
     }
@@ -133,13 +101,13 @@ public final class DAG {
     createNode(v);
 
     // Connect all parents of u with all parents of v.
-    int[] children = dag.get(v).toArray();
-    int[] parents = dag.get(-u).toArray();
+    int[] children = neighbours(v).toArray();
+    int[] parents = neighbours(-u).toArray();
     for (int i = 0; i < parents.length; ++i) {
-      dag.get(-parents[i]).addAll(children);
+      neighbours(-parents[i]).addAll(children);
     }
     for (int i = 0; i < children.length; ++i) {
-      dag.get(-children[i]).addAll(parents);
+      neighbours(-children[i]).addAll(parents);
     }
 
     return null;
@@ -150,13 +118,13 @@ public final class DAG {
    */
   public TIntHashSet findContradictions(final int u, final int v) {
     TIntHashSet contradictions = new TIntHashSet();
-    if (!dag.containsKey(u) || !dag.containsKey(v)) {
+    if (neighbours(u) == null || neighbours(v) == null) {
       if (-u == v) {
         contradictions.add(v);
       }
     } else {
-      TIntHashSet neighbours = dag.get(v);
-      for (TIntIterator it = dag.get(-u).iterator(); it.hasNext(); ) {
+      TIntHashSet neighbours = neighbours(v);
+      for (TIntIterator it = neighbours(-u).iterator(); it.hasNext(); ) {
         int node = it.next();  // -node => u
         if (neighbours.contains(node)) {  // -node => u => v => node
           contradictions.add(node);
@@ -170,7 +138,7 @@ public final class DAG {
    * Returns all nodes of adjacent with the node of u.
    */
   public TIntHashSet neighbours(int u) {
-    return dag.get(u);
+    return dag[BitSet.mapZtoN(u)];
   }
 
   /**
@@ -180,19 +148,19 @@ public final class DAG {
    *
    * @param u nodes to remove from graph
    */
-  public void delete(final int[] u) {
-    for (int a: u) {
-      TIntHashSet neighbours = dag.get(-a);
+  public void delete(final int[] units) {
+    for (int literal : units) {
+      TIntHashSet neighbours = neighbours(-literal);
       if (neighbours != null) {
         for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
-          dag.get(-it.next()).remove(a);
+          neighbours(-it.next()).remove(literal);
         }
       }
     }
 
-    for (int i = 0; i < u.length; ++i) {
-      dag.remove(u[i]);
-      dag.remove(-u[i]);
+    for (int literal : units) {
+      dag[BitSet.mapZtoN(literal)] = null;
+      dag[BitSet.mapZtoN(-literal)] = null;
     }
   }
 
@@ -200,8 +168,7 @@ public final class DAG {
    * Creates a new nodes u and -u if they don't exist.
    */
   private void createNode(int u) {
-    if (!dag.contains(u)) {
-      assert !dag.contains(-u);
+    if (neighbours(u) == null) {
       createNodeHelper(u);
       createNodeHelper(-u);
     }
@@ -213,15 +180,15 @@ public final class DAG {
   private void createNodeHelper(int u) {
     TIntHashSet neighbours = new TIntHashSet();
     neighbours.add(u);
-    dag.put(u, neighbours);
+    dag[BitSet.mapZtoN(u)] = neighbours;
   }
 
   /**
    * @return true if there is a path between node u and v
    */
-  public boolean containsEdge(int u, int v) {
-    TIntHashSet neighbours = neighbours(u);
-    return neighbours != null && neighbours.contains(v);
+  public boolean containsEdge(final int u, final int v) {
+    int u_ = BitSet.mapZtoN(u);
+    return dag[u_] != null && dag[u_].contains(v);
   }
 
   /**
@@ -231,9 +198,9 @@ public final class DAG {
   private Join joinComponents(int u, int v) {
     // Finds all components to be replaced.
     TIntHashSet replaced = new TIntHashSet();
-    for (TIntIterator it = dag.get(v).iterator(); it.hasNext();) {
+    for (TIntIterator it = neighbours(v).iterator(); it.hasNext();) {
       int node = it.next();
-      if (dag.get(node).contains(u)) {
+      if (neighbours(node).contains(u)) {
         replaced.add(node);
       }
     }
@@ -250,8 +217,7 @@ public final class DAG {
 
     // Parents of the new node are parents of u.
     TIntHashSet parents = new TIntHashSet();
-    assert dag.containsKey(-u);
-    for (TIntIterator it = dag.get(-u).iterator(); it.hasNext();) {
+    for (TIntIterator it = neighbours(-u).iterator(); it.hasNext();) {
       int node = -it.next();
       if (!replaced.contains(node)) {
         parents.add(node);
@@ -260,8 +226,7 @@ public final class DAG {
 
     // Children of the new node are children of v.
     TIntHashSet children = new TIntHashSet();
-    assert dag.containsKey(v);
-    for (TIntIterator it = dag.get(v).iterator(); it.hasNext();) {
+    for (TIntIterator it = neighbours(v).iterator(); it.hasNext();) {
       int node = it.next();
       if (!replaced.contains(node)) {
         children.add(node);
@@ -270,7 +235,7 @@ public final class DAG {
 
     // Connects all parents with all children and .
     for (TIntIterator parent = parents.iterator(); parent.hasNext();) {
-      TIntHashSet arcs = dag.get(parent.next());
+      TIntHashSet arcs = neighbours(parent.next());
       for (TIntIterator child = children.iterator(); child.hasNext();) {
         arcs.add(child.next());
       }
@@ -279,7 +244,7 @@ public final class DAG {
       }
     }
     for (TIntIterator parent = children.iterator(); parent.hasNext();) {
-      TIntHashSet arcs = dag.get(-parent.next());
+      TIntHashSet arcs = neighbours(-parent.next());
       for (TIntIterator child = parents.iterator(); child.hasNext();) {
         arcs.add(-child.next());
       }
@@ -291,8 +256,8 @@ public final class DAG {
     // Removes replaced nodes.
     for (TIntIterator it = replaced.iterator(); it.hasNext();) {
       int node = it.next();
-      dag.remove(node);
-      dag.remove(-node);
+      dag[BitSet.mapZtoN(node)] = null;
+      dag[BitSet.mapZtoN(-node)] = null;
     }
 
     return new Join(name, replaced);
@@ -303,34 +268,34 @@ public final class DAG {
    */
   public TIntHashSet solve() {
     final TIntHashSet units = new TIntHashSet();
-    final int[] nodes = dag.keys();
+    for (int literal = -numVariables; literal <= numVariables; ++literal) {
+      if (literal != 0 && dag[BitSet.mapZtoN(literal)] != null) {
+        if (units.contains(literal) || units.contains(-literal)) {
+          continue;
+        }
 
-    for (int node: nodes) {
-      if (units.contains(node) || units.contains(-node)) {
-        continue;
-      }
+        // Descends until literal has only assigned descendents (if any).
+        while (true) {
+          int next = 0;
+          TIntIterator it = neighbours(literal).iterator();
+          while (it.hasNext()) {
+            final int temp = it.next();
+            if (temp != literal && !units.contains(temp)) {
+              next = temp;
+              break;
+            }
+          }
 
-      // Descends until node has only assigned descendents (if any).
-      while (true) {
-        int next = 0;
-        TIntIterator it = dag.get(node).iterator();
-        while (it.hasNext()) {
-          final int temp = it.next();
-          if (temp != node && !units.contains(temp)) {
-            next = temp;
+          if (next == 0) {
             break;
+          } else {
+            literal = next;
           }
         }
 
-        if (next == 0) {
-          break;
-        } else {
-          node = next;
-        }
+        // Propagates -literal.
+        units.addAll(neighbours(-literal).toArray());
       }
-
-      // Propagates -node.
-      units.addAll(dag.get(-node).toArray());
     }
     return units;
   }
