@@ -43,7 +43,7 @@ public final class DAG {
     TIntArrayList array = new TIntArrayList();
     for (int literal = -numVariables; literal <= numVariables; ++literal) {
       if (literal != 0) {
-        TIntHashSet neighbours = dag[BitSet.mapZtoN(literal)];
+        TIntHashSet neighbours = neighbours(literal);
         if (neighbours != null && neighbours.size() > 1) {
           array.add(literal);
         }
@@ -58,18 +58,21 @@ public final class DAG {
   public Skeleton skeleton() {
     Skeleton skeleton = new Skeleton();
     for (int u = -numVariables; u <= numVariables; ++u) {
-      if (u != 0 && dag[BitSet.mapZtoN(u)] != null) {
-        final int[] neighbours = dag[BitSet.mapZtoN(u)].toArray();
-
-        for (int v: neighbours) {
+      TIntHashSet neighbours = neighbours(u);
+      if (u != 0 && neighbours != null) {
+        TIntIterator it1 = neighbours.iterator();
+        for (int size1 = neighbours.size(); size1 > 0; --size1) {
+          int v = it1.next();
           if (!(-u < v && u != v)) {
             continue;
           }
 
           // Transitive reduction
           boolean redundant = false;
-          for (int w : neighbours) {
-            if (w != v && w != u && dag[BitSet.mapZtoN(w)].contains(v)) {
+          TIntIterator it2 = neighbours.iterator();
+          for (int size2 = neighbours.size(); size2 > 0; --size2) {
+            int w = it2.next();
+            if (w != v && w != u && neighbours(w).contains(v)) {
               redundant = true;
               break;
             }
