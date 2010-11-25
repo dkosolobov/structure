@@ -2,7 +2,7 @@ package ibis.structure;
 
 import java.text.DecimalFormat;
 import gnu.trove.TIntArrayList;
-import gnu.trove.TIntObjectHashMap;;
+import gnu.trove.TIntObjectHashMap;
 import gnu.trove.TLongArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
@@ -222,16 +222,7 @@ public final class Solver {
   /**
    * Denormalizes all literals in array.
    */
-  private void denormalize(int[] array) {
-    for (int i = 0; i < array.length; ++i) {
-      array[i] = denormalize(array[i]);
-    }
-  }
-
-  /**
-   * Denormalizes all literals in array.
-   */
-  private void denormalize(TIntArrayList array) {
+  private void denormalize(final TIntArrayList array) {
     for (int i = 0; i < array.size(); ++i) {
       array.set(i, denormalize(array.get(i)));
     }
@@ -635,33 +626,6 @@ public final class Solver {
     return simplified;
   }
 
-
-  /**
-   * Propagates every unit and every binary.
-   */
-  public boolean propagateAll() throws ContradictionException {
-    boolean simplified = false;
-    while (propagate()) {
-      simplified = true;
-    }
-    return simplified;
-  }
-
-  /**
-   * Appends and propagates new clauses.
-   *
-   * @param extraClauses extra clauses to propagate
-   * @return true if instance was simplified
-   */
-  public boolean propagate(final TIntArrayList extraClauses)
-      throws ContradictionException {
-    if (extraClauses.size() > 0) {
-      clauses.add(extraClauses.toNativeArray());
-      return propagate();
-    }
-    return false;
-  }
-
   /**
    * Propagates units and binary clauses (one pass only).
    *
@@ -670,54 +634,8 @@ public final class Solver {
   public boolean propagate() throws ContradictionException {
     // logger.info("Running propagate()");
     ClauseIterator cit = new ClauseIterator();
-    while (cit.next());
+    while (cit.next()) {}
     return cit.simplified();
-  }
-
-  /**
-   * Adds a new unit.
-   *
-   * @param u unit to add.
-   */
-  private void addUnit(final int u) {
-    // logger.info("Found unit " + u);
-    TIntHashSet neighbours = dag.neighbours(u);
-    if (neighbours == null) {
-      units.add(u);
-    } else {
-      int[] neighbours_ = neighbours.toArray();
-      units.addAll(neighbours_);
-      dag.delete(neighbours_);
-    }
-  }
-
-  /**
-   * Adds a new binary
-   *
-   * @param u first literal
-   * @param v second literal
-   */
-  private void addBinary(final int u, final int v) {
-    // logger.info("Found binary " + u + " or " + v);
-    TIntHashSet contradictions = dag.findContradictions(-u, v);
-    if (!contradictions.isEmpty()) {
-      int[] contradictions_ = contradictions.toArray();
-      units.addAll(contradictions_);
-      dag.delete(contradictions_);
-      if (contradictions.contains(u) || contradictions.contains(v)) {
-        return;
-      }
-    }
-
-    DAG.Join join = dag.addEdge(-u, v);
-    if (join != null) {
-      TIntIterator it;
-      for (it = join.children.iterator(); it.hasNext();) {
-        int node = it.next();
-        proxies[BitSet.mapZtoN(node)] = join.parent;
-        proxies[BitSet.mapZtoN(-node)] = -join.parent;
-      }
-    }
   }
 
 
@@ -823,6 +741,52 @@ public final class Solver {
 
     // logger.debug("Discovered " + numUnits + " pure literal(s)");
     return numUnits > 0 || cit.simplified();
+  }
+
+  /**
+   * Adds a new unit.
+   *
+   * @param u unit to add.
+   */
+  private void addUnit(final int u) {
+    // logger.info("Found unit " + u);
+    TIntHashSet neighbours = dag.neighbours(u);
+    if (neighbours == null) {
+      units.add(u);
+    } else {
+      int[] neighbours_ = neighbours.toArray();
+      units.addAll(neighbours_);
+      dag.delete(neighbours_);
+    }
+  }
+
+  /**
+   * Adds a new binary
+   *
+   * @param u first literal
+   * @param v second literal
+   */
+  private void addBinary(final int u, final int v) {
+    // logger.info("Found binary " + u + " or " + v);
+    TIntHashSet contradictions = dag.findContradictions(-u, v);
+    if (!contradictions.isEmpty()) {
+      int[] contradictions_ = contradictions.toArray();
+      units.addAll(contradictions_);
+      dag.delete(contradictions_);
+      if (contradictions.contains(u) || contradictions.contains(v)) {
+        return;
+      }
+    }
+
+    DAG.Join join = dag.addEdge(-u, v);
+    if (join != null) {
+      TIntIterator it;
+      for (it = join.children.iterator(); it.hasNext();) {
+        int node = it.next();
+        proxies[BitSet.mapZtoN(node)] = join.parent;
+        proxies[BitSet.mapZtoN(-node)] = -join.parent;
+      }
+    }
   }
 
   /**

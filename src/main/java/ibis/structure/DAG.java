@@ -3,15 +3,13 @@ package ibis.structure;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntIterator;
-import gnu.trove.TIntObjectHashMap;
-import gnu.trove.TIntObjectIterator;
 
 public final class DAG {
   public static class Join {
     public int parent;
     public TIntHashSet children;
 
-    public Join(int parent, TIntHashSet children) {
+    public Join(final int parent, final TIntHashSet children) {
       this.parent = parent;
       this.children = children;
     }
@@ -24,8 +22,8 @@ public final class DAG {
   /**
    * Creates an empty dag.
    */
-  public DAG(final int numVariables_) {
-    numVariables = numVariables_;
+  public DAG(final int numVariables) {
+    this.numVariables = numVariables;
     dag = new TIntHashSet[2 * numVariables + 1];
   }
 
@@ -38,6 +36,8 @@ public final class DAG {
 
   /**
    * Return an array containing all nodes in the graph.
+   *
+   * @return all literals with at least one implication
    */
   public int[] nodes() {
     TIntArrayList array = new TIntArrayList();
@@ -54,6 +54,8 @@ public final class DAG {
 
   /**
    * Returns an instance containing all edges in the graph.
+   *
+   * @return a transitive reduction of the implication graph as a SAT instance
    */
   public Skeleton skeleton() {
     Skeleton skeleton = new Skeleton();
@@ -127,7 +129,7 @@ public final class DAG {
       }
     } else {
       TIntHashSet neighbours = neighbours(v);
-      for (TIntIterator it = neighbours(-u).iterator(); it.hasNext(); ) {
+      for (TIntIterator it = neighbours(-u).iterator(); it.hasNext();) {
         int node = it.next();  // -node => u
         if (neighbours.contains(node)) {  // -node => u => v => node
           contradictions.add(node);
@@ -139,8 +141,11 @@ public final class DAG {
 
   /**
    * Returns all nodes of adjacent with the node of u.
+   *
+   * @param u node
+   * @return a set with all neighbours of u
    */
-  public TIntHashSet neighbours(int u) {
+  public TIntHashSet neighbours(final int u) {
     return dag[BitSet.mapZtoN(u)];
   }
 
@@ -155,7 +160,7 @@ public final class DAG {
     for (int literal : units) {
       TIntHashSet neighbours = neighbours(-literal);
       if (neighbours != null) {
-        for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
+        for (TIntIterator it = neighbours.iterator(); it.hasNext();) {
           neighbours(-it.next()).remove(literal);
         }
       }
@@ -169,8 +174,10 @@ public final class DAG {
 
   /**
    * Creates a new nodes u and -u if they don't exist.
+   *
+   * @param u node to add to graph
    */
-  private void createNode(int u) {
+  private void createNode(final int u) {
     if (neighbours(u) == null) {
       createNodeHelper(u);
       createNodeHelper(-u);
@@ -179,11 +186,13 @@ public final class DAG {
 
   /**
    * Creates a new node u.
+   *
+   * @param u node to add to graph
    */
-  private void createNodeHelper(int u) {
-    TIntHashSet neighbours = new TIntHashSet();
-    neighbours.add(u);
-    dag[BitSet.mapZtoN(u)] = neighbours;
+  private void createNodeHelper(final int u) {
+    int u_ = BitSet.mapZtoN(u);
+    dag[u_] = new TIntHashSet();
+    dag[u_].add(u);
   }
 
   /**
@@ -197,8 +206,12 @@ public final class DAG {
   /**
    * If u and v are in the same strongly connected node after
    * the addition of arc (u, v) joins all nodes on the cycle.
+   *
+   * @param u source vertex
+   * @param v destination vertex
+   * @return nodes in the cycle
    */
-  private Join joinComponents(int u, int v) {
+  private Join joinComponents(final int u, final int v) {
     // Finds all components to be replaced.
     TIntHashSet replaced = new TIntHashSet();
     for (TIntIterator it = neighbours(v).iterator(); it.hasNext();) {
@@ -268,6 +281,8 @@ public final class DAG {
 
   /**
    * Returns the units after solving the 2SAT encoded in this DAG.
+   *
+   * @return assigned literals
    */
   public TIntHashSet solve() {
     final TIntHashSet units = new TIntHashSet();
