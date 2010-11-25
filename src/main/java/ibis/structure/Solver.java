@@ -104,6 +104,11 @@ public final class Solver {
             satisfied = true;
             break;
           }
+          if (colors[BitSet.mapZtoN(literal)] == currentColor) {
+            // literal is in the same clause
+            clauses.set(i, REMOVED);
+            continue;
+          }
           if (colors[BitSet.mapZtoN(-literal)] == currentColor) {
             // -literal is in the same clause
             satisfied = true;
@@ -247,7 +252,7 @@ public final class Solver {
       if (literal != 0) {
         int proxy = getRecursiveProxy(literal);
         if (units.contains(proxy)) {
-          skeleton.add(proxy);
+          skeleton.add(literal);
         } else if (literal != proxy && !units.contains(-proxy)) {
           // literal and proxy are equivalent,
           // but proxy is not assigned
