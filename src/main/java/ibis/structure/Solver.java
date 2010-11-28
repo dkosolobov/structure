@@ -297,6 +297,8 @@ public final class Solver {
    * Returns a normalized literal to branch on.
    */
   public Solution solve() {
+    int beforeNumLiterals = clauses.size();
+
     int solved;
     try {
       simplify();
@@ -327,8 +329,8 @@ public final class Solver {
     // it will have a higher chance to be selected
     int bestBranch = 0;
     int bestValue = Integer.MIN_VALUE;
-    for (int i = 0; i < clauses.size(); ++i) {
-      int literal = clauses.get(i);
+    for (int i = 0; i < core.clauses.size(); ++i) {
+      int literal = core.clauses.get(i);
       if (literal != 0) {
         int value = random.nextInt();
         if (value > bestValue) {
@@ -337,6 +339,10 @@ public final class Solver {
         }
       }
     }
+
+    int afterNumLiterals = core.clauses.size();
+    logger.info("Reduced from " + beforeNumLiterals + " to " + afterNumLiterals
+                + " literals (" + (beforeNumLiterals - afterNumLiterals) + ")");
 
     return Solution.unknown(variableMap, units.elements(), proxies,
                             core, bestBranch);
@@ -464,8 +470,9 @@ public final class Solver {
    */
   public void simplify() throws ContradictionException {
     while (hyperBinaryResolution());
-    subSumming();
-    while (pureLiterals());
+    // subSumming();
+    binarySelfSubsumming();
+    pureLiterals();
   }
 
   /**
@@ -761,6 +768,71 @@ public final class Solver {
 
     // logger.debug("Discovered " + numUnits + " pure literal(s)");
     return numUnits > 0 || cit.simplified();
+  }
+
+  /**
+   * Binary self subsumming.
+   */
+  public boolean binarySelfSubsumming() {
+    int numSatisfiedClauses = 0, numRemovedLiterals = 0;
+
+    int start = 0;
+    while (start < clauses.size()) {
+      // Finds the end of the clause
+      int end = start - 1;
+      while (clauses.get(++end) != 0) { }
+
+      boolean satisfied = false;
+
+    search:
+      for (int i = start; i < end; ++i) {
+        int first = clauses.get(i);
+        if (first == REMOVED) {
+          continue;
+        }
+
+        TIntHashSet neighbours = dag.neighbours(-first);
+        if (neighbours == null) {
+          continue;
+        }
+
+        for (int j = start; j < end; ++j) {
+          int second = clauses.get(j);
+          if (i == j || second == REMOVED) {
+            continue;
+          }
+
+          if (neighbours.contains(-second)) {
+            // If a + b + c + ... and -a => -b
+            // then a + c + ...
+            clauses.set(j, REMOVED);
+            ++numRemovedLiterals;
+            continue;
+          }
+
+          if (neighbours.contains(second)) {
+            // If a + b + c + ... and -a => b
+            // then clause is tautology
+            satisfied = true;
+            break search;
+          }
+        }
+      }
+
+      if (satisfied) {
+        numRemovedLiterals += end - start;
+        ++numSatisfiedClauses;
+        for (int i = start; i <= end; ++i) {
+          clauses.set(i, REMOVED);
+        }
+      }
+
+      start = end + 1;
+    }
+
+    // logger.debug("Removed " + numRemovedLiterals + " literals and found "
+    //              + numSatisfiedClauses + " satisfied clauses");
+    return numRemovedLiterals > 0;
   }
 
   /**
