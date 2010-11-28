@@ -148,8 +148,6 @@ public final class Solver {
     }
   }
 
-  private static java.util.Random random = new java.util.Random(1);
-
   // number of variables
   private int numVariables;
   // The set of true literals discovered.
@@ -162,7 +160,7 @@ public final class Solver {
   private DAG dag;
   // List of clauses separated by 0.
   private TIntArrayList clauses;
-  private int backtrackCalls = 0;
+  private int numBacktrackCalls = 0;
 
   public Solver(final Skeleton instance, final int branch) {
     normalize(instance, branch);
@@ -173,6 +171,9 @@ public final class Solver {
         proxies[BitSet.mapZtoN(literal)] = literal;
       }
     }
+
+    logger.info("Solving " + clauses.size() + " literals and "
+                + numVariables + " variables, branching on " + branch);
   }
 
   /**
@@ -266,34 +267,6 @@ public final class Solver {
   }
 
   /**
-   * Returns the current core (simplified) instance.
-   *
-   * Doesn't include units or equivalent literals.
-   * TODO: Removes mutexes.
-   *
-   * @param branch
-   * @return a normalized skeleton
-   */
-  private Solution getSolution(int branch) {
-    // Keeps only positive literals
-    int[] proxies = new int[numVariables + 1];
-    for (int literal = 1; literal <= numVariables; ++literal) {
-      proxies[literal] = getRecursiveProxy(literal);
-    }
-
-    // Gets the core instance that needs to be solved further
-    Skeleton skeleton = null;
-    if (branch != 0) {
-      skeleton = new Skeleton();
-      skeleton.append(dag.skeleton());
-      skeleton.append(clauses);
-    }
-
-    return new Solution(variableMap, units.elements(),
-                        proxies, skeleton, branch);
-  }
-
-  /**
    * Returns the current DAG.
    */
   public DAG dag() {
@@ -315,72 +288,103 @@ public final class Solver {
    */
   private int numBinaries(int node) {
     TIntHashSet neighbours = dag.neighbours(-node);
-    return neighbours == null ? 0 : neighbours.size();
+    return neighbours == null ? 0 : neighbours.size() - 1;
   }
+
+  private static java.util.Random random = new java.util.Random(1);
 
   /**
    * Returns a normalized literal to branch on.
    */
-  public Solution solve() throws ContradictionException {
-    simplify();
-    if (clauses.size() <= BACKTRACK_THRESHOLD) {
-      if (backtrack()) {
-        return getSolution(0);
-      }
+  public Solution solve() {
+    int solved;
+    try {
+      simplify();
+      solved = backtrack();
+    } catch (ContradictionException e) {
+      solved = Solution.UNSATISFIABLE;
     }
+
+    if (solved == Solution.UNSATISFIABLE) {
+      return Solution.unsatisfiable();
+    }
+
+    // Keeps only positive literals
+    int[] proxies = new int[numVariables + 1];
+    for (int literal = 1; literal <= numVariables; ++literal) {
+      proxies[literal] = getRecursiveProxy(literal);
+    }
+    if (solved == Solution.SATISFIABLE) {
+      return Solution.satisfiable(variableMap, units.elements(), proxies);
+    }
+
+    // Gets the core instance that needs to be solved further
+    Skeleton core =  new Skeleton();
+    core.append(dag.skeleton());
+    core.append(clauses);
 
     // The idea here is that if a literal is frequent
     // it will have a higher chance to be selected
-    int bestLiteral = 0, bestValue = Integer.MIN_VALUE;
-    TIntHashSet literals = new TIntHashSet();
+    int bestBranch = 0;
+    int bestValue = Integer.MIN_VALUE;
     for (int i = 0; i < clauses.size(); ++i) {
       int literal = clauses.get(i);
       if (literal != 0) {
         int value = random.nextInt();
         if (value > bestValue) {
-          bestLiteral = literal;
           bestValue = value;
+          bestBranch = literal;
         }
       }
     }
 
-    return getSolution(bestLiteral);
+    return Solution.unknown(variableMap, units.elements(), proxies,
+                            core, bestBranch);
   }
 
   /**
    * Attempts to find a solution by backtracking.
    */
-  private boolean backtrack() throws ContradictionException {
-    long startTime = System.currentTimeMillis();
-    TIntIntHashMap assigned = new TIntIntHashMap();
-    boolean solved = backtrackHelper(0, assigned);
-    long endTime = System.currentTimeMillis();
-    logger.info("Backtracking " + clauses.size() + " literals took "
-                + (endTime - startTime) / 1000. + " using "
-                + backtrackCalls + " calls");
-
-    if (backtrackCalls == BACKTRACK_MAX_CALLS) {
-      logger.info("Backtracking readched maximum number of calls");
-      return false;
+  private int backtrack() {
+    if (clauses.size() > BACKTRACK_THRESHOLD) {
+      // Clause is too difficult to solve.
+      return Solution.UNKNOWN;
     }
-    if (!solved) {
+
+    int[] assigned = new int[2 * numVariables + 1];
+    int solved = backtrackHelper(0, assigned);
+
+    if (solved == Solution.UNKNOWN) {
+      logger.info("Backtracking reached maximum number of calls");
+      return Solution.UNKNOWN;
+    }
+    if (solved == Solution.UNSATISFIABLE) {
       logger.info("Backtracking found a contradiction");
-      throw new ContradictionException();
+      return Solution.UNSATISFIABLE;
     }
     logger.info("Backtracking found a solution");
 
-    for (TIntIntIterator it = assigned.iterator(); it.hasNext(); ) {
-      it.advance();
-      if (it.value() > 0) {
-        addUnit(it.key());
+    // Propagates the satisfying assignment
+    for (int literal = -numVariables; literal <= numVariables; ++literal) {
+      if (literal != 0 && assigned[BitSet.mapZtoN(literal)] > 0) {
+        assert assigned[BitSet.mapZtoN(-literal)] == 0;
+        addUnit(literal);
       }
     }
+    // Solves the remaining 2SAT encoded in the implication graph
     for (TIntIterator it = dag.solve().iterator(); it.hasNext(); ){
       addUnit(it.next());
     }
-    propagate();
+
+    try {
+      propagate();
+    } catch (ContradictionException e) {
+      assert false: "Backtracking found a contradicting solution";
+      return Solution.UNSATISFIABLE;
+    }
+
     assert clauses.size() == 0;
-    return true;
+    return Solution.SATISFIABLE;
   }
 
   /**
@@ -388,59 +392,71 @@ public final class Solver {
    */
   private static void adjustNeighbours(
       final int literal, final TIntHashSet neighbours,
-      final TIntIntHashMap assigned, final int delta) {
+      final int[] assigned, final int delta) {
     if (neighbours != null) {
-      for (TIntIterator it = neighbours.iterator(); it.hasNext(); ) {
-        assigned.adjustOrPutValue(it.next(), delta, delta);
+      TIntIterator it = neighbours.iterator();
+      for (int size = neighbours.size(); size > 0; --size) {
+        assigned[BitSet.mapZtoN(it.next())] += delta;
       }
     } else {
-      assigned.adjustOrPutValue(literal, delta, delta);
+      assigned[BitSet.mapZtoN(literal)] += delta;
     }
   }
 
   /**
    * Does a backtracking.
    *
-   * @param start is the begin of the clause to satisfy
-   * @param assigned is a map from literal to a counter. If counter
+   * @param start the begin of the clause to satisfy
+   * @param assigned a map from literal to a counter. If counter
    *                 is greater than zero literal was assigned.
+   * @return type of the solution found (SATISFIABLE, UNSATISFIABLE, UNKNOWN)
    */
-  private boolean backtrackHelper(int start, TIntIntHashMap assigned) {
+  private int backtrackHelper(final int start, final int[] assigned) {
     if (start == clauses.size()) {
-      return true;
+      // Assignment satisfied all clauses
+      return Solution.SATISFIABLE;
     }
-    if (backtrackCalls == BACKTRACK_MAX_CALLS) {
-      return false;
+    if (numBacktrackCalls == BACKTRACK_MAX_CALLS) {
+      // Solution.UNKNOWN marks the end of the computation
+      return Solution.UNKNOWN;
     }
-    ++backtrackCalls;
+    ++numBacktrackCalls;
 
-    /* Finds end of clause */
-    int end = start;
-    while (clauses.get(end) != 0) {
-      ++end;
-    }
-
-    /* If the clause is already satisfied don't backtrack */
-    for (int i = start; i < end; ++i) {
-      int literal = clauses.get(i);
-      if (assigned.get(literal) > 0) {
-        return backtrackHelper(end + 1, assigned);
+    // Finds end of clause
+    int end = start - 1;
+    boolean satisfied = false;
+    while (true) {
+      int literal = clauses.get(++end);
+      if (literal == 0) {
+        break;
+      }
+      if (assigned[BitSet.mapZtoN(literal)] > 0) {
+        satisfied = true;
       }
     }
+    // Skip already satisfied clauses
+    if (satisfied) {
+      return backtrackHelper(end + 1, assigned);
+    }
 
+    // Tries each unassigned literal
     for (int i = start; i < end; ++i) {
       int literal = clauses.get(i);
-      if (assigned.get(-literal) == 0) {
+      if (assigned[BitSet.mapZtoN(-literal)] == 0) {
         TIntHashSet neighbours = dag.neighbours(literal);
         adjustNeighbours(literal, neighbours, assigned, 1);
-        if (backtrackHelper(end + 1, assigned)) {
-          return true;
+        int solved = backtrackHelper(end + 1, assigned);
+        if (solved == Solution.SATISFIABLE) {
+          return Solution.SATISFIABLE;
+        }
+        if (solved == Solution.UNKNOWN) {
+          return Solution.UNKNOWN;
         }
         adjustNeighbours(literal, neighbours, assigned, -1);
       }
     }
 
-    return false;
+    return Solution.UNSATISFIABLE;
   }
 
   /**
@@ -448,7 +464,7 @@ public final class Solver {
    */
   public void simplify() throws ContradictionException {
     while (hyperBinaryResolution());
-    // subSumming();
+    subSumming();
     while (pureLiterals());
   }
 
@@ -643,7 +659,6 @@ public final class Solver {
     return cit.simplified();
   }
 
-
   /**
    * Hyper-binary resolution.
    *
@@ -755,13 +770,12 @@ public final class Solver {
    */
   private void addUnit(final int u) {
     // logger.info("Found unit " + u);
-    TIntHashSet neighbours = dag.neighbours(u);
-    if (neighbours == null) {
-      units.add(u);
-    } else {
-      int[] neighbours_ = neighbours.toArray();
+    if (dag.hasNode(u)) {
+      int[] neighbours_ = dag.neighbours(u).toArray();
       units.addAll(neighbours_);
       dag.delete(neighbours_);
+    } else {
+      units.add(u);
     }
   }
 

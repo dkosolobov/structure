@@ -8,11 +8,15 @@ import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import ibis.constellation.context.UnitActivityContext;
 
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+
 public final class Job extends Activity {
   private static final Logger logger = Logger.getLogger(Job.class);
 
   private static int maxDepth = Integer.MIN_VALUE;
   private static int minDepth = Integer.MAX_VALUE;;
+  private static int numSolves = 0;
 
   private ActivityIdentifier parent;
   private int depth;
@@ -32,41 +36,50 @@ public final class Job extends Activity {
     this.branch = branch;
   }
 
-  @Override
-  public void initialize() {
-    try {
-      logger.info("Solving " + instance.clauses.size()
-                  + " literals branching on " + branch 
-                  + " at depth " + depth
-                  + " (" + minDepth + "/" + maxDepth + ")"
-                  + " on " + Thread.currentThread().getName());
-      synchronized (Job.class) {
-        if (maxDepth < depth) {
-          maxDepth = depth;
+  static {
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      public void run() {
+        try {
+          FileOutputStream fos = new FileOutputStream("numSolves");
+          PrintStream dos = new PrintStream(fos);
+
+          dos.println(numSolves);
+          dos.close();
+        } catch (Exception e) {
         }
       }
+    });
+  }
 
-      Solver solver = new Solver(instance, branch);
-      instance = null;  // helps GC
-      solution = solver.solve();
-
-      if (solution.satisfied()) {
-        int[] units = solution.solution(null);
-        executor.send(new Event(identifier(), parent, units));
-        finish();
-      } else {
-        executor.submit(new Job(identifier(), depth + 1,
-                        solution.core(), solution.branch()));
-        executor.submit(new Job(identifier(), depth + 1,
-                        solution.core(), -solution.branch()));
-        suspend();
+  @Override
+  public void initialize() {
+    synchronized (Job.class) {
+      ++numSolves;
+      if (maxDepth < depth) {
+        maxDepth = depth;
       }
-    } catch (ContradictionException e) {
-      // logger.debug("Instance is a contradiction");
+    }
+    logger.info("At depth " + depth + " (" + minDepth + "/" + maxDepth + ")"
+                + " on " + Thread.currentThread().getName());
+
+    Solver solver = new Solver(instance, branch);
+    instance = null;  // helps GC
+    solution = solver.solve();
+
+    if (solution.isSatisfiable()) {
+      int[] units = solution.solution();
+      executor.send(new Event(identifier(), parent, units));
+      finish();
+    } else if (solution.isUnsatisfiable()) {
       executor.send(new Event(identifier(), parent, null));
       finish();
-    } catch (Exception e) {
-      logger.info("Unhandled error", e);
+    } else {
+      assert solution.isUnknown();
+      executor.submit(new Job(identifier(), depth + 1,
+                      solution.core(), solution.branch()));
+      executor.submit(new Job(identifier(), depth + 1,
+                      solution.core(), -solution.branch()));
+      suspend();
     }
   }
 

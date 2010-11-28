@@ -1,23 +1,56 @@
 package ibis.structure;
 
 public final class Solution {
-  private int[] variableMap;
-  private int[] units;
-  private int[] proxies;
-  private Skeleton core;
-  private int branch;
+  public static final int SATISFIABLE = 10;
+  public static final int UNSATISFIABLE = 20;
+  public static final int UNKNOWN = 30;
 
-  public Solution(int[] variableMap, int[] units,
-                  int[] proxies, Skeleton core, int branch) {
-    this.variableMap = variableMap;
-    this.units = units;
-    this.proxies = proxies;
-    this.core = core;
-    this.branch = branch;
+  private int solved = UNKNOWN;  // SATISFIABLE, UNSATISFIABLE or UNKNOWN
+  private int[] variableMap = null;
+  private int[] units = null;
+  private int[] proxies = null;
+  private Skeleton core = null;
+  private int branch = 0;
+
+  public static Solution unsatisfiable() {
+    Solution solution = new Solution(UNSATISFIABLE);
+    return solution;
   }
 
-  public boolean satisfied() {
-    return core == null;
+  public static Solution satisfiable(int[] variableMap, int[] units,
+                                     int[] proxies) {
+    Solution solution = new Solution(SATISFIABLE);
+    solution.variableMap = variableMap;
+    solution.units = units;
+    solution.proxies = proxies;
+    return solution;
+  }
+
+  public static Solution unknown(int[] variableMap, int[] units, int[] proxies,
+                                 Skeleton core, int branch) {
+    Solution solution = new Solution(UNKNOWN);
+    solution.variableMap = variableMap;
+    solution.units = units;
+    solution.proxies = proxies;
+    solution.core = core;
+    solution.branch = branch;
+    return solution;
+  }
+
+  private Solution(int solved) {
+    this.solved = solved;
+  }
+
+  public boolean isSatisfiable() {
+    return solved == SATISFIABLE;
+  }
+
+  public boolean isUnsatisfiable() {
+    return solved == UNSATISFIABLE;
+  }
+
+  public boolean isUnknown() {
+    return solved == UNKNOWN;
   }
 
   public Skeleton core() {
@@ -28,12 +61,19 @@ public final class Solution {
     return branch;
   }
 
+  public int[] solution() {
+    assert solved == SATISFIABLE;
+    return solution(null);
+  }
+
   public int[] solution(int[] coreSolution) {
+    assert solved != UNSATISFIABLE;
     BitSet all = new BitSet();
 
     // Adds units and core's solution
     all.addAll(units);
-    if (!satisfied()) {
+    if (!isSatisfiable()) {
+      assert solved == UNKNOWN && coreSolution != null;
       all.addAll(coreSolution);
     }
 
