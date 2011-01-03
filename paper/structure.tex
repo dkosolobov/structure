@@ -1,0 +1,351 @@
+\documentclass[12pt]{article}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{fullpage}
+
+\newtheorem{definition}{Definition}
+\newtheorem{corollary}{Corollary}
+
+\newcommand{\T}{\text{TRUE}}
+\newcommand{\F}{\text{FALSE}}
+
+\renewcommand{\algorithmiccomment}[1]{// #1}
+
+
+\begin{document}
+
+\title{STRUCTure: A parallel boolean satifibiality solver}
+\author{Alexandru Moșoi $<$brtzsnr@gmail.com$>$}
+\maketitle
+
+\begin{abstract}
+\end{abstract}
+
+\section{Introduction}
+
+The \emph{satisfiability problem} (\emph{SAT}) is a decision problem whose instance is a boolean
+expression using only AND ($\land$), OR ($\lor$), NEGATION ($\neg$), boolean variables and
+parenthesis. The task is to find an assignment of TRUE and FALSE to the variables such that
+the instance is satisfied. A formula is \emph{satisfiable} if such an assignment exists and
+\emph{unsatisfiable} otherwise.
+
+STRUCTure is a parallel sat solver based on Constellation framework. The Constellation's
+parallel programming model is based on job spawning and message passing among jobs.  A job can
+be executed on any machine. There is no concept of shared memory in Constellation which deals
+aways of consistency problems.
+
+A \emph{literal} is a positive or a negative variable. A \emph{clause} is disjunction of literals.
+A \emph{formula} is in conjunctive normal form (CNF) if it is a conjunction of clauses. For
+example the CNF formula
+\[
+x_1 \land (\neg x_1 \lor \neg x_2) \land (x_2 \lor x_3 \lor x_4)
+\]
+is satisfied for $x_1 = \T$, $x_2 = \F$ and $x_3 = \text{TRUE}$. A formula is in \emph{k-SAT}
+if every clause in the formula contains at most $k$ literals. \emph{1-SAT} has a trivial solution
+and \emph{2-SAT} can be solved in polynomial time.
+
+\begin{definition}
+An \emph{empty formula} is a formula containing zero clauses.
+\end{definition}
+
+\begin{corollary}
+An \emph{empty formula} is always satisfied.
+\end{corollary}
+
+\begin{definition}
+An \emph{empty clause} is a clause of length 0.
+\end{definition}
+
+\begin{corollary}
+An \emph{empty clause} cannot be satisfied and therefore a formula containing an empty clause
+is unsatisfiable.
+\end{corollary}
+
+\begin{definition}
+A \emph{unit clause} is a clause of length 1.
+\end{definition}
+If a formula contains an unit clause the satisfying
+assignment will satisfy the unit clause, too. Therefore, the assignment $x_1 = \text{TRUE}$
+is equivalent to unit clause $x_1$ and the assignment $x_1 = \text{FALSE}$ is equivalent to
+unit clause $\neg x_1$.
+
+\begin{definition}
+A \emph{binary clause} is a clause of length 2.
+\end{definition}
+
+\begin{corollary}
+$u \lor v \iff \neg u \rightarrow v \iff \neg v \rightarrow u$. A binary clause is
+equivalent to an implication relation.
+\end{corollary}
+
+The implication relation has the following properties:
+\begin{itemize}
+\item \emph{reflexive}: $u \rightarrow u$
+\item \emph{asymmetric}: $u \rightarrow v \implies \neg u \rightarrow \neg v$
+\item \emph{transitive}: $(u \rightarrow v) \land (v \rightarrow t) \implies u \rightarrow t$
+\end{itemize}
+
+
+\section{Reasoning}
+
+The goal of reasoning in a SAT solver is to reduce a formula $F$ to a simpler formula $F'$ such
+that an assignment $\alpha$ for $F'$ is valid for $F$ too. The common types of simplifications
+are removing redundant literals and clauses or adding new ones to strengthen the formula.
+
+
+\subsection{Basic Simplifications}
+
+\begin{corollary}
+$F \land \T \iff F$. A satisfied clause can be removed from the formula preserving satisfiability.
+\end{corollary}
+
+\begin{corollary}
+$F \land \F \iff \F$. A falsified clause falsifies the formula.
+\end{corollary}
+
+\begin{corollary}
+$(u \lor u \lor x_1 \lor \ldots \lor x_k) \iff (u \lor x_1 \lor \ldots \lor x_k)$.
+A clause containing duplicate literals is equivalent to a clause containing the same literals,
+but with duplicates removed.
+\end{corollary}
+
+\begin{corollary}
+$(u \lor \neg u \lor x_1 \lor \ldots \lor x_k) \iff \T$.
+A clause containing a variable and its negation is a tautology.
+\end{corollary}
+
+\begin{corollary}
+$u \land \neg u \iff \F$. A variable cannot take both true and false values simultaneously.
+\end{corollary}
+
+\begin{corollary}[Resolution]
+$(u \lor a_1 \lor \ldots \lor a_{k_a}) \land (-u \lor b_1 \lor \ldots \lor b_{k_b}) \implies (a_1 \lor \ldots \lor a_{k_a} \lor b_1 \lor \ldots \lor b_{k_b})$
+\end{corollary}
+
+\begin{corollary}[Binary resolution]
+\label{cor:binary-resolution}
+$(u \rightarrow v) \land (\neg u \lor \neg v \lor x_1 \lor \ldots \lor x_k) \implies (\neg u \lor x_1 \lor \ldots \lor x_k)$
+\end{corollary}
+
+
+\subsection{Implication Graph}
+
+\begin{definition}
+The \emph{implication graph} of a formula $F$ is an oriented graph $G = (V, E)$ where $V$ is the
+set of all literals and $E = \{(u, v) \in V \times V | u \rightarrow v\}$.
+\end{definition}
+
+\begin{corollary}
+$u \rightarrow v$ iff there is a path from $u$ to $v$ in graph $G$.
+\end{corollary}
+
+\begin{corollary}
+$(u \rightarrow v) \land (v \rightarrow u) \implies (u \leftrightarrow v)$.
+\end{corollary}
+
+If $u \leftrightarrow v$ then every occurrence of $v$ can be replaced with $v$. More generally,
+in the implication graph each strongly connected component can be collapsed to a single literal
+and, in the formula, every literal from the component can be replaced with the destination literal.
+
+\begin{corollary}[Contradiction]
+$u \rightarrow \neg u \implies \neg u$
+\end{corollary}
+
+In STRUCTure the implication graph is maintained as a directed acyclic graph. If a contradiction
+is discovered, solved units are propagated. If a new binary (e.g. from hyper-binary contradiction)
+creates a cycle then the cycle is collapsed and literals are renamed in the formula.
+
+
+\subsection{Unit Propagation}
+\begin{definition}
+Given a formula $F$ and a literal $u$ \emph{unit propagation}, denoted $UP(F, u)$, simplifies
+F according to two rules:
+\begin{enumerate}
+\item $\neg u$ is removed from every clause containing it
+\item every clause containing literal $u$ is removed
+\end{enumerate}
+\end{definition}
+
+The resulted formula is equivalent with the old one given the literal and can contain other
+literals that in turn can be propagated.
+
+
+\subsection{Hyper Resolution}
+
+Hyper resolution is realized by applying binary resolution (corollary \ref{cor:binary-resolution})
+repeatedly.
+
+\begin{corollary}[Hyper-unary resolution]
+$(u \rightarrow \neg x_1) \land \ldots \land (u \rightarrow \neg x_n) \land (x_1 \lor \dots \lor x_n) \implies \neg u$
+\end{corollary}
+
+\begin{corollary}[Hyper-binary resolution]
+$(u \rightarrow \neg x_1) \land \ldots \land (u \rightarrow \neg x_n) \land (a \lor x_1 \lor \dots \lor x_n) \implies (\neg u \lor a)$
+\end{corollary}
+
+\begin{corollary}[Hyper-ternary resolution]
+$(u \rightarrow \neg x_1) \land \ldots \land (u \rightarrow \neg x_n) \land (a \lor b \lor x_1 \lor \dots \lor x_n) \implies (\neg u \lor a \lor b)$
+\end{corollary}
+
+The algorithm \ref{alg:hyper-resolution} applies hyper-\{unary, binary, ternary\} on a CNF
+formula. In practice, many binary clauses generated are redundant (e.g. two consecutive runs
+of hyper-resolution will generate almost the same clauses) and ternary clauses are used only
+to find extra unary and binary clauses through resolution. \footnote{In STRUCTure hyper-ternary
+is under development}.
+
+\begin{algorithm}[h!]
+\begin{algorithmic}
+\REQUIRE{$F$ a CNF formula}
+\ENSURE{new units, binaries and ternaries}
+\STATE $\Sigma_0, \Sigma_0' \gets \{\}, 0$
+\STATE $\Sigma_1, \Sigma_1' \gets \{\}, 0$
+\STATE $\Sigma_2, \Sigma_2' \gets \{\}, 0$
+\FOR[for every clause in formula]{$C \in F$}
+  \FOR[for every literal in clause]{$u \in C$}
+    \STATE $\Sigma_0' \gets \Sigma_0' + u^0$
+    \STATE $\Sigma_1' \gets \Sigma_1' + u^1$
+    \STATE $\Sigma_2' \gets \Sigma_2' + u^2$
+    \FORALL[for every neighbour of literal]{$v$ s.t. $v \rightarrow \neg u$}
+      \STATE $\Sigma_0[v] \gets \Sigma_0[v] + u^0$
+      \STATE $\Sigma_1[v] \gets \Sigma_1[v] + u^1$
+      \STATE $\Sigma_2[v] \gets \Sigma_2[v] + u^2$
+    \ENDFOR
+  \ENDFOR
+  \FORALL{literals $u$}
+    \IF[Hyper-unary resolution]{$\Sigma_0[u] = \Sigma_0'$}
+      \PRINT{new unit $u$}
+    \ELSIF[Hyper-binary resolution]{$\Sigma_0[u] = \Sigma_0' - 1$}
+      \STATE $v \gets \Sigma_1' - \Sigma_1[u]$
+      \PRINT{new binary $u \lor v$}
+    \ELSIF[Hyper-ternary resolution]{$\Sigma_0[u] = \Sigma_0' - 1$}
+      \STATE \COMMENT{The following system of equations results}
+      \STATE $v + t = \Sigma_1' - \Sigma_1[u]$
+      \STATE $v^2 + t^2 = \Sigma_2' - \Sigma_2[u]$
+      \PRINT{new ternary $u \lor v \lor t$}
+    \ENDIF
+  \ENDFOR
+\ENDFOR
+\end{algorithmic}
+
+\caption{Hyper resolution}
+\label{alg:hyper-resolution}
+\end{algorithm}
+
+
+\subsection{Pure Literals}
+
+\begin{definition}
+In a formula $F$ a literal $l$ is said to be \emph{pure} if the negated literal $\neg l$ does
+not appear in the formula.
+\end{definition}
+
+\begin{corollary}
+All pure literals can be assigned preserving the satisfiability of the formula.
+\end{corollary}
+
+\subsection{(Self-)Sub Summing}
+
+\begin{corollary}[Sub Summing]
+$\begin{array}{rl}
+x_1 \lor \ldots \lor x_i &\lor x_{i+1} \lor \ldots \lor x_n \\
+x_1 \lor \ldots \lor x_i & \\
+\hline
+x_1 \lor \ldots \lor x_i &
+\end{array}$. If a clause includes another clause then the former is satisfied whenever the
+later is satisfied.
+\end{corollary}
+
+All clauses that include other clauses can be removed from a formula preserving satisfiability.
+
+\begin{corollary}[Self-sub suming \footnote{Self-sub summing is in progress}]
+$\begin{array}{rl}
+\neg u \lor x_1 \lor \ldots \lor x_i &\lor x_{i+1} \lor \ldots \lor x_n \\
+u \lor x_1 \lor \ldots \lor x_i & \\
+\hline
+x_1 \lor \ldots \lor x_i &\lor x_{i+1} \lor \ldots \lor x_n \\
+u \lor x_1 \lor \ldots \lor x_i &
+\end{array}$
+\end{corollary}
+
+
+\section{Solver}
+
+The core solver is composed of two parts: simplification (algorithm \ref{alg:simplify}) and
+branching (algorithm \ref{alg:solve}).
+
+\begin{algorithm}[h!]
+\begin{algorithmic}
+\REQUIRE{$F$ formula}
+\ENSURE{a simplified formula}
+
+\WHILE{simplification possible}
+  \STATE propagate units
+  \STATE hyper-binary resolution
+\ENDWHILE
+
+\STATE (self-)sub summing
+\STATE propagate pure literals
+\STATE solve if a trivial solution exists (e.g. formula is 2-SAT)
+
+\end{algorithmic}
+\caption{Simplify}
+\label{alg:simplify}
+\end{algorithm}
+
+\begin{algorithm}[h!]
+\begin{algorithmic}
+\REQUIRE{$F$ formula, $l$ branch}
+\ENSURE{a satisfying assignment for $F$}
+
+\STATE $solution, F' \gets \textsf{Simplify}(F \land l)$
+\IF{$solution$ = satisfied}
+  \RETURN satisfied, $F'$
+\ELSIF{$solution$ = unsatisfied}
+  \RETURN unsatisfied
+\ELSE[unknown solution]
+  \STATE $branch \gets \textsf{SelectBranch}(F')$
+  \STATE async $positiveSolved, positiveSolution \gets \textsf{Solve}(F', branch)$
+  \STATE async $negativeSolved, negativeSolution \gets \textsf{Solve}(F', \neg branch)$
+  \IF{$positiveSolved = \textsf{satified}$}
+    \RETURN satisfied, $positiveSolution$
+  \ELSIF{$negativeSolved = \textsf{satified}$}
+    \RETURN satisfied, $negativeSolution$
+  \ELSE
+    \RETURN unsatisfied
+  \ENDIF
+\ENDIF
+\end{algorithmic}
+\caption{Solve}
+\label{alg:solve}
+\end{algorithm}
+
+
+\section{Future Work}
+
+
+\subsection{Simplification}
+
+The power of the solver lies in the ability to simplify the formula before branching.
+
+\emph{Blocked clause elimination} is a technique (more powerful than pure literals) to remove some
+variables which are proved to be dependent on other variable. This technique also helps with XOR
+clauses which result from circuit encodings and which are not usually handle well by SAT solvers.
+
+\emph{Self-sub summing} and \emph{hyper-ternary resolution} are in progress. The problem is
+finding efficient algorithms, otherwise the performance cost will offset the benefits of
+not branching.
+
+
+\subsection{Clause sharing}
+
+Many conflict-driven sat solvers benefit from clause learning and sharing which reduce the search
+space. Clause learning in STRUCTure is possible when walking up the branch tree.  However clause
+sharing in a distributed system is harder without shared memory. Constellation's memory model is
+based on message passing.  One idea to make clause sharing possible is to do a iterative-deepening
+backtracking. At each new maximum depth learned clauses are distributed down the branching tree.
+
+
+\end{document}
