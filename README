@@ -2,7 +2,8 @@ Author
 ------
 
 Alexandru Moșoi <brtzsn@gmail.com>
-Vrije Universiteit Amsterdam, http://www.vu.nl
+VU Amsterdam http://www.vu.nl
+
 
 Site
 ----
@@ -10,14 +11,43 @@ Site
 Main site: http://www.few.vu.nl/~ami650/structure/
 Download from: http://github.com/downloads/brtzsnr/structure/structure-0.1-jar-with-dependencies.jar
 
+
 Building
 --------
 
-STRUCTure requires trove4j 2.1.0 and Cohort 0.5.0 (developed at Vrije Universiteit Amsterdam). A jar containing all dependencies can be obtained using the link above.
+STRUCTure requires trove4j 2.1.0 and Cohort 0.7.0 (developed at VU
+Amsterdam). 
 
+1. Constellation
+
+$ svn co https://gforge.cs.vu.nl/svn/ibis/cohort contellation
+$ cd contellation/
+$ ant
+$ mvn install:install-file -Dfile=lib/constellation-0.7.0.jar -Dpackaging=jar -DgroupId=ibis -DartifactId=constellation -Dversion=0.7.0
+
+2. Trove
+
+$ wget http://sourceforge.net/projects/trove4j/files/trove/2.1.0/trove-2.1.0.tar.gz/download
+$ tar xzvf trove-2.1.0.tar.gz
+$ cd trove-2.1.0
+$ ant
+$ mvn install:install-file -Dfile=lib/trove-2.1.0.jar -Dpackaging=jar -DgroupId=trove -DartifactId=trove -Dversion=2.1.0
+
+3. Structure
+
+$ mvn compile test
 $ mvn assembly:assembly
+
 
 Running
 -------
 
+STRUCTure comes in two flavors: simplify and solve.
+
+1. Simplify
+
 $ java -cp structure-0.1-jar-with-dependencies.jar ibis.structure.Simplify -o output.cnf input.cnf
+
+2. Solve (CLI in progress)
+
+$ java -cp structure-0.1-jar-with-dependencies.jar ibis.structure.Solve -o output.cnf input.cnf
