@@ -28,7 +28,6 @@ POLL_INTERVAL = 0.25
 
 tracks = None
 levels = None
-timeout = None
 args = None
 
 jobs, jobs_lock = [], threading.Lock()
@@ -36,15 +35,15 @@ start = None
 stop = threading.Semaphore(0)
 execution_times = {}
 
-Job = collections.namedtuple('Job', 'input output track level satisfiable start_time process')
+Job = collections.namedtuple('Job', 'input satisfiable track level process')
 
 
-def check(job):
+def check(input, satisfiable, output):
   # reads solution
   solution = []
-  with open(job.output) as output:
+  with open(output) as f:
     answer = None
-    for line in output:
+    for line in f:
       if line.startswith("c "):  # comment
         pass
       elif line.startswith("s "):
@@ -54,8 +53,8 @@ def check(job):
         answer = answer.lower()
         if answer == 'unknown':
           return answer
-        if job.satisfiable != 'unknown':
-          if answer != job.satisfiable:
+        if satisfiable != 'unknown':
+          if answer != satisfiable:
             return 'incorrect_solution'
         if answer == 'unsatisfiable':
           return answer
@@ -77,8 +76,8 @@ def check(job):
 
   # reads input
   clauses = []
-  with open(job.input) as input:
-    for line in input:
+  with open(input) as f:
+    for line in f:
       if line.startswith("c "):  # comment
         pass
       elif line.startswith("p "):  # header
@@ -100,6 +99,7 @@ def check(job):
 
   return 'satisfiable'
 
+
 def eval_queue():
   eval_start_time = time.time()
   num_solved = 0
@@ -119,15 +119,15 @@ def eval_queue():
       jobs = running
 
     for job in finished:
-      # elapsed has a small (acceptable) error
-      elapsed = current_time - job.start_time
+      output, elapsed = job.process.stdout.read().split()
+      elapsed = float(elapsed)
 
-      if job.process.returncode == 124:
-        status = 'timeout'
+      if job.process.returncode == 247:
+        status = 'killed'
       elif job.process.returncode == 127:
         status = 'missing_executable'
       else:
-        status = check(job)
+        status = check(job.input, job.satisfiable, output)
 
       print(job.input, job.track, job.level, status, elapsed)
       sys.stdout.flush()
@@ -143,24 +143,13 @@ def eval_queue():
     time.sleep(POLL_INTERVAL - 0.001)
 
 
-def eval_file(path, track, level, satisfiable):
+def eval_instance(path, track, level, satisfiable):
   start.acquire()
-
-  tmpdir = tempfile.mkdtemp(prefix=os.path.basename(path) + "_", dir='./tmp')
-  stdout = os.path.join(tmpdir, 'stdout')
-  stderr = os.path.join(tmpdir, 'stderr')
   program = [e.format(input=path) for e in args]
-
-  start_time = time.time()
-  process = subprocess.Popen(
-      args=['/usr/bin/timeout', str(timeout)] + program,
-      stdout=open(stdout, 'a'), stderr=open(stderr, 'a'))
-  process.wait()
-
+  process = subprocess.Popen(program, bufsize=-1, stdout=subprocess.PIPE)
   with jobs_lock:
-    jobs.append(Job(input=path, output=stdout, track=track,
-                    level=level, satisfiable=satisfiable,
-                    start_time=start_time, process=process))
+    jobs.append(Job(input=path, satisfiable=satisfiable,
+                    track=track, level=level, process=process))
 
 
 def main():
@@ -170,8 +159,6 @@ def main():
                     help="%s" % TRACKS, default=TRACKS)
   parser.add_option("--level", dest="level",
                     help="%s" % LEVELS, default=LEVELS)
-  parser.add_option("--timeout", dest="timeout",
-                    help="maximum number of seconds to run", type=int, default=0)
   parser.add_option("--include_unknown", dest="include_unknown",
                     help="include instances with unknown solution", action="store_true", default=False)
   parser.add_option("--maxjobs", dest="maxjobs",
@@ -193,8 +180,7 @@ def main():
     assert set(levels) <= set(LEVELS)
 
   # reads timeout, maxjobs
-  global timeout, start
-  timeout = options.timeout
+  global start
   start = threading.Semaphore(options.maxjobs)
   include_unknown = options.include_unknown
 
@@ -213,7 +199,7 @@ def main():
         satisfiable = ('unknown', 'satisfiable', 'unsatisfiable')[SOLUTIONS.index(satisfiable)]
 
         if level in levels and (satisfiable != 'unknown' or include_unknown):
-          eval_file(path, track, level, satisfiable)
+          eval_instance(path, track, level, satisfiable)
           num_jobs += 1
       print(file=sys.stderr)
 
