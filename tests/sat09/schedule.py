@@ -98,7 +98,7 @@ def check(job):
       if literal in solution:
         satisfied = True
 
-  return 'satisfied'
+  return 'satisfiable'
 
 def eval_queue():
   eval_start_time = time.time()
@@ -117,7 +117,6 @@ def eval_queue():
         else:
           finished.append(job)
       jobs = running
-
 
     for job in finished:
       # elapsed has a small (acceptable) error
