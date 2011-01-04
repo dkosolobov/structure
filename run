@@ -1,9 +1,12 @@
 #!/bin/sh
 
-export CLASSPATH="$CLASSPATH:$IPL_HOME/lib/*:target/structure-0.1-jar-with-dependencies.jar"
+CLASSPATH+=":$IPL_HOME/lib/*"
+CLASSPATH+=":`dirname $0`/target/structure-0.1-jar-with-dependencies.jar"
+export CLASSPATH
 
 java                                                  \
   -Xmx3g                                              \
   -Dibis.constellation.outputfile=/dev/null           \
+  -Dibis.properties.file=`dirname $0`/ibis.properties      \
   -Dibis.pool.name=ami650-$RANDOM                     \
   $*
