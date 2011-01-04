@@ -21,8 +21,10 @@ stderr = os.path.join(tmpdir, 'stderr')
 
 start_time = time.time()
 process = subprocess.Popen(
-    args=program, preexec_fn=set_cpulimit,
-    stdout=open(stdout, 'a'), stderr=open(stderr, 'a'))
+    args=["/usr/bin/timeout", str(2 * timeout)] + program,
+    preexec_fn=set_cpulimit,
+    stdout=open(stdout, 'a'),
+    stderr=open(stderr, 'a'))
 process.wait()
 end_time = time.time()
 
