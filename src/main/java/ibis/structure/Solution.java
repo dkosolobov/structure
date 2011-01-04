@@ -1,12 +1,16 @@
 package ibis.structure;
 
+import gnu.trove.TIntIntHashMap;
+import gnu.trove.TIntIntIterator;
+
+
 public final class Solution {
   public static final int SATISFIABLE = 10;
   public static final int UNSATISFIABLE = 20;
   public static final int UNKNOWN = 30;
 
   private int solved = UNKNOWN;  // SATISFIABLE, UNSATISFIABLE or UNKNOWN
-  private int[] variableMap = null;
+  private TIntIntHashMap variableMap = null;
   private int[] units = null;
   private int[] proxies = null;
   private Skeleton core = null;
@@ -17,23 +21,20 @@ public final class Solution {
     return solution;
   }
 
-  public static Solution satisfiable(int[] variableMap, int[] units,
-                                     int[] proxies) {
+  public static Solution satisfiable(int[] units, int[] proxies) {
     Solution solution = new Solution(SATISFIABLE);
-    solution.variableMap = variableMap;
     solution.units = units;
     solution.proxies = proxies;
     return solution;
   }
 
-  public static Solution unknown(int[] variableMap, int[] units, int[] proxies,
-                                 Skeleton core, int branch) {
+  public static Solution unknown(int[] units, int[] proxies, Skeleton core, int branch) {
     Solution solution = new Solution(UNKNOWN);
-    solution.variableMap = variableMap;
     solution.units = units;
     solution.proxies = proxies;
     solution.core = core;
     solution.branch = branch;
+    solution.normalize();
     return solution;
   }
 
@@ -61,12 +62,18 @@ public final class Solution {
     return branch;
   }
 
+  /**
+   * Returns the solution as an array of units.
+   */
   public int[] solution() {
     assert solved == SATISFIABLE;
     return solution(null);
   }
 
-  public int[] solution(int[] coreSolution) {
+  /**
+   * Returns the solution as an array of units.
+   */
+  public int[] solution(final int[] coreSolution) {
     assert solved != UNSATISFIABLE;
     BitSet all = new BitSet();
 
@@ -74,6 +81,7 @@ public final class Solution {
     all.addAll(units);
     if (!isSatisfiable()) {
       assert solved == UNKNOWN && coreSolution != null;
+      denormalize(coreSolution);
       all.addAll(coreSolution);
     }
 
@@ -88,16 +96,46 @@ public final class Solution {
       }
     }
 
-    // Denormalizes all literals
-    int[] solution = all.elements();
-    for (int i = 0; i < solution.length; ++i) {
-      if (solution[i] < 0) {
-        solution[i] = -variableMap[-solution[i]];
-      } else if (solution[i] > 0) {
-        solution[i] = variableMap[solution[i]];
+    return all.elements();
+  }
+
+  /**
+   * Normalizes core instance and branch.
+   */
+  private void normalize() {
+    variableMap = new TIntIntHashMap();
+    for (int i = 0; i < core.clauses.size(); ++i) {
+      int literal = core.clauses.get(i);
+      if (literal != 0) {
+        int newLiteralName;
+        if (!variableMap.contains(literal)) {
+          newLiteralName = (variableMap.size() / 2) + 1;
+          variableMap.put(literal, newLiteralName);
+          variableMap.put(-literal, -newLiteralName);
+        } else {
+          newLiteralName = variableMap.get(literal);
+        }
+        core.clauses.set(i, newLiteralName);
       }
     }
 
-    return solution;
+    branch = variableMap.get(branch);
+    core.numVariables = variableMap.size() / 2;
+  }
+
+  /**
+   * Denormalizes an array of literals.
+   */
+  private void denormalize(final int[] array) {
+    /* variableMap is the inverse of inverseMap */
+    TIntIntHashMap inverseMap = new TIntIntHashMap();
+    for (TIntIntIterator it = inverseMap.iterator(); it.hasNext(); ) {
+      it.advance();
+      inverseMap.put(it.value(), it.key());
+    }
+
+    for (int i = 0; i < array.length; ++i) {
+      array[i] = inverseMap.get(array[i]);
+    }
   }
 }

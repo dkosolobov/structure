@@ -4,6 +4,7 @@ import gnu.trove.TIntArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIterator;
 import gnu.trove.TIntIntHashMap;
+import gnu.trove.TIntIntIterator;;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Comparator;
@@ -16,33 +17,22 @@ import org.apache.log4j.Logger;
 public final class Skeleton implements Serializable {
   private static final Logger logger = Logger.getLogger(Skeleton.class);
 
-  private static Comparator literalComparator =
-      new Comparator<Integer>() {
-    public int compare(Integer o1, Integer o2) {
-      if (Math.abs(o1) < Math.abs(o2)) return -1;
-      if (Math.abs(o1) > Math.abs(o2)) return +1;
-      if (o1 < 0 && o2 > 0) return -1;
-      if (o1 > 0 && o2 < 0) return +1;
-      return 0;
-    }
-  };
-
   private static Comparator clauseComparator =
       new Comparator<Vector<Integer>>() {
     public int compare(Vector<Integer> o1, Vector<Integer> o2) {
       if (o1.size() != o2.size()) {
         return o1.size() - o2.size();
       }
-      for (int i = 0; i < o1.size() && i < o2.size(); ++i) {
-        int r = literalComparator.compare(o1.get(i), o2.get(i));
-        if (r != 0) {
-          return r;
+      for (int i = 0; i < o1.size(); ++i) {
+        if (o1.get(i) != o2.get(i)) {
+          return o1.get(i) - o2.get(i);
         }
       }
       return 0;
     }
   };
 
+  public int numVariables = -1;
   public TIntArrayList clauses = new TIntArrayList();
 
   /**
@@ -78,13 +68,8 @@ public final class Skeleton implements Serializable {
   }
 
   /**
-   * Returns a number representing the difficulty of
-   * the stored instance.
+   * Returns the skeleton as in DIMACS format.
    */
-  public int difficulty() {
-    return clauses.size();
-  }
-
   public String toString() {
     int numVariables = 0, numClauses = 0;
     for (int i = 0; i < clauses.size(); ++i) {
@@ -99,11 +84,7 @@ public final class Skeleton implements Serializable {
     result.append("p cnf " + numVariables + " " + numClauses + "\n");
     for (int i = 0; i < clauses.size(); ++i) {
       int literal = clauses.get(i);
-      if (literal == 0) {
-        result.append("0\n");
-      } else {
-        result.append(literal + " ");
-      }
+      result.append(literal == 0 ? "0\n" : literal + " ");
     }
     return result.toString();
   }
@@ -118,7 +99,7 @@ public final class Skeleton implements Serializable {
     for (int i = 0; i < this.clauses.size(); ++i) {
       int literal = this.clauses.get(i);
       if (literal == 0) {
-        Collections.sort(clauses.lastElement(), literalComparator);
+        Collections.sort(clauses.lastElement());
         clauses.add(new Vector<Integer>());
       } else {
         clauses.lastElement().add(literal);

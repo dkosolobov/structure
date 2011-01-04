@@ -14,10 +14,6 @@ import java.io.PrintStream;
 public final class Job extends Activity {
   private static final Logger logger = Logger.getLogger(Job.class);
 
-  private static int maxDepth = Integer.MIN_VALUE;
-  private static int minDepth = Integer.MAX_VALUE;;
-  private static int numSolves = 0;
-
   private ActivityIdentifier parent;
   private int depth;
   private Skeleton instance;
@@ -36,34 +32,13 @@ public final class Job extends Activity {
     this.branch = branch;
   }
 
-  static {
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-      public void run() {
-        try {
-          FileOutputStream fos = new FileOutputStream("numSolves");
-          PrintStream dos = new PrintStream(fos);
-
-          dos.println(numSolves);
-          dos.close();
-        } catch (Exception e) {
-        }
-      }
-    });
-  }
 
   @Override
   public void initialize() {
-    synchronized (Job.class) {
-      ++numSolves;
-      if (maxDepth < depth) {
-        maxDepth = depth;
-      }
-    }
-    logger.info("At depth " + depth + " (" + minDepth + "/" + maxDepth + ")"
-                + " on " + Thread.currentThread().getName());
+    logger.info("At depth " + depth + " on " + Thread.currentThread().getName());
 
     Solver solver = new Solver(instance, branch);
-    instance = null;  // helps GC
+    // instance = null;  // helps GC
     solution = solver.solve();
 
     if (solution.isSatisfiable()) {
@@ -83,33 +58,60 @@ public final class Job extends Activity {
     }
   }
 
+  /**
+   * Sends solution to parent.
+   */
+  private void sendSolution(final int[] units) {
+    executor.send(new Event(identifier(), parent, units));
+
+    if (units != null) {  // Checks solution
+      BitSet unitsSet = new BitSet();
+      for (int unit : units) {
+        if (unitsSet.get(-unit)) {
+          logger.error("Contradictory units for");
+          logger.error(instance.toString());
+          return;
+        }
+        unitsSet.set(unit);
+      }
+
+      boolean satisfied = false;
+      for (int i = 0; i < instance.clauses.size(); ++i) {
+        int literal = instance.clauses.get(i);
+        if (literal == 0) {
+          if (!satisfied) {
+            logger.error("Clause not satisfied for");
+            logger.error(instance.toString());
+            return;
+          }
+          satisfied = false;
+        }
+        if (unitsSet.get(literal)) {
+          satisfied = true;
+        }
+      }
+    }
+  }
+
+  // TODO: The other branch should be canceled, however
+  //       canceling is not implemented in Constellation.
   @Override
   public void process(Event e) throws Exception {
     int[] reply = (int[])e.data;
     if (reply != null && !solved) {
       /* Sends the solution to parent. */
       solved = true;
-      int[] units = solution.solution(reply);
-      executor.send(new Event(identifier(), parent, units));
-      cancel();
+      sendSolution(solution.solution(reply));
     }
 
-    // TODO: The other branch should be canceled, but canceling is not
-    // implemented in Constellation.
     ++numReplies;
     if (numReplies == 1) {
       /* Waits for the other branch to finish. */
       suspend();
     } else {
+      /* Both branches finished */
       assert numReplies == 2;
-      if (!solved) {
-        synchronized (Job.class) {
-          if (minDepth > depth) {
-            minDepth = depth;
-          }
-        }
-        executor.send(new Event(identifier(), parent, null));
-      }
+      if (!solved) sendSolution(null);
       finish();
     }
   }

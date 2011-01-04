@@ -152,8 +152,6 @@ public final class Solver {
   private int numVariables;
   // The set of true literals discovered.
   private BitSet units = new BitSet();
-  // Stores the normalization
-  public int[] variableMap;
   // Stores equalities between literals.
   private int[] proxies;
   // The implication graph.
@@ -163,76 +161,20 @@ public final class Solver {
   private int numBacktrackCalls = 0;
 
   public Solver(final Skeleton instance, final int branch) {
-    normalize(instance, branch);
-    proxies = new int[2 * numVariables + 1];
+    numVariables = instance.numVariables;
+    units.add(branch);
     dag = new DAG(numVariables);
-    for (int literal = -numVariables; literal <= numVariables; ++literal) {
-      if (literal != 0) {
-        proxies[BitSet.mapZtoN(literal)] = literal;
-      }
+    clauses = (TIntArrayList) instance.clauses.clone();
+
+    proxies = new int[numVariables + 1];
+    for (int literal = 1; literal <= numVariables; ++literal) {
+      proxies[literal] = literal;
     }
 
     logger.info("Solving " + clauses.size() + " literals and "
                 + numVariables + " variables, branching on " + branch);
   }
 
-  /**
-   *
-   */
-  private void normalize(Skeleton instance, int branch) {
-    clauses = new TIntArrayList(instance.clauses.size());
-    TIntIntHashMap map = new TIntIntHashMap();
-    for (int i = 0; i < instance.clauses.size(); ++i) {
-      int literal = instance.clauses.get(i);
-      if (literal == 0) {
-        clauses.add(0);
-        continue;
-      }
-
-      if (!map.contains(literal)) {
-        int newName = (map.size() / 2) + 1;
-        map.put(literal, newName);
-        map.put(-literal, -newName);
-      }
-      clauses.add(map.get(literal));
-    }
-
-    numVariables = map.size() / 2;
-    if (branch != 0) {
-      units.add(map.get(branch));
-    }
-
-    // Constructs the inverse of map, variableMap
-    variableMap = new int[numVariables + 1];
-    for (int literal : map.keys()) {
-      int name = map.get(literal);
-      if (name > 0) {
-        variableMap[name] = literal;
-      }
-    }
-  }
-
-  /**
-   * Denormalizes one literal.
-   */
-  private int denormalize(int literal) {
-    if (literal > 0) {
-      return variableMap[literal];
-    } else if (literal < 0) {
-      return -variableMap[-literal];
-    } else {
-      return 0;
-    }
-  }
-
-  /**
-   * Denormalizes all literals in array.
-   */
-  private void denormalize(final TIntArrayList array) {
-    for (int i = 0; i < array.size(); ++i) {
-      array.set(i, denormalize(array.get(i)));
-    }
-  }
 
   /**
    * Returns current (simplified) instance.
@@ -262,7 +204,6 @@ public final class Solver {
       }
     }
 
-    denormalize(skeleton.clauses);
     return skeleton;
   }
 
@@ -312,12 +253,11 @@ public final class Solver {
     }
 
     // Keeps only positive literals
-    int[] proxies = new int[numVariables + 1];
     for (int literal = 1; literal <= numVariables; ++literal) {
-      proxies[literal] = getRecursiveProxy(literal);
+      getRecursiveProxy(literal);
     }
     if (solved == Solution.SATISFIABLE) {
-      return Solution.satisfiable(variableMap, units.elements(), proxies);
+      return Solution.satisfiable(units.elements(), proxies);
     }
 
     // Gets the core instance that needs to be solved further
@@ -342,10 +282,8 @@ public final class Solver {
 
     int afterNumLiterals = core.clauses.size();
     logger.info("Reduced from " + beforeNumLiterals + " to " + afterNumLiterals
-                + " literals (" + (beforeNumLiterals - afterNumLiterals) + ")");
-
-    return Solution.unknown(variableMap, units.elements(), proxies,
-                            core, bestBranch);
+                + " (diff " + (beforeNumLiterals - afterNumLiterals) + ")");
+    return Solution.unknown(units.elements(), proxies, core, bestBranch);
   }
 
   /**
@@ -874,8 +812,12 @@ public final class Solver {
       TIntIterator it;
       for (it = join.children.iterator(); it.hasNext();) {
         int node = it.next();
-        proxies[BitSet.mapZtoN(node)] = join.parent;
-        proxies[BitSet.mapZtoN(-node)] = -join.parent;
+        assert node != 0;
+        if (node < 0) {
+          proxies[-node] = -join.parent;
+        } else {
+          proxies[node] = join.parent;
+        }
       }
     }
   }
@@ -885,10 +827,14 @@ public final class Solver {
    * The returned value doesn't have any proxy.
    */
   private int getRecursiveProxy(final int u) {
-    int u_ = BitSet.mapZtoN(u);
-    if (proxies[u_] != u) {
-      proxies[u_] = getRecursiveProxy(proxies[u_]);
+    assert u != 0;
+    if (u < 0) {
+      return -getRecursiveProxy(proxies[-u]);
     }
-    return proxies[u_];
+    if (u != proxies[u]) {
+      proxies[u] = getRecursiveProxy(proxies[u]);
+      return proxies[u];
+    }
+    return u;
   }
 }

@@ -79,6 +79,7 @@ public final class Reader {
 
     // Reads clauses
     Skeleton skeleton = new Skeleton();
+    skeleton.numVariables = numVariables;
     try {
       TIntArrayList clause = new TIntArrayList();
       while (numClauses > 0) {

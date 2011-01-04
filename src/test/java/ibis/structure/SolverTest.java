@@ -47,7 +47,7 @@ public class SolverTest {
   @Test
   public void propagate2() throws Exception {
     parse("p cnf 3 3\n1 -1 2 0 1 1 1 0 -2 -2 -3 0");
-    compare(solver, 1, 0, -2, -3, 0);
+    compare(solver, 1, 0, -3, -2, 0);
   }
 
   @Test
