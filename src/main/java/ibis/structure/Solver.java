@@ -1,6 +1,8 @@
 package ibis.structure;
 
 import java.text.DecimalFormat;
+import java.util.Vector;
+
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntObjectHashMap;
 import gnu.trove.TLongArrayList;
@@ -469,8 +471,9 @@ public final class Solver {
    * Simplifies the instance.
    */
   public void simplify() throws ContradictionException {
-    while (hyperBinaryResolution());
+    // while (hyperBinaryResolution());
     // subSumming();
+    while (propagate()) { }
     binarySelfSubsumming();
     pureLiterals();
   }
@@ -666,6 +669,18 @@ public final class Solver {
     return cit.simplified();
   }
 
+  private static long isqrt(long n) {
+    long k = 0, k2 = 0;
+    for (int delta = 31; delta >= 0; --delta) {
+      long temp = k2 + (k << delta << 1) + (1L << delta << delta);
+      if (temp <= n) {
+        k2 = temp;
+        k += 1L << delta;
+      }
+    }
+    return k;
+  }
+
   /**
    * Hyper-binary resolution.
    *
@@ -680,18 +695,22 @@ public final class Solver {
 
     int[] counts = new int[2 * numVariables + 1];
     int[] sums = new int[2 * numVariables + 1];
+    long[] sqrs = new long[2 * numVariables + 1];
     int[] touched = new int[2 * numVariables + 1];
-    int numUnits = 0, numBinaries = 0;
+    TIntArrayList ternaries = new TIntArrayList();
+    int numUnits = 0, numBinaries = 0, numTernaries = 0;
 
     while (cit.next()) {
       int start = cit.start(), end = cit.end();
       int numLiterals = end - start;
-      int clauseSum = 0;
+      int clauseSum = 0, clauseSqr = 0;
       int numTouched = 0;
 
       for (int i = start; i < end; ++i) {
         int literal = clauses.get(i);
         clauseSum += literal;
+        clauseSqr += (long) literal * literal;
+
         TIntHashSet neighbours = dag.neighbours(literal);
         if (neighbours != null) {
           TIntIterator it = neighbours.iterator();
@@ -702,6 +721,7 @@ public final class Solver {
             }
             counts[node] += 1;
             sums[node] += literal;
+            sqrs[node] += (long) literal * literal;
           }
         }
       }
@@ -723,15 +743,57 @@ public final class Solver {
             addBinary(-literal, missing);
             ++numBinaries;
           }
+        } else if (counts[touch] + 2 == end - start) {
+          if (ternaries.size() < 0) {
+            int a = clauseSum - sums[touch];
+            long b = clauseSqr - sqrs[touch];
+
+            // The folowing equations system is solved
+            // | x^1 + y^1 = a
+            // | x^2 + y^2 = b
+            int x = (a - (int) Math.sqrt(2 * b - a * a)) / 2;
+            int y = a - x;
+            
+            ternaries.add(-literal);
+            ternaries.add(x);
+            ternaries.add(y);
+          }
         }
 
         counts[touch] = 0;
         sums[touch] = 0;
+        sqrs[touch] = 0;
       }
     }
 
-    // logger.debug("Hyper binary resolution found " + numUnits + " unit(s) and "
-    //              + numBinaries + " binary(ies)");
+    for (int i = 0; i < ternaries.size(); i += 3) {
+      for (int j = i + 3; j < ternaries.size(); j += 3) {
+        int all = 0, sign = 0;
+        for (int a = 0; a < 3; ++a) {
+          int first = ternaries.get(i + a);
+          for (int b = 0; b < 3; ++b) {
+            int second = ternaries.get(j + b);
+            if (first == second) {
+              all += 1;
+              break;
+            }
+            if (first == -second) {
+              all += 1;
+              sign += 1;
+              break;
+            }
+          }
+        }
+
+        if (all == 3 && sign == 1) {
+          ++numTernaries;
+        }
+      }
+    }
+
+    logger.info("Hyper binary resolution found " + numUnits + " unit(s), "
+                + numBinaries + " binary(ies) and " +
+                + numTernaries + " ternary(ies)");
     return numUnits > 0 || numBinaries > 0 || cit.simplified();
   }
 
