@@ -85,13 +85,22 @@ public final class Solution {
       all.addAll(coreSolution);
     }
 
+    // Satisfiy missing proxies
+    for (int literal = 1; literal < proxies.length; ++literal) {
+      if (literal == proxies[literal]) {
+        if (!all.contains(literal) && !all.contains(-literal)) {
+          all.add(literal);
+        }
+      }
+    }
+
     // Adds equivalent literals
     for (int literal = 1; literal < proxies.length; ++literal) {
       if (literal != proxies[literal]) {
         if (all.contains(proxies[literal])) {
           all.add(literal);
         } else if (all.contains(-proxies[literal])) {
-          all.add(-proxies[literal]);
+          all.add(-literal);
         }
       }
     }
@@ -129,7 +138,7 @@ public final class Solution {
   private void denormalize(final int[] array) {
     /* variableMap is the inverse of inverseMap */
     TIntIntHashMap inverseMap = new TIntIntHashMap();
-    for (TIntIntIterator it = inverseMap.iterator(); it.hasNext(); ) {
+    for (TIntIntIterator it = variableMap.iterator(); it.hasNext(); ) {
       it.advance();
       inverseMap.put(it.value(), it.key());
     }
