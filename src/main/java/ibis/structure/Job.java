@@ -67,23 +67,30 @@ public final class Job extends Activity {
     if (units != null) {  // Checks solution
       BitSet unitsSet = new BitSet();
       for (int unit : units) {
-        if (unitsSet.get(-unit)) {
-          logger.error("Contradictory units for");
-          logger.error(instance.toString());
-          return;
-        }
         unitsSet.set(unit);
+        if (unitsSet.get(-unit)) {
+          TIntArrayList units_ = new TIntArrayList(units);
+          logger.error("Contradictory units for");
+          logger.error("by " + units_);
+          logger.error("in " + instance.toString());
+          assert false;
+        }
       }
 
       boolean satisfied = false;
+      int lastClauseStart = 0;
       for (int i = 0; i < instance.clauses.size(); ++i) {
         int literal = instance.clauses.get(i);
         if (literal == 0) {
           if (!satisfied) {
-            logger.error("Clause not satisfied for");
-            logger.error(instance.toString());
-            return;
+            TIntArrayList clause = instance.clauses.subList(lastClauseStart, i);
+            TIntArrayList units_ = new TIntArrayList(units);
+            logger.error("Clause " + clause + " not satisfied");
+            logger.error("by " + units_);
+            logger.error("in " + instance.toString());
+            assert false;
           }
+          lastClauseStart = i + 1;
           satisfied = false;
         }
         if (unitsSet.get(literal)) {
