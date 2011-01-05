@@ -124,6 +124,8 @@ def eval_queue():
 
       if job.process.returncode == 247:
         status = 'killed'
+      elif job.process.returncode == 124:
+        status = 'killed_timeout'
       elif job.process.returncode == 127:
         status = 'missing_executable'
       else:
