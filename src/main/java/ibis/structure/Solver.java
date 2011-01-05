@@ -162,7 +162,7 @@ public final class Solver {
 
   public Solver(final Skeleton instance, final int branch) {
     numVariables = instance.numVariables;
-    units.add(branch);
+    if (branch != 0) units.add(branch);
     dag = new DAG(numVariables);
     clauses = (TIntArrayList) instance.clauses.clone();
 
@@ -181,7 +181,7 @@ public final class Solver {
    *
    * Includes units and equivalent literals.
    *
-   * @return a denormalized skeleton
+   * @return a skeleton
    */
   public Skeleton skeleton() {
     Skeleton skeleton = new Skeleton();
@@ -261,7 +261,7 @@ public final class Solver {
     }
 
     // Gets the core instance that needs to be solved further
-    Skeleton core =  new Skeleton();
+    Skeleton core = new Skeleton();
     core.append(dag.skeleton());
     core.append(clauses);
 
@@ -294,7 +294,7 @@ public final class Solver {
       // Clause is too difficult to solve.
       return Solution.UNKNOWN;
     }
-
+    
     int[] assigned = new int[2 * numVariables + 1];
     int solved = backtrackHelper(0, assigned);
 
@@ -374,10 +374,12 @@ public final class Solver {
       if (literal == 0) {
         break;
       }
+      assert assigned[BitSet.mapZtoN(literal)] >= 0;
       if (assigned[BitSet.mapZtoN(literal)] > 0) {
         satisfied = true;
       }
     }
+    assert clauses.get(end) == 0;
     // Skip already satisfied clauses
     if (satisfied) {
       return backtrackHelper(end + 1, assigned);
@@ -386,7 +388,9 @@ public final class Solver {
     // Tries each unassigned literal
     for (int i = start; i < end; ++i) {
       int literal = clauses.get(i);
+      assert literal != 0;
       if (assigned[BitSet.mapZtoN(-literal)] == 0) {
+        assert !units.get(literal);
         TIntHashSet neighbours = dag.neighbours(literal);
         adjustNeighbours(literal, neighbours, assigned, 1);
         int solved = backtrackHelper(end + 1, assigned);
@@ -407,10 +411,11 @@ public final class Solver {
    * Simplifies the instance.
    */
   public void simplify() throws ContradictionException {
-    while (hyperBinaryResolution());
+    while (propagate());
+    // while (hyperBinaryResolution());
     // subSumming();
-    binarySelfSubsumming();
-    pureLiterals();
+    // binarySelfSubsumming();
+    // pureLiterals();
   }
 
   /**
@@ -779,6 +784,7 @@ public final class Solver {
    * @param u unit to add.
    */
   private void addUnit(final int u) {
+    assert u != 0 && !units.get(-u);
     // logger.info("Found unit " + u);
     if (dag.hasNode(u)) {
       int[] neighbours_ = dag.neighbours(u).toArray();
