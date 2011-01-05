@@ -12,28 +12,28 @@
 #### Generic Ibis properties ####
 
 ## String: name of the pool this ibis belongs to
-ibis.pool.name = ami650
+# ibis.pool.name = 
 
 ## Integer: size of the pool this ibis belongs to
-ibis.pool.size = 1
+# ibis.pool.size = 
 
 ## Address of the central ibis server
-ibis.server.address = 127.0.0.1-8888
+# ibis.server.address = 
 
 ## Comma seperated list of hub addresses. The server address is appended to this list, and thus is the default hub if no hub is specified
 # ibis.hub.addresses = 
 
 ## Nickname or classname of an Ibis implementation. The specified implementation is used, bypassing the automatic selection mechanism of Ibis.
-ibis.implementation = tcp
+# ibis.implementation = 
 
 ## Name of the property file used for the configuration of Ibis
 # ibis.properties.file = 
 
 ## Path used to find Ibis implementations
-ibis.implementation.path = /home/alexandru/src/ipl/ipl-2.2/
+# ibis.implementation.path = 
 
 ## Boolean: If true, makes Ibis more verbose, if false, does not
-ibis.verbose = true
+# ibis.verbose = false
 
 ## Set the location of Ibis. Specified as multiple levels, seperated by a '@', e.g. machine@cluster@site@grid@world. Defaults to a multilevel location with the hostname of the machine
 # ibis.location = 
