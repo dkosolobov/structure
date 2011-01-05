@@ -1,0 +1,10 @@
+#!/bin/sh
+
+URL=http://alexandru.mosoi.ro:8000/{}.gz
+PARALLEL=24
+TIMEOUT=15
+
+LIST=$1
+shift
+
+cat $LIST | xargs -P$PARALLEL -I'{}' prun -1 -np 1 ./run-local.py $TIMEOUT {} $URL $*
