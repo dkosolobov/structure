@@ -8,8 +8,11 @@
   echo -e set ylabel \"seconds\"
 
   header="plot "
-  for file in *.dat; do
-    echo -e -n "$header" \"$file\" title \"${file%.dat}\" with linespoints
+  for file in $*; do
+    data_file=`mktemp`
+    ./extract-solved-over-time.sh $file > $data_file
+
+    echo -e -n "$header" \"$data_file\" title \"${file%.dat}\" with linespoints
     header=", \\\\\\n     "
   done
 ) | gnuplot

@@ -117,7 +117,7 @@ def main():
 
     program = [e.format(instance=filename) for e in sys.argv[4:]]
 
-    tmpdir = tempfile.mkdtemp(prefix=os.path.basename(instance) + '-', dir='./tmp')
+    tmpdir = tempfile.mkdtemp(prefix='structure-%s-' % os.path.basename(instance))
     stdout = os.path.join(tmpdir, 'stdout')
     stderr = os.path.join(tmpdir, 'stderr')
 
@@ -140,7 +140,7 @@ def main():
     end_time = time.time()
     elapsed = end_time - start_time
   except Exception as e:
-    print(e)
+    print(e, file=sys.stderr)
     status = 'error'
   finally:
     print(instance, returncode, status, elapsed)
