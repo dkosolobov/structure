@@ -64,7 +64,6 @@ public class Structure {
         if (model == null) {
           printUnsatisfiable(output);
         } else {
-          printSatisfiable(output);
           printSolution(output, model);
         }
       }
@@ -86,7 +85,7 @@ public class Structure {
     for (int i = 0; i < model.length; ++i) {
        out.print(" " + model[i]);
     }
-    out.println();
+    out.println(" 0");
   }
 
   private static void printSatisfiable(PrintStream out) {
