@@ -23,7 +23,7 @@ import org.apache.log4j.Level;
 public final class Solver {
   private static final Logger logger = Logger.getLogger(Solver.class);
   private static final int REMOVED = Integer.MAX_VALUE;
-  private static final int BACKTRACK_THRESHOLD = 1 << 8;
+  private static final int BACKTRACK_THRESHOLD = 0; // 1 << 8;
   private static final int BACKTRACK_MAX_CALLS = 1 << 12;
 
   /**
@@ -171,8 +171,10 @@ public final class Solver {
       proxies[literal] = literal;
     }
 
-    logger.info("Solving " + clauses.size() + " literals and "
-                + numVariables + " variables, branching on " + branch);
+    // logger.info("Solving " + clauses.size() + " literals and "
+                // + numVariables + " variables, branching on " + branch);
+    System.err.print(".");
+    System.err.flush();
   }
 
 
@@ -281,8 +283,8 @@ public final class Solver {
     }
 
     int afterNumLiterals = core.clauses.size();
-    logger.info("Reduced from " + beforeNumLiterals + " to " + afterNumLiterals
-                + " (diff " + (beforeNumLiterals - afterNumLiterals) + ")");
+    // logger.info("Reduced from " + beforeNumLiterals + " to " + afterNumLiterals
+                // + " (diff " + (beforeNumLiterals - afterNumLiterals) + ")");
     return Solution.unknown(units.elements(), proxies, core, bestBranch);
   }
 
@@ -413,9 +415,10 @@ public final class Solver {
   public void simplify() throws ContradictionException {
     while (propagate());
     // while (hyperBinaryResolution());
-    // subSumming();
+    subSumming();
     // binarySelfSubsumming();
-    // pureLiterals();
+    // propagate();
+    pureLiterals();
   }
 
   /**
@@ -685,14 +688,15 @@ public final class Solver {
    */
   public boolean pureLiterals() throws ContradictionException {
     // logger.debug("Running pureLiterals()");
+
+    // Marks existing literals in clauses
     BitSet bs = new BitSet();
-    ClauseIterator cit = new ClauseIterator();
-    while (cit.next()) {
-      int start = cit.start(), end = cit.end();
-      for (int i = start; i < end; ++i) {
-        bs.set(clauses.get(i));
-      }
+    for (int i = 0; i < clauses.size(); ++i) {
+      int literal = clauses.get(i);
+      if (literal != 0) bs.set(literal);
     }
+
+    // Marks existing literals in binaries
     for (int u : dag.nodes()) {
       if (dag.neighbours(u).size() > 1) {
         bs.set(-u);
@@ -703,14 +707,21 @@ public final class Solver {
     // 0 will not be considered a pure literal.
     int numUnits = 0;
     for (int literal : bs.elements()) {
-      if (!bs.get(-literal) && !units.contains(literal)) {
-        addUnit(literal);
-        ++numUnits;
+      if (!bs.get(-literal)) {  // is pure literal
+        if (units.contains(literal) && !units.contains(-literal)) {  // not satisfied
+          addUnit(literal);
+          ++numUnits;
+        }
       }
     }
 
-    // logger.debug("Discovered " + numUnits + " pure literal(s)");
-    return numUnits > 0 || cit.simplified();
+    // Propagates discovered units
+    if (numUnits > 0) {
+      logger.info("Discovered " + numUnits + " pure literal(s)");
+      propagate();
+      return true;
+    }
+    return false;
   }
 
   /**
