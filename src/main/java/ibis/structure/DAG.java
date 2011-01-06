@@ -293,12 +293,13 @@ public final class DAG {
         }
 
         // Descends until literal has only assigned descendents (if any).
+        int root = literal;
         while (true) {
           int next = 0;
-          TIntIterator it = neighbours(literal).iterator();
+          TIntIterator it = neighbours(root).iterator();
           while (it.hasNext()) {
             final int temp = it.next();
-            if (temp != literal && !units.contains(temp)) {
+            if (temp != root && !units.contains(temp)) {
               next = temp;
               break;
             }
@@ -307,12 +308,12 @@ public final class DAG {
           if (next == 0) {
             break;
           } else {
-            literal = next;
+            root = next;
           }
         }
 
         // Propagates -literal.
-        units.addAll(neighbours(-literal).toArray());
+        units.addAll(neighbours(-root).toArray());
       }
     }
     return units;
