@@ -104,7 +104,10 @@ public final class Solver {
     }
   }
 
-  public TIntArrayList cleanClause() {
+  /**
+   * Adhoc function to remove REMOVED from clauses.
+   */
+  public TIntArrayList cleanClauses() {
     TIntArrayList clean = new TIntArrayList();
     for (int i = 0; i < clauses.size(); i++) {
       int literal = clauses.get(i);
@@ -114,7 +117,6 @@ public final class Solver {
     }
     return clean;
   }
-
 
   /**
    * Returns current (simplified) instance.
@@ -128,7 +130,7 @@ public final class Solver {
 
     // Appends the implications graph and clauses
     skeleton.append(dag.skeleton());
-    skeleton.append(cleanClause());
+    skeleton.append(cleanClauses());
 
     // Appends units and equivalent relations
     for (int literal = -numVariables; literal <= numVariables; ++literal) {
@@ -172,26 +174,27 @@ public final class Solver {
     int solved = Solution.UNKNOWN;
     try {
       simplify();
-      if (clauses.size() == 0) {
-        solved = Solution.SATISFIABLE;
-      }
     } catch (ContradictionException e) {
       return Solution.unsatisfiable();
     }
 
-    // Computes proxy for all literal.
+    // Computes proxies for every literal.
     for (int literal = 1; literal <= numVariables; ++literal) {
       getRecursiveProxy(literal);
     }
-    if (solved == Solution.SATISFIABLE) {
-      logger.info("solution = " + (new TIntArrayList(units.elements())));
+
+    if (clauses.size() == 0) {
+      // Solves the remaining 2SAT encoded in the implication graph
+      for (TIntIterator it = dag.solve().iterator(); it.hasNext(); ){
+        addUnit(it.next());
+      }
       return Solution.satisfiable(units.elements(), proxies);
     }
 
     // Gets the core instance that needs to be solved further
     Skeleton core = new Skeleton();
     core.append(dag.skeleton());
-    core.append(cleanClause());
+    core.append(cleanClauses());
 
     // The idea here is that if a literal is frequent
     // it will have a higher chance to be selected
@@ -221,27 +224,48 @@ public final class Solver {
     propagate();
   }
 
+  /**
+   * Propagates all clauses in queue.
+   */
   private boolean propagate() throws ContradictionException {
+    // NOTE: new clauses are appended.
     for (int i = 0; i < queue.size(); ++i) {
       int start = queue.get(i);
-      if (!lengths.containsKey(start)) {
-        // clause already satified.
+      if (isSatisfied(start)) {
         continue;
       }
       int length = lengths.get(start);
       switch (length) {
-        case 0:
+        case 0: {
           throw new ContradictionException();
+        }
 
-        case 1:
+        case 1: {  // unit
           int u;
           while ((u = clauses.get(start)) == REMOVED) {
             start++;
           }
           addUnit(u);
+          assert isSatisfied(start);
           break;
+        }
 
-        default:
+        case 2: {  // binary
+          int u, v;
+          while ((u = clauses.get(start)) == REMOVED) {
+            start++;
+          }
+          start++;
+          while ((v = clauses.get(start)) == REMOVED) {
+            start++;
+          }
+          addBinary(u, v);
+
+          if (!isSatisfied(start)) {
+            removeClause(start);
+          }
+          break;
+        }
       }
     }
 
@@ -266,6 +290,24 @@ public final class Solver {
   }
 
   /**
+   * Returns true if clause was satisfied.
+   */
+  private boolean isSatisfied(final int clause) {
+    return !lengths.contains(clause);
+  }
+
+  /**
+   * Given the start of a clause return position of literal u.
+   */
+  private int findLiteral(final int clause, final int u) {
+    for (int c = clause; ; c++) {
+      if (u == clauses.get(c)) {
+        return c;
+      }
+    }
+  }
+
+  /**
    * Removes literal u from clause.
    *
    * @param clause start of clause
@@ -273,15 +315,11 @@ public final class Solver {
    */
   private void removeLiteral(final int clause, final int u) {
     assert u != 0;
-    for (int c = clause; ; c++) {
-      if (u == clauses.get(c)) {
-        watchList(u).remove(clause);
-        clauses.set(c, REMOVED);
-        int newLength = lengths.adjustOrPutValue(clause, -1, 0xA3A3A3A3);
-        if (newLength <= 2) queue.add(clause);
-        break;
-      }
-    }
+    watchList(u).remove(clause);
+    clauses.set(findLiteral(clause, u), REMOVED);
+    assert lengths.contains(clause);
+    int newLength = lengths.adjustOrPutValue(clause, -1, 0xA3A3A3A3);
+    if (newLength <= 2) queue.add(clause);
   }
 
   /**
@@ -337,6 +375,78 @@ public final class Solver {
     } else {
       propagateUnit(u);
       units.add(u);
+    }
+  }
+
+  /**
+   * Adds a new binary unit.
+   */
+  private void addBinary(final int u, final int v) {
+    assert !isAssigned(u);
+    assert !isAssigned(v);
+
+    // propagates contradictions contradictions
+    TIntHashSet contradictions = dag.findContradictions(-u, v);
+    if (!contradictions.isEmpty()) {
+      int[] contradictions_ = contradictions.toArray();
+      for (int unit : contradictions_) {
+        addUnit(unit);
+      }
+      dag.delete(contradictions_);
+      if (contradictions.contains(u) || contradictions.contains(v)) {
+        return;
+      }
+    }
+
+    DAG.Join join = dag.addEdge(-u, v);
+    if (join != null) {
+      TIntIterator it;
+      for (it = join.children.iterator(); it.hasNext();) {
+        renameLiteral(it.next(), join.parent);
+      }
+    }
+  }
+
+  /**
+   * Merges watchlist of u into v
+   */
+  private void mergeWatchLists(final int u, final int v) {
+    for (int clause : watchList(u).toArray()) {
+      if (watchList(v).contains(clause)) {
+        // renaming creates duplicate
+        removeLiteral(clause, u);
+      } else if (watchList(-v).contains(clause)) {
+        // renaming creates a tautology
+        removeClause(clause);
+      } else {
+        int position = findLiteral(clause, u);
+        clauses.set(position, v);
+        watchList(v).add(clause);
+      }
+    }
+  }
+
+  /**
+   * Renames literal u to v.
+   *
+   * After call:
+   *   - always: getRecursiveProxy(u) == getRecursiveProxy(v)
+   *   - immediate: proxies[u] == v
+   *
+   * @param u old name
+   * @param v new name
+   */
+  private void renameLiteral(final int u, final int v) {
+    assert !isAssigned(u);
+    assert !isAssigned(v);
+
+    mergeWatchLists(u, v);
+    mergeWatchLists(-u, -v);
+
+    if (u < 0) {
+      proxies[-u] = -v;
+    } else {
+      proxies[u] = v;
     }
   }
 
