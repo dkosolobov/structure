@@ -56,6 +56,10 @@ public final class BitSet {
     return elements.toNativeArray();
   }
 
+  public String toString() {
+    return (new TIntArrayList(elements())).toString();
+  }
+
   /**
    * Bijective function mapping Z to N.
    */
