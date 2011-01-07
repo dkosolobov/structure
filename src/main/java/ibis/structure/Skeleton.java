@@ -36,6 +36,13 @@ public final class Skeleton implements Serializable {
   public TIntArrayList clauses = new TIntArrayList();
 
   /**
+   * Returns a measure of difficulty of the instance.
+   */
+  public int difficulty() {
+    return clauses.size();
+  }
+
+  /**
    * Adds a clause.
    */
   public void add(int[] clause) {
