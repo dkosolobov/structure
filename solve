@@ -1,3 +1,4 @@
 #!/bin/sh
 
-exec `dirname $0`/run ibis.structure.Structure $*
+location=`dirname $0`
+exec $location/run ibis.structure.Structure $*
