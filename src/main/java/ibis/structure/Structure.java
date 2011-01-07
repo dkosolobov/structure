@@ -9,20 +9,11 @@ import ibis.constellation.StealStrategy;
 import ibis.constellation.context.UnitWorkerContext;
 import java.io.PrintStream;
 import java.io.FileOutputStream;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 public class Structure {
   private static final Logger logger = Logger.getLogger(Structure.class);
 
-  public static String inputFile = null;
-  public static String outputFile = null;
-  public static int numExecutors = 0;
-  public static long startTime = System.currentTimeMillis();
 
   private static void displayHeader() {
     logger.info("STRUCTure: a SATisfiability library for Java (c) 2009-2010 Alexandru Moșoi");
@@ -45,55 +36,25 @@ public class Structure {
     return executors;
   }
 
-  private static boolean configure(String[] args) {
-    Options options = new Options();
-    options.addOption("h", false, "print this help");
-    options.addOption("o", true, "output file (defaults to stdout)");
-    options.addOption("e", true, "number of executors");
-
-    BasicParser parser = new BasicParser();
-    CommandLine cl = null;
-    boolean wrongArguments = false;
-    
-    try {
-      cl = parser.parse(options, args);
-      args = cl.getArgs();
-    } catch (ParseException e) {
-      e.printStackTrace();
-      wrongArguments = true;
-    }
-
-    if (wrongArguments || cl.hasOption('h') || args.length != 1) {
-      HelpFormatter formatter = new HelpFormatter();
-      formatter.printHelp("solver input", options, true);
-      return false;
-    }
-
-    inputFile = args[0];
-    outputFile = cl.hasOption("o") ? cl.getOptionValue("o") : null;
-    numExecutors = Integer.parseInt(cl.getOptionValue("e", "0"));
-    logger.info("Reading from " + inputFile);
-    return true;
-  }
 
   public static void main(String[] args) throws Exception {
-    if (!configure(args)) {
+    if (!Configure.configure(args)) {
       return;
     }
 
     // Reads input and opens output
     Skeleton instance = null;
     try {
-      instance = Reader.parseURL(inputFile);
+      instance = Reader.parseURL(Configure.inputFile);
     } catch (Exception e) {
       logger.error("Cannot read input file", e);
       System.exit(1);
     }
 
     PrintStream output = System.out;
-    if (outputFile != null) {
+    if (Configure.outputFile != null) {
       try {
-        output = new PrintStream(new FileOutputStream(outputFile));
+        output = new PrintStream(new FileOutputStream(Configure.outputFile));
       } catch (Exception e) {
         logger.error("Cannot open output file", e);
         System.exit(1);
@@ -101,12 +62,9 @@ public class Structure {
     }
 
     // Activates Constellation.
-    if (numExecutors == 0) {
-      numExecutors = Runtime.getRuntime().availableProcessors();
-    }
     final Constellation constellation =
         ConstellationFactory.createConstellation(
-            createExecutors(numExecutors));
+            createExecutors(Configure.numExecutors));
     constellation.activate();
 
     try {
@@ -120,7 +78,7 @@ public class Structure {
 
         int[] model = (int[])root.waitForEvent().data;
         final long endTime = System.currentTimeMillis();
-        output.println("c Elapsed time " + (endTime - startTime) / 1000.);
+        output.println("c Elapsed time " + (endTime - Configure.startTime) / 1000.);
 
         if (model == null) {
           printUnsatisfiable(output);
