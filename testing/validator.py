@@ -104,6 +104,7 @@ def main():
                     help='number of seconds to allow the program to run')
   parser.add_option('-s', dest='satisfiable', action='store_true', default=False,
                     help='if instance is known to be satisfiable')
+  parser.disable_interspersed_args()
   options, args = parser.parse_args()
 
   if len(args) < 2:
