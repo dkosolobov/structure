@@ -226,13 +226,18 @@ public final class Solver {
       if (!hyperBinaryResolution()) break;
       propagate();
     }
+
+    if (Configure.pureLiterals()) {
+      pureLiterals();
+      propagate();
+    }
   }
 
   /**
    * Propagates all clauses in queue.
    */
   private boolean propagate() throws ContradictionException {
-    // NOTE: new clauses are appended.
+    // NOTE: any new clause is appended.
     for (int i = 0; i < queue.size(); ++i) {
       int start = queue.get(i);
       if (isSatisfied(start)) {
@@ -284,7 +289,7 @@ public final class Solver {
    * If (a1 + ... ak + b) and (l &ge; -a1) ... (l &ge; -ak)
    * then l &ge; b, otherwise if l then clause is contradiction
    *
-   * @return true if instances was simplified
+   * @return true if any unit or binary was discovered
    */
   public boolean hyperBinaryResolution() throws ContradictionException {
     // logger.debug("Running hyperBinaryResolution()");
@@ -354,6 +359,33 @@ public final class Solver {
   }
 
   /**
+   * Pure literal assignment.
+   *
+   * @return true if any unit was discovered
+   */
+  public boolean pureLiterals() throws ContradictionException {
+    int numUnits = 0;
+
+    for (int u = 1; u <= numVariables; u++) {
+      if (isAssigned(u)) {
+        continue;
+      }
+      if (numBinaries(u) == 0 && watchList(u).size() == 0) {
+        addUnit(-u);
+        numUnits++;
+        continue;
+      }
+      if (numBinaries(-u) == 0 && watchList(-u).size() == 0) {
+        addUnit(u);
+        numUnits++;
+        continue;
+      }
+    }
+
+    return numUnits > 0;
+  }
+
+  /**
    * Returns the watch list for literal u.
    */
   private TIntHashSet watchList(int u) {
@@ -373,6 +405,14 @@ public final class Solver {
    */
   private boolean isSatisfied(final int clause) {
     return !lengths.contains(clause);
+  }
+
+  /**
+   * Returns number of binaries (in DAG) containing literal.
+   */
+  private int numBinaries(int literal) {
+    TIntHashSet neighbours = dag.neighbours(-literal);
+    return neighbours == null ? 0 : neighbours.size() - 1;
   }
 
   /**
