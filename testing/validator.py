@@ -138,14 +138,17 @@ def main():
     except Alarm:
       process.kill();
       status = 'timedout'
-      
-    end_time = time.time()
-    elapsed = end_time - start_time
   except Exception as e:
     print(e, file=sys.stderr)
     #traceback.print_exc()
     status = 'error'
+  except KeyboardInterrupt as e:
+    print('interrupted', file=sys.stderr)
+    returncode = None
+    status = 'unknown'
+    system.exit(0)
   finally:
+    elapsed = time.time() - start_time
     print(instance, returncode, status, elapsed)
     exit(int(status not in ['unknown', 'satisfiable', 'unsatisfiable']))
 
