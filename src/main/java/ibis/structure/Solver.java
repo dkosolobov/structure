@@ -50,8 +50,6 @@ public final class Solver {
   private TIntArrayList queue = new TIntArrayList();
 
   public Solver(final Skeleton instance, final int branch) {
-    // logger.info("branching on " + branch + " and solving " + instance);
-
     numVariables = instance.numVariables;
     proxies = new int[numVariables + 1];
     dag = new DAG(numVariables);
@@ -160,8 +158,22 @@ public final class Solver {
       for (int size = watchList(u).size(); size > 0; size--) {
         int start = it.next();
         assert lengths.containsKey(start) 
-          : "Watch list of " + u + " contains satisfied clause";
+            : "Watch list of " + u + " contains satisfied clause";
         findLiteral(start, u);  // NOTE: uses findLiteral's internal check
+      }
+    }
+  }
+
+  /**
+   * Verifies that assigned instances are removed.
+   */
+  private void verifyAssigned() {
+    for (int u = -numVariables; u <= numVariables; ++u) {
+      if (u != 0 && isAssigned(u)) {
+        assert watchList(u).isEmpty()
+            : "Assigned literal " + u + " has non empty watch list";
+        assert dag.neighbours(u) == null
+            : "Assigned literal " + u + " is in dag";
       }
     }
   }
@@ -173,6 +185,7 @@ public final class Solver {
     if (Configure.enableExpensiveChecks) {
       verifyLengths();
       verifyWatchLists();
+      verifyAssigned();
     }
   }
 
@@ -255,10 +268,10 @@ public final class Solver {
 
     TIntArrayList compact = cleanClauses();
     if (compact.size() == 0) {
-      // logger.info("Running 2SAT on " + dag.skeleton());
       // Solves the remaining 2SAT encoded in the implication graph
       for (TIntIterator it = dag.solve().iterator(); it.hasNext(); ){
-        addUnit(it.next());
+        int unit = it.next();
+        if (!units.contains(unit)) addUnit(unit);
       }
       return Solution.satisfiable(units.elements(), proxies);
     }
@@ -370,13 +383,12 @@ public final class Solver {
    * @return true if any unit or binary was discovered
    */
   public boolean hyperBinaryResolution() throws ContradictionException {
-    // logger.debug("Running hyperBinaryResolution()");
     int[] counts = new int[2 * numVariables + 1];
     int[] sums = new int[2 * numVariables + 1];
     int[] touched = new int[2 * numVariables + 1];
     int numUnits = 0, numBinaries = 0;
 
-    for (int start = 0; start < clauses.size(); start++) {
+    for (int start : lengths.keys()) {
       int numLiterals = 0;
       int clauseSum = 0;
       int numTouched = 0;
@@ -384,8 +396,8 @@ public final class Solver {
       TIntHashSet set = new TIntHashSet();
       TIntHashSet discovered = new TIntHashSet();
 
-      for (; start < clauses.size(); start++) {
-        int literal = clauses.get(start++);
+      for (int end = start; end < clauses.size(); end++) {
+        int literal = clauses.get(end);
         if (literal == 0) break;
         if (literal == REMOVED) continue;
 
@@ -468,7 +480,7 @@ public final class Solver {
       }
     }
 
-    if (numUnits > 0) System.err.print("pl" + numUnits + ".");
+    if (numUnits > 0) System.err.print("p" + numUnits + ".");
     return numUnits > 0;
   }
 
@@ -535,7 +547,6 @@ public final class Solver {
    * @param clause start of clause
    */
   private void removeClause(final int clause) {
-    // logger.info("removing " + clauseToString(clause) + " " + clause);
     lengths.remove(clause);
     assert isSatisfied(clause);
     for (int c = clause; ; c++) {
@@ -577,13 +588,11 @@ public final class Solver {
     if (dag.hasNode(u)) {
       int[] neighbours = dag.neighbours(u).toArray();
       for (int unit : neighbours) {
-        // logger.info("new unit " + unit);
         propagateUnit(unit);
         units.add(unit);
       }
       dag.delete(neighbours);
     } else {
-      // logger.info("new unit " + u);
       propagateUnit(u);
       units.add(u);
     }
