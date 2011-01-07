@@ -222,6 +222,12 @@ public final class Solver {
    */
   public void simplify() throws ContradictionException {
     propagate();
+    if (hyperBinaryResolution()) {
+      if (hyperBinaryResolution()) {
+          hyperBinaryResolution();
+      }
+    }
+    // while (hyperBinaryResolution()) { }
   }
 
   /**
@@ -272,6 +278,81 @@ public final class Solver {
     boolean simplified = !queue.isEmpty();
     queue.clear();
     return simplified;
+  }
+
+  /**
+   * Hyper-binary resolution.
+   *
+   * If (a1 + ... ak + b) and (l &ge; -a1) ... (l &ge; -ak)
+   * then l &ge; b, otherwise if l then clause is contradiction
+   *
+   * @return true if instances was simplified
+   */
+  public boolean hyperBinaryResolution() throws ContradictionException {
+    // logger.debug("Running hyperBinaryResolution()");
+    int[] counts = new int[2 * numVariables + 1];
+    int[] sums = new int[2 * numVariables + 1];
+    int[] touched = new int[2 * numVariables + 1];
+    int numUnits = 0, numBinaries = 0;
+
+    for (int start = 0; start < clauses.size(); start++) {
+      int numLiterals = 0;
+      int clauseSum = 0;
+      int numTouched = 0;
+
+      for (; start < clauses.size(); start++) {
+        int literal = clauses.get(start++);
+        if (literal == 0) break;
+        if (literal == REMOVED) continue;
+
+        numLiterals++;
+        clauseSum += literal;
+        TIntHashSet neighbours = dag.neighbours(literal);
+        if (neighbours != null) {
+          TIntIterator it = neighbours.iterator();
+          for (int size = neighbours.size(); size > 0; --size) {
+            int node = mapZtoN(-it.next());
+            if (counts[node] == 0) touched[numTouched++] = node;
+            counts[node] += 1;
+            sums[node] += literal;
+          }
+        }
+      }
+
+      if (numLiterals < 3) {
+        // Clause is too small for hyper binary resolution.
+        continue;
+      }
+
+      for (int i = 0; i < numTouched; ++i) {
+        int touch = touched[i];
+        int literal = mapNtoZ(touch);
+        literal = getRecursiveProxy(literal);
+
+        if (counts[touch] == numLiterals) {
+          // There is an edge from literal to all literals in clause.
+          if (!units.contains(-literal)) {
+            addUnit(-literal);
+            ++numUnits;
+          }
+        } else if (counts[touch] + 1 == numLiterals) {
+          // There is an edge from literal to all literals in clause except one.
+          if (isAssigned(literal)) continue;
+          int missing = clauseSum - sums[touch];
+          if (!dag.containsEdge(literal, missing)) {
+            addBinary(-literal, missing);
+            ++numBinaries;
+          }
+        }
+
+        counts[touch] = 0;
+        sums[touch] = 0;
+      }
+    }
+
+    // logger.debug("Hyper binary resolution found " + numUnits + " unit(s) and "
+    //              + numBinaries + " binary(ies)");
+    return numUnits > 0 || numBinaries > 0;
   }
 
   /**
