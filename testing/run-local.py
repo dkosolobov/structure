@@ -14,6 +14,7 @@ import gzip
 import socket
 import errno
 import signal
+import optparse
 
 
 class Alarm(Exception):
@@ -31,7 +32,7 @@ def open_input(path):
     return open(path, 'rb')
 
 
-def validate(input, output):
+def validate(input, output, satisfiable):
   # reads solution
   solution = []
   with open(output) as f:
@@ -47,6 +48,8 @@ def validate(input, output):
           return 'invalid_solution'
         answer = answer.lower()
         if answer != 'satisfiable':
+          if satisfiable:
+            return 'wrong_solution'
           return answer
       elif line.startswith('v '):
         solution.extend(line[2:].split())
@@ -94,35 +97,33 @@ def done(instance, returncode, status, elapsed):
 
 
 def main():
-  timeout = int(sys.argv[1])
-  instance = sys.argv[2]
-  url = sys.argv[3]
+  parser = optparse.OptionParser(
+      usage="usage: %prog [options] instance program...",
+      description="SAT solver checker")
+  parser.add_option('-t', dest='timeout', metavar='N', type=int, default=None,
+                    help='number of seconds to allow the program to run')
+  parser.add_option('-s', dest='satisfiable', action='store_true', default=False,
+                    help='if instance is known to be satisfiable')
+  options, args = parser.parse_args()
+
+  if len(args) < 2:
+    parser.error("Not enough arguments")
+  instance, program = args[0], args[1:]
 
   returncode = None
   status = None
   elapsed = None
 
   try:
-    while True:
-      # loops on connection reset
-      try:
-        filename, headers = urllib.request.urlretrieve(url)
-        break
-      except IOError as e:
-        if e.errno == 'socket error':
-          if e.args[1] in [errno.ECONNRESET]:
-            raise
-      except Exception as e:
-        raise
-
-    program = [e.format(instance=filename) for e in sys.argv[4:]]
-
+    # creates termporary files
     tmpdir = tempfile.mkdtemp(prefix='structure-%s-' % os.path.basename(instance))
     stdout = os.path.join(tmpdir, 'stdout')
     stderr = os.path.join(tmpdir, 'stderr')
 
-    signal.signal(signal.SIGALRM, alarm_handler)
-    signal.alarm(timeout)
+    # sets timeout
+    if options.timeout is not None:
+      signal.signal(signal.SIGALRM, alarm_handler)
+      signal.alarm(options.timeout)
 
     start_time = time.time()
     try:
@@ -133,17 +134,20 @@ def main():
       signal.alarm(0)
 
       returncode = process.returncode
-      status = validate(filename, stdout)
+      status = validate(instance, stdout, options.satisfiable)
     except Alarm:
+      process.kill();
       status = 'timedout'
       
     end_time = time.time()
     elapsed = end_time - start_time
   except Exception as e:
     print(e, file=sys.stderr)
+    #traceback.print_exc()
     status = 'error'
   finally:
     print(instance, returncode, status, elapsed)
+    exit(int(status not in ['unknown', 'satisfiable', 'unsatisfiable']))
 
 
 if __name__ == '__main__':
