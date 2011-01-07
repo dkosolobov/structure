@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# mvn assembly:assembly
+
+while true; do
+  instance=`mktemp --suffix .cnf`
+  ./bin/sgen1 -sat -s $RANDOM -n $1 > $instance
+  ./testing/validator.py -s $instance ./solve $instance
+  returncode=$?
+  if [ $returncode -ne 0 ]; then
+    echo $returncode
+    bug=`mktemp bug-XXXXXX.cnf`
+    cp $instance $bug
+    echo Copied instance to $bug
+    exit
+  fi
+done
