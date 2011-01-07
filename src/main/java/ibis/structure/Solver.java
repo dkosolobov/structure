@@ -50,6 +50,8 @@ public final class Solver {
   private TIntArrayList queue = new TIntArrayList();
 
   public Solver(final Skeleton instance, final int branch) {
+    // logger.info("branching on " + branch + " and solving " + instance);
+
     numVariables = instance.numVariables;
     proxies = new int[numVariables + 1];
     dag = new DAG(numVariables);
@@ -101,6 +103,76 @@ public final class Solver {
           }
         }
       }
+    }
+  }
+
+  /**
+   * Returns a string representation of clause
+   * starting at start.
+   */
+  private String clauseToString(int start) {
+    StringBuffer string = new StringBuffer();
+    string.append("{");
+    while (true) {
+      int literal = clauses.get(start++);
+      if (literal == 0) break;
+      if (literal == REMOVED) continue;
+      string.append(literal);
+      string.append(", ");
+    }
+    string.append("}");
+    return string.toString();
+  }
+
+  /**
+   * Verifies lengths.
+   */
+  private void verifyLengths() {
+    TIntIntIterator it = lengths.iterator();
+    for (int size = lengths.size(); size > 0; size--) {
+      it.advance();
+      int start = it.key();
+      int length = 0;
+
+      for (int end = start; ; end++) {
+        int literal = clauses.get(end);
+        if (literal == 0) break;
+        if (literal == REMOVED) continue;
+
+        length++;
+        assert !isAssigned(literal) 
+            : "Literal " + literal + " is assigned";
+        assert watchList(literal).contains(start) 
+            : "Clause " + start + " not in watch list of " + literal;
+      }
+      assert it.value() == length
+          : "Clause " + start + " has wrong length";
+    }
+  }
+
+  /**
+   * Verifies watch lists.
+   */
+  private void verifyWatchLists() {
+    for (int u = -numVariables; u <= numVariables; ++u) {
+      if (u == 0) continue;
+      TIntIterator it = watchList(u).iterator();
+      for (int size = watchList(u).size(); size > 0; size--) {
+        int start = it.next();
+        assert lengths.containsKey(start) 
+          : "Watch list of " + u + " contains satisfied clause";
+        findLiteral(start, u);  // NOTE: uses findLiteral's internal check
+      }
+    }
+  }
+
+  /**
+   * Checks solver for consistency.
+   */
+  private void verify() {
+    if (Configure.enableExpensiveChecks) {
+      verifyLengths();
+      verifyWatchLists();
     }
   }
 
@@ -160,9 +232,7 @@ public final class Solver {
    * Returns string representation of stored instance.
    */
   public String toString() {
-    Skeleton skeleton = skeleton();
-    skeleton.canonicalize();
-    return skeleton.toString();
+    return skeleton().toString();
   }
 
   /**
@@ -183,7 +253,9 @@ public final class Solver {
       getRecursiveProxy(literal);
     }
 
-    if (clauses.size() == 0) {
+    TIntArrayList compact = cleanClauses();
+    if (compact.size() == 0) {
+      // logger.info("Running 2SAT on " + dag.skeleton());
       // Solves the remaining 2SAT encoded in the implication graph
       for (TIntIterator it = dag.solve().iterator(); it.hasNext(); ){
         addUnit(it.next());
@@ -194,7 +266,7 @@ public final class Solver {
     // Gets the core instance that needs to be solved further
     Skeleton core = new Skeleton();
     core.append(dag.skeleton());
-    core.append(cleanClauses());
+    core.append(compact);
 
     // The idea here is that if a literal is frequent
     // it will have a higher chance to be selected
@@ -227,10 +299,12 @@ public final class Solver {
       propagate();
     }
 
-    if (Configure.pureLiterals()) {
+    if (Configure.pureLiterals) {
       pureLiterals();
       propagate();
     }
+
+    verify();
   }
 
   /**
@@ -243,7 +317,12 @@ public final class Solver {
       if (isSatisfied(start)) {
         continue;
       }
+
       int length = lengths.get(start);
+      assert 0 <= length && length < 3
+          : "Invalid clause of length " + length + " in queue";
+      int position = start;
+
       switch (length) {
         case 0: {
           throw new ContradictionException();
@@ -251,25 +330,24 @@ public final class Solver {
 
         case 1: {  // unit
           int u;
-          while ((u = clauses.get(start)) == REMOVED) {
-            start++;
+          while ((u = clauses.get(position)) == REMOVED) {
+            position++;
           }
           addUnit(u);
-          assert isSatisfied(start);
+          assert isSatisfied(position);
           break;
         }
 
         case 2: {  // binary
           int u, v;
-          while ((u = clauses.get(start)) == REMOVED) {
-            start++;
+          while ((u = clauses.get(position)) == REMOVED) {
+            position++;
           }
-          start++;
-          while ((v = clauses.get(start)) == REMOVED) {
-            start++;
+          position++;
+          while ((v = clauses.get(position)) == REMOVED) {
+            position++;
           }
           addBinary(u, v);
-
           if (!isSatisfied(start)) {
             removeClause(start);
           }
@@ -303,10 +381,15 @@ public final class Solver {
       int clauseSum = 0;
       int numTouched = 0;
 
+      TIntHashSet set = new TIntHashSet();
+      TIntHashSet discovered = new TIntHashSet();
+
       for (; start < clauses.size(); start++) {
         int literal = clauses.get(start++);
         if (literal == 0) break;
         if (literal == REMOVED) continue;
+
+        set.add(literal);
 
         numLiterals++;
         clauseSum += literal;
@@ -328,21 +411,22 @@ public final class Solver {
       }
 
       for (int i = 0; i < numTouched; ++i) {
+        if (isSatisfied(start)) continue;
         int touch = touched[i];
         int literal = mapNtoZ(touch);
-        literal = getRecursiveProxy(literal);
+        if (isAssigned(literal)) continue;
 
         if (counts[touch] == numLiterals) {
           // There is an edge from literal to all literals in clause.
           if (!units.contains(-literal)) {
+            discovered.add(-literal);
             addUnit(-literal);
             ++numUnits;
           }
         } else if (counts[touch] + 1 == numLiterals) {
           // There is an edge from literal to all literals in clause except one.
-          if (isAssigned(literal)) continue;
           int missing = clauseSum - sums[touch];
-          if (!dag.containsEdge(literal, missing)) {
+          if (!isAssigned(missing) && !dag.containsEdge(literal, missing)) {
             addBinary(-literal, missing);
             ++numBinaries;
           }
@@ -355,6 +439,8 @@ public final class Solver {
 
     // logger.debug("Hyper binary resolution found " + numUnits + " unit(s) and "
     //              + numBinaries + " binary(ies)");
+    if (numUnits > 0) System.err.print("hu" + numUnits + ".");
+    if (numBinaries > 0) System.err.print("hb" + numBinaries + ".");
     return numUnits > 0 || numBinaries > 0;
   }
 
@@ -382,6 +468,7 @@ public final class Solver {
       }
     }
 
+    if (numUnits > 0) System.err.print("pl" + numUnits + ".");
     return numUnits > 0;
   }
 
@@ -420,9 +507,10 @@ public final class Solver {
    */
   private int findLiteral(final int clause, final int u) {
     for (int c = clause; ; c++) {
-      if (u == clauses.get(c)) {
-        return c;
-      }
+      int literal = clauses.get(c);
+      assert u == 0 || literal != 0 
+          : "Literal " + u + " is missing from clause";
+      if (u == literal) return c;
     }
   }
 
@@ -447,7 +535,9 @@ public final class Solver {
    * @param clause start of clause
    */
   private void removeClause(final int clause) {
+    // logger.info("removing " + clauseToString(clause) + " " + clause);
     lengths.remove(clause);
+    assert isSatisfied(clause);
     for (int c = clause; ; c++) {
       int literal = clauses.get(c);
       clauses.set(c, REMOVED);
@@ -482,16 +572,18 @@ public final class Solver {
    * @param u unit to add.
    */
   private void addUnit(final int u) {
-    assert !isAssigned(u);
+    assert !isAssigned(u) : "Unit " + u + " already assigned";
 
     if (dag.hasNode(u)) {
       int[] neighbours = dag.neighbours(u).toArray();
       for (int unit : neighbours) {
-        propagateUnit(u);
-        units.add(u);
+        // logger.info("new unit " + unit);
+        propagateUnit(unit);
+        units.add(unit);
       }
       dag.delete(neighbours);
     } else {
+      // logger.info("new unit " + u);
       propagateUnit(u);
       units.add(u);
     }
@@ -501,15 +593,16 @@ public final class Solver {
    * Adds a new binary unit.
    */
   private void addBinary(final int u, final int v) {
-    assert !isAssigned(u);
-    assert !isAssigned(v);
+    assert !isAssigned(u) : "First literal " + u + " is assigned";
+    assert !isAssigned(v) : "Second literal " + v + " is assigned";
 
     // propagates contradictions contradictions
     TIntHashSet contradictions = dag.findContradictions(-u, v);
     if (!contradictions.isEmpty()) {
       int[] contradictions_ = contradictions.toArray();
       for (int unit : contradictions_) {
-        addUnit(unit);
+        assert !units.contains(-unit);
+        if (!units.contains(unit)) addUnit(unit);
       }
       dag.delete(contradictions_);
       if (contradictions.contains(u) || contradictions.contains(v)) {
@@ -521,7 +614,8 @@ public final class Solver {
     if (join != null) {
       TIntIterator it;
       for (it = join.children.iterator(); it.hasNext();) {
-        renameLiteral(it.next(), join.parent);
+        int literal = it.next();
+        renameLiteral(literal, join.parent);
       }
     }
   }
@@ -541,6 +635,7 @@ public final class Solver {
         int position = findLiteral(clause, u);
         clauses.set(position, v);
         watchList(v).add(clause);
+        watchList(u).remove(clause);
       }
     }
   }
