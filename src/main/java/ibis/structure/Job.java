@@ -35,18 +35,23 @@ public final class Job extends Activity {
 
   @Override
   public void initialize() {
-    logger.info("At depth " + depth + " on " + Thread.currentThread().getName());
+    // logger.info("At depth " + depth + " on " + Thread.currentThread().getName());
 
-    Solver solver = new Solver(instance, branch);
-    // instance = null;  // helps GC
-    solution = solver.solve();
+    try {
+      Solver solver = new Solver(instance, branch);
+      // instance = null;  // helps GC
+      solution = solver.solve();
+    } catch (AssertionError e) {
+      e.printStackTrace();
+      // Crashes on error.
+      System.exit(1);
+    }
 
     if (solution.isSatisfiable()) {
-      int[] units = solution.solution();
-      executor.send(new Event(identifier(), parent, units));
+      sendSolution(solution.solution());
       finish();
     } else if (solution.isUnsatisfiable()) {
-      executor.send(new Event(identifier(), parent, null));
+      sendSolution(null);
       finish();
     } else {
       assert solution.isUnknown();
@@ -59,45 +64,52 @@ public final class Job extends Activity {
   }
 
   /**
+   * Checks solution.
+   */
+  private void checkSolution(final int[] units) {
+    if (!Configure.enableExpensiveChecks)
+      return;
+      
+    BitSet unitsSet = new BitSet();
+    for (int unit : units) {
+      unitsSet.set(unit);
+      if (unitsSet.get(-unit)) {
+        logger.error("Contradictory units for");
+        logger.error("by " + units);
+        logger.error("in branch " + branch);
+        logger.error("and instance " + instance.toString());
+        assert false;
+      }
+    }
+
+    boolean satisfied = false;
+    int lastClauseStart = 0;
+    for (int i = 0; i < instance.clauses.size(); ++i) {
+      int literal = instance.clauses.get(i);
+      if (literal == 0) {
+        if (!satisfied) {
+          TIntArrayList clause = instance.clauses.subList(lastClauseStart, i);
+          logger.error("Clause " + clause + " not satisfied");
+          logger.error("by " + units);
+          logger.error("in branch " + branch);
+          logger.error("and instance " + instance.toString());
+          assert false;
+        }
+        lastClauseStart = i + 1;
+        satisfied = false;
+      }
+      if (unitsSet.get(literal)) {
+        satisfied = true;
+      }
+    }
+  }
+
+  /**
    * Sends solution to parent.
    */
   private void sendSolution(final int[] units) {
+    if (units != null) checkSolution(units);
     executor.send(new Event(identifier(), parent, units));
-
-    if (units != null) {  // Checks solution
-      BitSet unitsSet = new BitSet();
-      for (int unit : units) {
-        unitsSet.set(unit);
-        if (unitsSet.get(-unit)) {
-          TIntArrayList units_ = new TIntArrayList(units);
-          logger.error("Contradictory units for");
-          logger.error("by " + units_);
-          logger.error("in " + instance.toString());
-          assert false;
-        }
-      }
-
-      boolean satisfied = false;
-      int lastClauseStart = 0;
-      for (int i = 0; i < instance.clauses.size(); ++i) {
-        int literal = instance.clauses.get(i);
-        if (literal == 0) {
-          if (!satisfied) {
-            TIntArrayList clause = instance.clauses.subList(lastClauseStart, i);
-            TIntArrayList units_ = new TIntArrayList(units);
-            logger.error("Clause " + clause + " not satisfied");
-            logger.error("by " + units_);
-            logger.error("in " + instance.toString());
-            assert false;
-          }
-          lastClauseStart = i + 1;
-          satisfied = false;
-        }
-        if (unitsSet.get(literal)) {
-          satisfied = true;
-        }
-      }
-    }
   }
 
   // TODO: The other branch should be canceled, however
@@ -108,6 +120,8 @@ public final class Job extends Activity {
     if (reply != null && !solved) {
       /* Sends the solution to parent. */
       solved = true;
+      // logger.info("Received " + (new TIntArrayList(reply)));
+      // logger.info("from " + solution.core());
       sendSolution(solution.solution(reply));
     }
 
