@@ -222,12 +222,10 @@ public final class Solver {
    */
   public void simplify() throws ContradictionException {
     propagate();
-    if (hyperBinaryResolution()) {
-      if (hyperBinaryResolution()) {
-          hyperBinaryResolution();
-      }
+    for (int i = 0; i < Configure.numHyperBinaryResolutions; ++i) {
+      if (!hyperBinaryResolution()) break;
+      propagate();
     }
-    // while (hyperBinaryResolution()) { }
   }
 
   /**
