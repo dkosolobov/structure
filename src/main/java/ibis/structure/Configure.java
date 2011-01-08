@@ -22,13 +22,14 @@ public class Configure {
 
   public static boolean configure(String[] args) {
     Options options = new Options();
-    options.addOption("?", false, "print this help");
-    options.addOption("b", false, "disable binary self summing");
-    options.addOption("d", false, "debug: enable expensive checks");
-    options.addOption("p", false, "disable pure literals");
+    options.addOption("help", false, "print this help");
     options.addOption("e", true, "# of executors (0 for number of CPUs)");
-    options.addOption("h", true, "# of hyper binary resolutions (0 to disable)");
     options.addOption("o", true, "output file (defaults to stdout)");
+    options.addOption("debug", false, "enable expensive checks");
+
+    options.addOption("nobsss", false, "disable binary self subsumming");
+    options.addOption("nopl", false, "disable pure literals");
+    options.addOption("hbr", true, "# of hyper binary resolutions (0 to disable)");
 
     BasicParser parser = new BasicParser();
     CommandLine cl = null;
@@ -51,23 +52,24 @@ public class Configure {
     inputFile = args[0];
     logger.info("Reading from input " + inputFile);
 
-    if (cl.hasOption("b")) {
-      binarySelfSubsumming = false;
-    }
-    if (cl.hasOption("d")) {
-      enableExpensiveChecks = true;
-    }
-    if (cl.hasOption("p")) {
-      pureLiterals = false;
-    }
     if (cl.hasOption("e")) {
       numExecutors = Integer.parseInt(cl.getOptionValue("e"));
     }
-    if (cl.hasOption("h")) {
-      numHyperBinaryResolutions = Integer.parseInt(cl.getOptionValue("h"));
-    }
     if (cl.hasOption("o")) {
       outputFile = cl.getOptionValue("o");
+    }
+    if (cl.hasOption("debug")) {
+      enableExpensiveChecks = true;
+    }
+
+    if (cl.hasOption("nobsss")) {
+      binarySelfSubsumming = false;
+    }
+    if (cl.hasOption("nopl")) {
+      pureLiterals = false;
+    }
+    if (cl.hasOption("hbr")) {
+      numHyperBinaryResolutions = Integer.parseInt(cl.getOptionValue("hbr"));
     }
 
     return true;
