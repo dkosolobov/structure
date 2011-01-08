@@ -329,13 +329,13 @@ public final class Solver {
   public void simplify() throws ContradictionException {
     propagate();
 
-    if (Configure.binarySelfSubsumming) {
-      binarySelfSubsumming();
+    for (int i = 0; i < Configure.numHyperBinaryResolutions; ++i) {
+      if (!hyperBinaryResolution()) break;
       propagate();
     }
 
-    for (int i = 0; i < Configure.numHyperBinaryResolutions; ++i) {
-      if (!hyperBinaryResolution()) break;
+    if (Configure.binarySelfSubsumming) {
+      binarySelfSubsumming();
       propagate();
     }
 
