@@ -307,6 +307,12 @@ public final class Solver {
    */
   public void simplify() throws ContradictionException {
     propagate();
+
+    if (Configure.binarySelfSubsumming) {
+      binarySelfSubsumming();
+      propagate();
+    }
+
     for (int i = 0; i < Configure.numHyperBinaryResolutions; ++i) {
       if (!hyperBinaryResolution()) break;
       propagate();
@@ -316,6 +322,7 @@ public final class Solver {
       pureLiterals();
       propagate();
     }
+
 
     verify();
   }
@@ -393,15 +400,10 @@ public final class Solver {
       int clauseSum = 0;
       int numTouched = 0;
 
-      TIntHashSet set = new TIntHashSet();
-      TIntHashSet discovered = new TIntHashSet();
-
       for (int end = start; end < clauses.size(); end++) {
         int literal = clauses.get(end);
         if (literal == 0) break;
         if (literal == REMOVED) continue;
-
-        set.add(literal);
 
         numLiterals++;
         clauseSum += literal;
@@ -431,7 +433,6 @@ public final class Solver {
         if (counts[touch] == numLiterals) {
           // There is an edge from literal to all literals in clause.
           if (!units.contains(-literal)) {
-            discovered.add(-literal);
             addUnit(-literal);
             ++numUnits;
           }
@@ -451,8 +452,8 @@ public final class Solver {
 
     // logger.debug("Hyper binary resolution found " + numUnits + " unit(s) and "
     //              + numBinaries + " binary(ies)");
-    if (numUnits > 0) System.err.print("hu" + numUnits + ".");
-    if (numBinaries > 0) System.err.print("hb" + numBinaries + ".");
+    // if (numUnits > 0) System.err.print("hu" + numUnits + ".");
+    // if (numBinaries > 0) System.err.print("hb" + numBinaries + ".");
     return numUnits > 0 || numBinaries > 0;
   }
 
@@ -480,8 +481,63 @@ public final class Solver {
       }
     }
 
-    if (numUnits > 0) System.err.print("p" + numUnits + ".");
+    // if (numUnits > 0) System.err.print("p" + numUnits + ".");
     return numUnits > 0;
+  }
+
+  /**
+   * Binary self subsumming.
+   */
+  public boolean binarySelfSubsumming() {
+    int numSatisfiedClauses = 0, numRemovedLiterals = 0;
+
+    for (int start : lengths.keys()) {
+      // Finds the end of the clause
+      int end = start - 1;
+      while (clauses.get(++end) != 0) { }
+
+    search:
+      for (int i = start; i < end; ++i) {
+        int first = clauses.get(i);
+        if (first == REMOVED) continue;
+
+        TIntHashSet neighbours = dag.neighbours(-first);
+        if (neighbours == null) continue;
+
+        for (int j = start; j < end; ++j) {
+          int second = clauses.get(j);
+          if (i == j || second == REMOVED) continue;
+
+          if (neighbours.contains(-second)) {
+            // If a + b + c + ... and -a => -b
+            // then a + c + ...
+            removeLiteral(start, second);
+            ++numRemovedLiterals;
+            continue;
+          }
+
+          if (neighbours.contains(second)) {
+            // If a + b + c + ... and -a => b
+            // then clause is tautology
+            removeClause(start);
+            ++numRemovedLiterals;
+            break search;
+          }
+        }
+      }
+
+      start = end + 1;
+    }
+
+    /*
+    if (numRemovedLiterals > 0 || numSatisfiedClauses > 0) {
+      logger.info("Removed " + numRemovedLiterals + " literals and found "
+                  + numSatisfiedClauses + " satisfied clauses " + queue.size());
+    }
+    */
+    if (numRemovedLiterals > 0) System.err.print("bl" + numRemovedLiterals + ".");
+    if (numSatisfiedClauses > 0) System.err.print("bc" + numSatisfiedClauses + ".");
+    return numRemovedLiterals > 0 || numSatisfiedClauses > 0;
   }
 
   /**

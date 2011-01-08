@@ -18,10 +18,12 @@ public class Configure {
   public static boolean enableExpensiveChecks = false;
   public static int numHyperBinaryResolutions = 4;
   public static boolean pureLiterals = true;
+  public static boolean binarySelfSubsumming = true;
 
   public static boolean configure(String[] args) {
     Options options = new Options();
     options.addOption("?", false, "print this help");
+    options.addOption("b", false, "disable binary self summing");
     options.addOption("d", false, "debug: enable expensive checks");
     options.addOption("p", false, "disable pure literals");
     options.addOption("e", true, "# of executors (0 for number of CPUs)");
@@ -49,6 +51,9 @@ public class Configure {
     inputFile = args[0];
     logger.info("Reading from input " + inputFile);
 
+    if (cl.hasOption("b")) {
+      binarySelfSubsumming = false;
+    }
     if (cl.hasOption("d")) {
       enableExpensiveChecks = true;
     }
