@@ -252,7 +252,7 @@ public final class Solver {
    * Returns a normalized literal to branch on.
    */
   public Solution solve() {
-    int beforeNumLiterals = clauses.size();
+    // int beforeNumLiterals = clauses.size();
 
     int solved = Solution.UNKNOWN;
     try {
@@ -280,27 +280,48 @@ public final class Solver {
     Skeleton core = new Skeleton();
     core.append(dag.skeleton());
     core.append(compact);
+    int branch = chooseBranch();
 
-    // The idea here is that if a literal is frequent
-    // it will have a higher chance to be selected
+    // int afterNumLiterals = core.clauses.size();
+    // logger.info("Reduced from " + beforeNumLiterals + " to " + afterNumLiterals
+                // + " (diff " + (beforeNumLiterals - afterNumLiterals) + ")");
+    return Solution.unknown(units.elements(), proxies, core, branch);
+  }
+
+  /**
+   * A score for branch.
+   */
+  private double score(int branch) {
+    int num = - numBinaries(branch);
+    TIntHashSet neighbours = dag.neighbours(branch);
+    if (neighbours != null) {
+      TIntIterator it = neighbours.iterator();
+      for (int size = neighbours.size(); size > 0; size--) {
+        int literal = it.next();
+        num += watchList(literal).size();
+      }
+    }
+    return Math.pow(random.nextDouble(), num);
+  }
+
+  // The idea here is that if a literal is frequent
+  // it will have a higher chance to be selected
+  private int chooseBranch() {
     int bestBranch = 0;
-    int bestValue = Integer.MIN_VALUE;
-    for (int i = 0; i < core.clauses.size(); ++i) {
-      int literal = core.clauses.get(i);
-      if (literal != 0) {
-        int value = random.nextInt();
-        if (value > bestValue) {
+    double bestValue = Double.POSITIVE_INFINITY;
+    for (int branch = 1; branch <= numVariables; ++branch) {
+      if (!isAssigned(branch)) {
+        double value = score(branch) * score(-branch);
+        if (value < bestValue) {
+          bestBranch = branch;
           bestValue = value;
-          bestBranch = literal;
         }
       }
     }
-
-    int afterNumLiterals = core.clauses.size();
-    // logger.info("Reduced from " + beforeNumLiterals + " to " + afterNumLiterals
-                // + " (diff " + (beforeNumLiterals - afterNumLiterals) + ")");
-    return Solution.unknown(units.elements(), proxies, core, bestBranch);
+    assert bestBranch != 0;
+    return bestBranch;
   }
+
 
   /**
    * Simplifies the instance.
@@ -322,7 +343,6 @@ public final class Solver {
       pureLiterals();
       propagate();
     }
-
 
     verify();
   }
@@ -452,8 +472,8 @@ public final class Solver {
 
     // logger.debug("Hyper binary resolution found " + numUnits + " unit(s) and "
     //              + numBinaries + " binary(ies)");
-    // if (numUnits > 0) System.err.print("hu" + numUnits + ".");
-    // if (numBinaries > 0) System.err.print("hb" + numBinaries + ".");
+    if (numUnits > 0) System.err.print("hu" + numUnits + ".");
+    if (numBinaries > 0) System.err.print("hb" + numBinaries + ".");
     return numUnits > 0 || numBinaries > 0;
   }
 
@@ -481,7 +501,7 @@ public final class Solver {
       }
     }
 
-    // if (numUnits > 0) System.err.print("p" + numUnits + ".");
+    if (numUnits > 0) System.err.print("p" + numUnits + ".");
     return numUnits > 0;
   }
 
