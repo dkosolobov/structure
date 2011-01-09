@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import gnu.trove.TIntHashSet;
+import gnu.trove.TIntArrayList;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -183,6 +184,33 @@ public class DAGTest {
   public void findContradictions5() throws Exception {
     TIntHashSet contradictions = dag.findContradictions(1, -1);
     assertTrue(contradictions.contains(-1));
+  }
+
+  @Test
+  public void transitiveReduction1() throws Exception {
+    dag.addEdge(1, 2);
+    dag.addEdge(1, 3);
+    compare(-1, 2, 0, -1, 3, 0);
+
+    dag.addEdge(2, 4);
+    dag.addEdge(3, 4);
+    compare(-3, 4, 0, -2, 4, 0, -1, 2, 0, -1, 3, 0);
+  }
+
+  @Test
+  public void transitiveReduction2() throws Exception {
+    dag.addEdge(4, 1);
+    dag.addEdge(4, 2);
+    dag.addEdge(5, 1);
+    dag.addEdge(5, 2);
+    dag.addEdge(2, 1);
+    compare(-5, 2, 0, -4, 2, 0, -2, 1, 0);
+  }
+
+  private void compare(int... v) {
+    Skeleton skeleton = dag.skeleton();
+    skeleton.canonicalize();
+    assertEquals(new TIntArrayList(v), skeleton.clauses);
   }
 
   @Test

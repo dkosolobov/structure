@@ -1,8 +1,12 @@
 package ibis.structure;
 
+import java.util.Arrays;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntIterator;
+
+import static ibis.structure.BitSet.mapZtoN;
+import static ibis.structure.BitSet.mapNtoZ;;
 
 public final class DAG {
   public static class Join {
@@ -50,43 +54,6 @@ public final class DAG {
       }
     }
     return array.toNativeArray();
-  }
-
-  /**
-   * Returns an instance containing all edges in the graph.
-   *
-   * @return a transitive reduction of the implication graph as a SAT instance
-   */
-  public Skeleton skeleton() {
-    Skeleton skeleton = new Skeleton();
-    for (int u = -numVariables; u <= numVariables; ++u) {
-      TIntHashSet neighbours = neighbours(u);
-      if (u != 0 && neighbours != null) {
-        TIntIterator it1 = neighbours.iterator();
-        for (int size1 = neighbours.size(); size1 > 0; --size1) {
-          int v = it1.next();
-          if (!(-u < v && u != v)) {
-            continue;
-          }
-
-          // Transitive reduction
-          boolean redundant = false;
-          TIntIterator it2 = neighbours.iterator();
-          for (int size2 = neighbours.size(); size2 > 0; --size2) {
-            int w = it2.next();
-            if (w != v && w != u && neighbours(w).contains(v)) {
-              redundant = true;
-              break;
-            }
-          }
-
-          if (!redundant) {
-            skeleton.add(-u, v);
-          }
-        }
-      }
-    }
-    return skeleton;
   }
 
   /**
@@ -318,4 +285,81 @@ public final class DAG {
     }
     return units;
   }
+
+  TIntArrayList[] tsGraph = null;
+
+  /**
+   * Produces a topological sort of dag.
+   *
+   * Stores new graph in tsGraph with nodes sorted in topological order.
+   */
+  void topologicalSort() {
+    int[] queue = new int[2 * numVariables + 1];
+    int[] degree = new int[2 * numVariables + 1];
+    int queueHead = 0;
+
+    tsGraph = new TIntArrayList[2 * numVariables + 1];
+    for (int u = -numVariables; u <= numVariables; ++u) {
+      if (u != 0 && neighbours(u) != null) {
+        tsGraph[mapZtoN(u)] = new TIntArrayList();
+        degree[mapZtoN(u)] = neighbours(u).size() - 1;
+        if (degree[mapZtoN(u)] == 0) {
+          queue[queueHead++] = u;
+        }
+      }
+    }
+
+    while (queueHead > 0) {
+      int u = queue[--queueHead];
+      tsGraph[mapZtoN(u)].reverse();
+
+      TIntIterator it = neighbours(-u).iterator();
+      for (int size = neighbours(-u).size(); size > 0; size--) {
+        int v = -it.next();
+        if (v != u) {
+          degree[mapZtoN(v)]--;
+          tsGraph[mapZtoN(v)].add(u);
+          if (degree[mapZtoN(v)] == 0) {
+            queue[queueHead++] = v;
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Returns an instance containing all edges in the graph.
+   *
+   * @return a transitive reduction of the implication graph as a SAT instance
+   */
+  public Skeleton skeleton() {
+    topologicalSort();
+    Skeleton skeleton = new Skeleton();
+    for (int u = -numVariables; u <= numVariables; ++u) {
+      if (u != 0 && neighbours(u) != null) {
+        TIntArrayList neighbours = tsGraph[mapZtoN(u)];
+        for (int i = 0, last = 0; i < neighbours.size(); ++i) {
+          int v = tsGraph[mapZtoN(u)].get(i);
+          if (-u < v) continue;
+
+          boolean good = last == 0 || !neighbours(last).contains(v);
+          for (int j = 0; j < 10 && good; ++j) {
+            int w = tsGraph[mapZtoN(u)].get(j);
+            if (w == v) break;
+            good = !neighbours(w).contains(v);
+          }
+          if (good) {
+            skeleton.add(-u, v);
+          }
+
+          last = v;
+        }
+      }
+    }
+
+    // Helps GC.
+    tsGraph = null;
+    return skeleton;
+  }
+
 }
