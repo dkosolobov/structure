@@ -292,7 +292,7 @@ public final class Solver {
    * A score for branch.
    */
   private double score(int branch) {
-    int num = - numBinaries(branch);
+    int num = numBinaries(branch);
     TIntHashSet neighbours = dag.neighbours(branch);
     if (neighbours != null) {
       TIntIterator it = neighbours.iterator();
