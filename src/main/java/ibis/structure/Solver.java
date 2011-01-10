@@ -27,8 +27,8 @@ import static ibis.structure.BitSet.mapNtoZ;;
 public final class Solver {
   private static final Logger logger = Logger.getLogger(Solver.class);
   private static final int REMOVED = Integer.MAX_VALUE;
-  private static final int BACKTRACK_THRESHOLD = 0; // 1 << 8;
-  private static final int BACKTRACK_MAX_CALLS = 1 << 12;
+  private static final int BACKTRACK_THRESHOLD = 1 << 0;
+  private static final int BACKTRACK_MAX_CALLS = 1 << 14;
   private static final java.util.Random random = new java.util.Random(1);
 
   // Number of variables
@@ -248,6 +248,7 @@ public final class Solver {
     return skeleton().toString();
   }
 
+      static long ttime = 0;
   /**
    * Returns a normalized literal to branch on.
    */
@@ -257,9 +258,29 @@ public final class Solver {
     int solved = Solution.UNKNOWN;
     try {
       simplify();
+      assert queue.isEmpty() : "Non empty queue after simplification";
+      // ttime -= System.currentTimeMillis();
+      solved = backtrack();
+      // ttime += System.currentTimeMillis();
+      // logger.info("backtracking for " + (ttime / 1000.));
+
+      if (solved == Solution.UNSATISFIABLE) {
+        throw new ContradictionException();
+      } else if (solved == Solution.SATISFIABLE) {
+        propagate();
+      } else {
+        if (newUnits.size() > 0) {
+          // logger.info("new units = " + newUnits);
+        }
+        for (int i = 0; i < newUnits.size(); ++i) {
+          // addUnit(-newUnits.get(i));
+        }
+        // propagate();
+      }
     } catch (ContradictionException e) {
       return Solution.unsatisfiable();
     }
+
 
     // Computes proxies for every literal.
     for (int literal = 1; literal <= numVariables; ++literal) {
@@ -558,6 +579,136 @@ public final class Solver {
     if (numRemovedLiterals > 0) System.err.print("bl" + numRemovedLiterals + ".");
     if (numSatisfiedClauses > 0) System.err.print("bc" + numSatisfiedClauses + ".");
     return numRemovedLiterals > 0 || numSatisfiedClauses > 0;
+  }
+
+  /**
+   * Attempts to find a solution by backtracking.
+   */
+  private int numBacktrackCalls = 0;
+
+  private int backtrack() {
+    int difficulty = 0;
+    for (int u = -numVariables; u <= numVariables; ++u) {
+      if (u != 0) difficulty += watchList(u).size();
+    }
+    if (difficulty > BACKTRACK_THRESHOLD) {
+      // Clause is too difficult to solve.
+      return Solution.UNKNOWN;
+    }
+
+    // logger.info("backtracking " + this);
+    
+    int[] assigned = new int[2 * numVariables + 1];
+    int solved = backtrackHelper(0, assigned);
+
+    if (solved == Solution.UNKNOWN) {
+      // logger.info("Backtracking reached maximum number of calls");
+      return Solution.UNKNOWN;
+    }
+    if (solved == Solution.UNSATISFIABLE) {
+      // logger.info("Backtracking found a contradiction");
+      return Solution.UNSATISFIABLE;
+    }
+    // logger.info("Backtracking found a solution");
+
+    // Propagates the satisfying assignment
+    for (int literal = -numVariables; literal <= numVariables; ++literal) {
+      if (literal != 0 && assigned[mapZtoN(literal)] > 0) {
+        assert assigned[mapZtoN(-literal)] == 0;
+        assert !units.contains(-literal);
+        // logger.info("found unit " + literal);
+        if (!units.contains(literal)) addUnit(literal);
+      }
+    }
+
+    // logger.info("after backtracking " + this);
+
+    return Solution.SATISFIABLE;
+  }
+
+  /**
+   * Adds delta to all neighbours of literal.
+   */
+  private static void adjustNeighbours(
+      final int literal, final TIntHashSet neighbours,
+      final int[] assigned, final int delta) {
+    if (neighbours != null) {
+      TIntIterator it = neighbours.iterator();
+      for (int size = neighbours.size(); size > 0; --size) {
+        assigned[mapZtoN(it.next())] += delta;
+      }
+    } else {
+      assigned[mapZtoN(literal)] += delta;
+    }
+  }
+
+  /**
+   * Does a backtracking.
+   *
+   * @param start the begin of the clause to satisfy
+   * @param assigned a map from literal to a counter. If counter
+   *                 is greater than zero literal was assigned.
+   * @return type of the solution found (SATISFIABLE, UNSATISFIABLE, UNKNOWN)
+   */
+  int numAssigned = 0;
+  int[] path = new int[100000];
+  TIntArrayList newUnits = new TIntArrayList();
+
+  private int backtrackHelper(final int start, final int[] assigned) {
+    // Finds end of clause
+    int end = start - 1;
+    boolean satisfied = false;
+    while (++end < clauses.size()) {
+      int literal = clauses.get(end);
+      if (literal == 0) break;
+      if (literal == REMOVED) continue;
+      assert assigned[BitSet.mapZtoN(literal)] >= 0;
+      if (assigned[BitSet.mapZtoN(literal)] > 0) {
+        satisfied = true;
+      }
+    }
+    if (end == clauses.size()) {
+      // Assignment satisfied all clauses
+      return Solution.SATISFIABLE;
+    }
+
+    if (numBacktrackCalls >= BACKTRACK_MAX_CALLS) {
+      return Solution.UNKNOWN;
+    }
+    ++numBacktrackCalls;
+
+    // Skip already satisfied clauses
+    assert clauses.get(end) == 0;
+    if (satisfied) {
+      return backtrackHelper(end + 1, assigned);
+    }
+
+    // Tries each unassigned literal
+    for (int i = start; i < end; ++i) {
+      int literal = clauses.get(i);
+      if (literal == REMOVED) continue;
+      assert literal != 0;
+      if (assigned[mapZtoN(-literal)] == 0) {
+        assert !units.get(literal);
+        TIntHashSet neighbours = dag.neighbours(literal);
+        adjustNeighbours(literal, neighbours, assigned, 1);
+        path[numAssigned] = literal;
+        ++numAssigned;
+        int solved = backtrackHelper(end + 1, assigned);
+        --numAssigned;
+        if (solved == Solution.SATISFIABLE) return Solution.SATISFIABLE;
+        if (solved == Solution.UNKNOWN) return Solution.UNKNOWN;
+        adjustNeighbours(literal, neighbours, assigned, -1);
+      }
+    }
+
+    if (numAssigned <= 5) {
+      if (numAssigned == 1) {
+        newUnits.add(path[0]);
+      }
+      // logger.info("num assigned = " + numAssigned);
+    }
+    return Solution.UNSATISFIABLE;
   }
 
   /**
