@@ -16,9 +16,10 @@ public class Configure {
   public static String outputFile = null;
   public static int numExecutors = Runtime.getRuntime().availableProcessors();
   public static boolean enableExpensiveChecks = false;
-  public static int numHyperBinaryResolutions = 4;
-  public static boolean pureLiterals = true;
   public static boolean binarySelfSubsumming = true;
+  public static boolean pureLiterals = true;
+  public static boolean subsumming = true;
+  public static int numHyperBinaryResolutions = 4;
 
   public static boolean configure(String[] args) {
     Options options = new Options();
@@ -29,6 +30,7 @@ public class Configure {
 
     options.addOption("nobsss", false, "disable binary self subsumming");
     options.addOption("nopl", false, "disable pure literals");
+    options.addOption("noss", false, "disable subsumming");
     options.addOption("hbr", true, "# of hyper binary resolutions (0 to disable)");
 
     BasicParser parser = new BasicParser();
@@ -67,6 +69,9 @@ public class Configure {
     }
     if (cl.hasOption("nopl")) {
       pureLiterals = false;
+    }
+    if (cl.hasOption("nopl")) {
+      subsumming = false;
     }
     if (cl.hasOption("hbr")) {
       numHyperBinaryResolutions = Integer.parseInt(cl.getOptionValue("hbr"));

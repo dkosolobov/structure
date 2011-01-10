@@ -6,6 +6,7 @@ import gnu.trove.TIntObjectHashMap;
 import gnu.trove.TLongArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
+import gnu.trove.TIntLongHashMap;
 import gnu.trove.TIntIntIterator;
 import gnu.trove.TIntIterator;
 import org.apache.log4j.Logger;
@@ -339,6 +340,11 @@ public final class Solver {
       propagate();
     }
 
+    if (Configure.subsumming) {
+      subsumming();
+      propagate();
+    }
+
     if (Configure.pureLiterals) {
       pureLiterals();
       propagate();
@@ -549,15 +555,96 @@ public final class Solver {
       start = end + 1;
     }
 
-    /*
-    if (numRemovedLiterals > 0 || numSatisfiedClauses > 0) {
-      logger.info("Removed " + numRemovedLiterals + " literals and found "
-                  + numSatisfiedClauses + " satisfied clauses " + queue.size());
-    }
-    */
     if (numRemovedLiterals > 0) System.err.print("bl" + numRemovedLiterals + ".");
     if (numSatisfiedClauses > 0) System.err.print("bc" + numSatisfiedClauses + ".");
     return numRemovedLiterals > 0 || numSatisfiedClauses > 0;
+  }
+
+  /**
+   * Returns a hash of a.
+   * This function is better than the one provided by
+   * gnu.trove.HashUtils which is the same as the one
+   * provided by the Java library.
+   *
+   * Robert Jenkins' 32 bit integer hash function
+   * http://burtleburtle.net/bob/hash/integer.html
+   *
+   * @param a integer to hash
+   * @return a hash code for the given integer
+   */
+  private static int hash(int a) {
+    a = (a + 0x7ed55d16) + (a << 12);
+    a = (a ^ 0xc761c23c) ^ (a >>> 19);
+    a = (a + 0x165667b1) + (a << 5);
+    a = (a + 0xd3a2646c) ^ (a << 9);
+    a = (a + 0xfd7046c5) + (a << 3);
+    a = (a ^ 0xb55a4f09) ^ (a >>> 16);
+    return a;
+  }
+
+  /**
+   * Subsumming.
+   */
+  public void subsumming() {
+    int[] keys = lengths.keys();
+
+    // Computes clause hashes
+    TIntLongHashMap hashes = new TIntLongHashMap();
+    for (int i = 0; i < keys.length; ++i) {
+      int start = keys[i];
+      long hash = 0;
+      for (int j = start; ; j++) {
+        int literal = clauses.get(j);
+        if (literal == 0) break;
+        if (literal == REMOVED) continue;
+        hash |= 1 << (hash(literal) >>> 26);
+      }
+      hashes.put(start, hash);
+    }
+
+    // Finds subsummed clauses.
+    int numTries = 0, numGood =0;
+    int numRemovedClauses = 0;
+    for (int i = 0; i < keys.length; ++i) {
+      int start = keys[i];
+      if (isSatisfied(start)) continue;
+      long startHash = hashes.get(start);
+
+      // Finds literal included in minimum number of clauses
+      int bestLiteral = 0;
+      int minNumClauses = Integer.MAX_VALUE;
+      for (int j = start; ; j++) {
+        int literal = clauses.get(j);
+        if (literal == 0) break;
+        if (literal == REMOVED) continue;
+        int numClauses = watchList(literal).size();
+        if (numClauses < minNumClauses) {
+          bestLiteral = literal;
+          minNumClauses = numClauses;
+        }
+      }
+
+      if (watchList(bestLiteral).size() <= 1) continue;
+      for (int clause : watchList(bestLiteral).toArray()) {
+        if (clause == start) continue;
+        if ((startHash & hashes.get(clause)) != startHash) continue;
+
+        boolean good = true;
+        for (int j = start; good; j++) {
+          int literal = clauses.get(j);
+          if (literal == 0) break;
+          if (literal == REMOVED) continue;
+          good = watchList(literal).contains(clause);
+        }
+
+        if (good) {
+          ++numRemovedClauses;
+          removeClause(clause);
+        }
+      }
+    }
+
+    if (numRemovedClauses > 0) System.err.print("ss" + numRemovedClauses + ".");
   }
 
   /**
