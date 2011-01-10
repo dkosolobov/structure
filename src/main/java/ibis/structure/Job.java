@@ -32,15 +32,14 @@ public final class Job extends Activity {
     this.branch = branch;
   }
 
-
   @Override
   public void initialize() {
     // logger.info("At depth " + depth + " on " + Thread.currentThread().getName());
 
     try {
-      Solver solver = new Solver(instance, branch);
+      Solver solver = new Solver(instance);
       // instance = null;  // helps GC
-      solution = solver.solve();
+      solution = solver.solve(branch);
     } catch (AssertionError e) {
       e.printStackTrace();
       // Crashes on error.

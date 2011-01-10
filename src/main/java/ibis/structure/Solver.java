@@ -27,8 +27,6 @@ import static ibis.structure.BitSet.mapNtoZ;;
 public final class Solver {
   private static final Logger logger = Logger.getLogger(Solver.class);
   private static final int REMOVED = Integer.MAX_VALUE;
-  private static final int BACKTRACK_THRESHOLD = 0; // 1 << 8;
-  private static final int BACKTRACK_MAX_CALLS = 1 << 12;
   private static final java.util.Random random = new java.util.Random(1);
 
   // Number of variables
@@ -49,7 +47,7 @@ public final class Solver {
   // May contains satisfied clauses.
   private TIntArrayList queue = new TIntArrayList();
 
-  public Solver(final Skeleton instance, final int branch) {
+  public Solver(final Skeleton instance) {
     numVariables = instance.numVariables;
     proxies = new int[numVariables + 1];
     dag = new DAG(numVariables);
@@ -60,11 +58,6 @@ public final class Solver {
       watchLists[mapZtoN(literal)] = new TIntHashSet();
       watchLists[mapZtoN(-literal)] = new TIntHashSet();
       proxies[literal] = literal;
-    }
-
-    buildWatchLists();
-    if (branch != 0) {
-      addUnit(branch);
     }
 
     // logger.info("Solving " + clauses.size() + " literals and "
@@ -250,8 +243,15 @@ public final class Solver {
 
   /**
    * Returns a normalized literal to branch on.
+   *
+   * @param branch br
    */
-  public Solution solve() {
+  public Solution solve(final int branch) {
+    buildWatchLists();
+    if (branch != 0) {
+      addUnit(branch);
+    }
+
     // int beforeNumLiterals = clauses.size();
 
     int solved = Solution.UNKNOWN;
@@ -280,12 +280,12 @@ public final class Solver {
     Skeleton core = new Skeleton();
     core.append(dag.skeleton());
     core.append(compact);
-    int branch = chooseBranch();
+    int newBranch = chooseBranch();
 
     // int afterNumLiterals = core.clauses.size();
     // logger.info("Reduced from " + beforeNumLiterals + " to " + afterNumLiterals
                 // + " (diff " + (beforeNumLiterals - afterNumLiterals) + ")");
-    return Solution.unknown(units.elements(), proxies, core, branch);
+    return Solution.unknown(units.elements(), proxies, core, newBranch);
   }
 
   /**
