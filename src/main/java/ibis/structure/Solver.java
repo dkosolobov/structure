@@ -63,7 +63,7 @@ public final class Solver {
 
     // logger.info("Solving " + clauses.size() + " literals and "
                 // + numVariables + " variables, branching on " + branch);
-    System.err.print(".");
+    System.err.print(clauses.size() + ".");
     System.err.flush();
   }
 
@@ -407,6 +407,15 @@ public final class Solver {
     return simplified;
   }
 
+
+  private int ilog(int n) {
+    for (int i = 0; ; i++) {
+      if ((1 << i) == n) {
+        return i;
+      }
+    }
+  }
+
   /**
    * Hyper-binary resolution.
    *
@@ -416,63 +425,94 @@ public final class Solver {
    * @return true if any unit or binary was discovered
    */
   public boolean hyperBinaryResolution() throws ContradictionException {
-    int[] counts = new int[2 * numVariables + 1];
-    int[] sums = new int[2 * numVariables + 1];
+    int[] masks = new int[2 * numVariables + 1];
     int[] touched = new int[2 * numVariables + 1];
+    TIntArrayList[] lists = new TIntArrayList[256];
     int numUnits = 0, numBinaries = 0;
+
+    for (int i = 0; i < 256; ++i) {
+      lists[i] = new TIntArrayList();
+    }
 
     for (int start : lengths.keys()) {
       int numLiterals = 0;
-      int clauseSum = 0;
       int numTouched = 0;
+      int mask = 0;
 
       for (int end = start; end < clauses.size(); end++) {
         int literal = clauses.get(end);
         if (literal == 0) break;
         if (literal == REMOVED) continue;
 
-        numLiterals++;
-        clauseSum += literal;
+        mask |= 1 << numLiterals;
         TIntHashSet neighbours = dag.neighbours(literal);
         if (neighbours != null) {
           TIntIterator it = neighbours.iterator();
           for (int size = neighbours.size(); size > 0; --size) {
             int node = mapZtoN(-it.next());
-            if (counts[node] == 0) touched[numTouched++] = node;
-            counts[node] += 1;
-            sums[node] += literal;
+            if (masks[node] == 0) touched[numTouched++] = node;
+            masks[node] |= 1 << numLiterals;
           }
         }
+        numLiterals++;
       }
 
-      if (numLiterals < 3) {
-        // Clause is too small for hyper binary resolution.
+      if (numLiterals < 3 || numLiterals > 8 || numTouched == 0) {
+        // Clause is too small/large for hyper binary resolution.
         continue;
       }
 
-      for (int i = 0; i < numTouched; ++i) {
-        if (isSatisfied(start)) continue;
-        int touch = touched[i];
-        int literal = mapNtoZ(touch);
-        if (isAssigned(literal)) continue;
+      logger.info("numTouched = " + numTouched + " " + numLiterals);
 
-        if (counts[touch] == numLiterals) {
-          // There is an edge from literal to all literals in clause.
-          if (!units.contains(-literal)) {
-            addUnit(-literal);
+      // Finds hyper units
+      for (int i = 0; i < numTouched; i++) {
+        int touchI = touched[i];
+        int literalI = mapNtoZ(touchI);
+
+        if (masks[touchI] == mask) {
+          if (units.contains(literalI)) {
+            // Discovered a contradiction.
+            throw new ContradictionException();
+          }
+          if (!units.contains(-literalI)) {
+            addUnit(-literalI);
             ++numUnits;
           }
-        } else if (counts[touch] + 1 == numLiterals) {
-          // There is an edge from literal to all literals in clause except one.
-          int missing = clauseSum - sums[touch];
-          if (!isAssigned(missing) && !dag.containsEdge(literal, missing)) {
-            addBinary(-literal, missing);
-            ++numBinaries;
+          continue;
+        }
+
+        lists[masks[touchI]].add(touchI);
+      }
+
+      for (int mi = 0; mi < (1 << numLiterals); mi++) {
+        if (lists[mi].isEmpty()) continue;
+
+        for (int mj = mi + 1; mj < (1 << numLiterals); mj++) {
+          if ((mi | mj) != mask) continue;
+          if (lists[mj].isEmpty()) continue;
+
+          for (int i = 0; i < lists[mi].size(); i++) {
+            int touchI = lists[mi].get(i);
+            int literalI = mapNtoZ(touchI);
+
+            for (int j = 0; j < lists[mj].size(); j++) {
+              int touchJ = lists[mj].get(j);
+              int literalJ = mapNtoZ(touchJ);
+              if (isAssigned(literalI)) break;
+              if (isAssigned(literalJ)) continue;
+              if (dag.containsEdge(literalI, -literalJ)) continue;
+
+              addBinary(-literalI, -literalJ);
+              ++numBinaries;
+            }
           }
         }
 
-        counts[touch] = 0;
-        sums[touch] = 0;
+        lists[mi].clear();
+      }
+
+      for (int i = 0; i < numTouched; ++i) {
+        masks[touched[i]] = 0;
       }
     }
 
