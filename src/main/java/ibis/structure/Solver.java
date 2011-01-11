@@ -354,52 +354,55 @@ public final class Solver {
   }
 
   /**
+   * Propagates one clause.
+   */
+  private void propagateClause(int start) throws ContradictionException {
+    if (isSatisfied(start)) return;
+    int length = lengths.get(start);
+    assert 0 <= length && length < 3
+        : "Invalid clause of length " + length + " in queue";
+
+    int position = start;
+    switch (length) {
+      case 0: {
+        throw new ContradictionException();
+      }
+
+      case 1: {  // unit
+        int u;
+        while ((u = clauses.get(position)) == REMOVED) {
+          position++;
+        }
+        addUnit(u);
+        assert isSatisfied(position);
+        break;
+      }
+
+      case 2: {  // binary
+        int u, v;
+        while ((u = clauses.get(position)) == REMOVED) {
+          position++;
+        }
+        position++;
+        while ((v = clauses.get(position)) == REMOVED) {
+          position++;
+        }
+        addBinary(u, v);
+        if (!isSatisfied(start)) {
+          removeClause(start);
+        }
+        break;
+      }
+    }
+  }
+
+  /**
    * Propagates all clauses in queue.
    */
   private boolean propagate() throws ContradictionException {
     // NOTE: any new clause is appended.
     for (int i = 0; i < queue.size(); ++i) {
-      int start = queue.get(i);
-      if (isSatisfied(start)) {
-        continue;
-      }
-
-      int length = lengths.get(start);
-      assert 0 <= length && length < 3
-          : "Invalid clause of length " + length + " in queue";
-      int position = start;
-
-      switch (length) {
-        case 0: {
-          throw new ContradictionException();
-        }
-
-        case 1: {  // unit
-          int u;
-          while ((u = clauses.get(position)) == REMOVED) {
-            position++;
-          }
-          addUnit(u);
-          assert isSatisfied(position);
-          break;
-        }
-
-        case 2: {  // binary
-          int u, v;
-          while ((u = clauses.get(position)) == REMOVED) {
-            position++;
-          }
-          position++;
-          while ((v = clauses.get(position)) == REMOVED) {
-            position++;
-          }
-          addBinary(u, v);
-          if (!isSatisfied(start)) {
-            removeClause(start);
-          }
-          break;
-        }
-      }
+      propagateClause(queue.get(i));
     }
 
     boolean simplified = !queue.isEmpty();
@@ -447,6 +450,7 @@ public final class Solver {
 
       if (numLiterals < 3) {
         // Clause is too small for hyper binary resolution.
+        // propagateClause(start);
         continue;
       }
 
@@ -454,20 +458,43 @@ public final class Solver {
         if (isSatisfied(start)) continue;
         int touch = touched[i];
         int literal = mapNtoZ(touch);
-        if (isAssigned(literal)) continue;
 
         if (counts[touch] == numLiterals) {
           // There is an edge from literal to all literals in clause.
-          if (!units.contains(-literal)) {
-            addUnit(-literal);
+          int proxy = getRecursiveProxy(literal);
+          if (units.contains(proxy)) {
+            throw new ContradictionException();
+          }
+          if (!units.contains(-proxy)) {
+            addUnit(-proxy);
             ++numUnits;
           }
         } else if (counts[touch] + 1 == numLiterals) {
           // There is an edge from literal to all literals in clause except one.
-          int missing = clauseSum - sums[touch];
-          if (!isAssigned(missing) && !dag.containsEdge(literal, missing)) {
-            addBinary(-literal, missing);
-            ++numBinaries;
+          // New implication: proxy -> missing
+          int proxy = getRecursiveProxy(literal);
+          int missing = getRecursiveProxy(clauseSum - sums[touch]);
+
+          if (units.contains(proxy)) {
+            if (units.contains(-missing)) {
+              // true -> false
+              throw new ContradictionException();
+            } else if (!units.contains(missing)) {
+              // true -> missing => missing
+              addUnit(missing);
+              ++numUnits;
+            }
+          } else if (units.contains(-proxy) || units.contains(missing)) {
+            // false -> missing or proxy -> true
+          } else if (units.contains(-missing)) {
+            // proxy -> false => -proxy
+            addUnit(-proxy);
+            ++numUnits;
+          } else {
+            if (!dag.containsEdge(proxy, missing)) {
+              addBinary(-proxy, missing);
+              ++numBinaries;
+            }
           }
         }
 
