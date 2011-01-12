@@ -249,14 +249,14 @@ public final class Solver {
    */
   public Solution solve(final int branch) {
     buildWatchLists();
-    if (branch != 0) {
-      addUnit(branch);
-    }
 
     // int beforeNumLiterals = clauses.size();
 
     int solved = Solution.UNKNOWN;
     try {
+      if (branch != 0) {
+        addUnit(branch);
+      }
       simplify();
     } catch (ContradictionException e) {
       return Solution.unsatisfiable();
@@ -281,7 +281,7 @@ public final class Solver {
     Skeleton core = new Skeleton();
     core.append(dag.skeleton());
     core.append(compact);
-    int newBranch = chooseBranch();
+    int newBranch = chooseBranch(core.clauses);
 
     // int afterNumLiterals = core.clauses.size();
     // logger.info("Reduced from " + beforeNumLiterals + " to " + afterNumLiterals
@@ -293,7 +293,7 @@ public final class Solver {
    * A score for branch.
    */
   private double score(int branch) {
-    int num = numBinaries(branch);
+    int num = 0;
     TIntHashSet neighbours = dag.neighbours(branch);
     if (neighbours != null) {
       TIntIterator it = neighbours.iterator();
@@ -301,24 +301,31 @@ public final class Solver {
         int literal = it.next();
         num += watchList(literal).size();
       }
+      return Math.pow(2 + random.nextDouble(), num);
     }
-    return Math.pow(random.nextDouble(), num);
+    num = watchList(branch).size();
+    return Math.pow(1 + random.nextDouble(), num);
   }
 
   // The idea here is that if a literal is frequent
   // it will have a higher chance to be selected
-  private int chooseBranch() {
+  private int chooseBranch(TIntArrayList core) {
     int bestBranch = 0;
-    double bestValue = Double.POSITIVE_INFINITY;
+    double bestValue = Double.NEGATIVE_INFINITY;
     for (int branch = 1; branch <= numVariables; ++branch) {
-      if (!isAssigned(branch)) {
-        double value = score(branch) * score(-branch);
-        if (value < bestValue) {
-          bestBranch = branch;
+      boolean isMutex =
+          watchList(branch).isEmpty() && watchList(-branch).isEmpty();
+      if (!isMutex && !isAssigned(branch)) {
+        double positive = score(branch);
+        double negative = score(-branch);
+        double value = positive * negative;
+        if (value > bestValue) {
+          bestBranch = positive > negative ? -branch : branch;
           bestValue = value;
         }
       }
     }
+    
     assert bestBranch != 0;
     return bestBranch;
   }
@@ -455,7 +462,7 @@ public final class Solver {
       }
 
       for (int i = 0; i < numTouched; ++i) {
-        if (isSatisfied(start)) continue;
+        if (isSatisfied(start)) break;
         int touch = touched[i];
         int literal = mapNtoZ(touch);
 
