@@ -22,6 +22,7 @@ public final class DAG {
   // Maps nodes to set of neighbours (including the node itself).
   private int numVariables;
   private TIntHashSet[] dag;
+  private int[] buffer0, buffer1;
 
   /**
    * Creates an empty dag.
@@ -29,6 +30,8 @@ public final class DAG {
   public DAG(final int numVariables) {
     this.numVariables = numVariables;
     dag = new TIntHashSet[2 * numVariables + 1];
+    buffer0 = new int[numVariables];
+    buffer1 = new int[numVariables];
   }
 
   /**
@@ -71,17 +74,46 @@ public final class DAG {
 
     createNode(u);
     createNode(v);
+    TIntIterator it;
 
-    // Connect all parents of u with all parents of v.
-    int[] children = neighbours(v).toArray();
-    int[] parents = neighbours(-u).toArray();
-    for (int i = 0; i < parents.length; ++i) {
-      neighbours(-parents[i]).addAll(children);
-    }
-    for (int i = 0; i < children.length; ++i) {
-      neighbours(-children[i]).addAll(parents);
+    // Determines new children to propagate from.
+    int numChildren = 0;
+    int[] children = buffer0;
+    it = neighbours(v).iterator();
+    for (int size = neighbours(v).size(); size > 0; size--) {
+      int literal = it.next();
+      if (!neighbours(u).contains(literal)) {
+        children[numChildren++] = literal;
+      }
     }
 
+    // Determines new parents to propagate to.
+    int numParents = 0;
+    int[] parents = buffer1;
+    it = neighbours(-u).iterator();
+    for (int size = neighbours(-u).size(); size > 0; size--) {
+      int literal = it.next();
+      if (!neighbours(-v).contains(literal)) {
+        parents[numParents++] = literal;
+      }
+    }
+
+    // Connect all parents of u with children of v.
+    for (int i = 0; i < numParents; i++) {
+      TIntHashSet p = neighbours(-parents[i]);
+      if (p.contains(v)) continue;
+      for (int j = 0; j < numChildren; j++) {
+        p.add(children[j]);
+      }
+    }
+    for (int i = 0; i < numChildren; i++) {
+      TIntHashSet c = neighbours(-children[i]);
+      if (c.contains(-u)) continue;
+      for (int j = 0; j < numParents; j++) {
+        c.add(parents[j]);
+      }
+    }
+    
     return null;
   }
 
