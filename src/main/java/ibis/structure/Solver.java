@@ -257,7 +257,7 @@ public final class Solver {
       if (branch != 0) {
         addUnit(branch);
       }
-      simplify();
+      simplify(branch == 0);
     } catch (ContradictionException e) {
       return Solution.unsatisfiable();
     }
@@ -334,7 +334,7 @@ public final class Solver {
   /**
    * Simplifies the instance.
    */
-  public void simplify() throws ContradictionException {
+  public void simplify(boolean isRoot) throws ContradictionException {
     propagate();
 
     for (int i = 0; i < Configure.numHyperBinaryResolutions; ++i) {
@@ -353,8 +353,12 @@ public final class Solver {
     }
 
     if (Configure.pureLiterals) {
-      pureLiterals();
+      boolean newUnits = pureLiterals();
       propagate();
+      if (isRoot && newUnits) {
+        pureLiterals();
+        propagate();
+      }
     }
 
     verify();

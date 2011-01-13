@@ -19,7 +19,7 @@ public class Configure {
   public static boolean binarySelfSubsumming = true;
   public static boolean pureLiterals = true;
   public static boolean subsumming = true;
-  public static int numHyperBinaryResolutions = 4;
+  public static int numHyperBinaryResolutions = 2;
 
   public static boolean configure(String[] args) {
     Options options = new Options();
