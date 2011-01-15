@@ -9,14 +9,12 @@ Site
 ----
 
 Main site: http://www.few.vu.nl/~ami650/structure/
-Download from: http://github.com/downloads/brtzsnr/structure/structure-0.1-jar-with-dependencies.jar
 
 
 Building
 --------
 
-STRUCTure requires trove4j 2.1.0 and Cohort 0.7.0 (developed at VU
-Amsterdam). 
+STRUCTure requires trove4j 2.1.0, Constellation 0.7.0 and IPL 2.2.
 
 1. Constellation
 
@@ -33,8 +31,21 @@ $ cd trove-2.1.0
 $ ant
 $ mvn install:install-file -Dfile=lib/trove-2.1.0.jar -Dpackaging=jar -DgroupId=trove -DartifactId=trove -Dversion=2.1.0
 
-3. Structure
+3. IPL
 
+$ wget http://gforge.cs.vu.nl/gf/download/frsrelease/135/719/ipl-2.2.zip
+$ unzip ipl-2.2.zip
+$ cd ipl-2.2
+$ vim ibis.properties 
+$ bin/ipl-server
+
+4. Structure
+
+Note that you may have to disable the tests to be able to compile. Lately I switched to
+more automated random generated tests to help debugging and finding of corner cases so
+I neglected the unit tests.
+
+$ mvn site
 $ mvn compile test
 $ mvn assembly:assembly
 
@@ -42,12 +53,17 @@ $ mvn assembly:assembly
 Running
 -------
 
-STRUCTure comes in two flavors: simplify and solve.
+A script solve is included which should work after $ mvn assembly:assembly
 
-1. Simplify
+$ ./solve input.cnf
 
-$ java -cp structure-0.1-jar-with-dependencies.jar ibis.structure.Simplify -o output.cnf input.cnf
 
-2. Solve (CLI in progress)
+Testing
+-------
 
-$ java -cp structure-0.1-jar-with-dependencies.jar ibis.structure.Solve -o output.cnf input.cnf
+bin/ contains some generators.
+testing/ contains various testing scripts. Check:
+
+$ testing/eval <problem-size>   # finds failed instances
+$ testing/validator.py          # validates a solution
+$ testing/prun-schedule         # evaluates on DAS cluster at VU
