@@ -1,13 +1,14 @@
 package ibis.structure;
 
-import java.util.Arrays;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntIterator;
 
 import static ibis.structure.BitSet.mapZtoN;
-import static ibis.structure.BitSet.mapNtoZ;;
 
+/**
+ * Directed acyclic graph of literals.
+ */
 public final class DAG {
   public static class Join {
     public int parent;
@@ -20,9 +21,14 @@ public final class DAG {
   }
 
   // Maps nodes to set of neighbours (including the node itself).
+  /** Number of variables. Number of nodes is twice the number of variables. */
   private int numVariables;
+  /** The dag. */
   private TIntHashSet[] dag;
+  /** Two buffers of numVariables length to reduce memory allocations. */
   private int[] buffer0, buffer1;
+  /** Topological sort of dag */
+  TIntArrayList[] tsGraph = null;
 
   /**
    * Creates an empty dag.
@@ -36,6 +42,9 @@ public final class DAG {
 
   /**
    * Returns true if node exists.
+   *
+   * @param u a literal
+   * @return true if dag has node u
    */
   public boolean hasNode(final int u) {
     return dag[BitSet.mapZtoN(u)] != null;
@@ -62,6 +71,9 @@ public final class DAG {
   /**
    * Adds a new edge between u and v, joining
    * proxies to maintain the graph acyclic.
+   *
+   * @param u source literal
+   * @param v destination literal
    */
   public Join addEdge(final int u, final int v) {
     assert u != 0 && v != 0;
@@ -101,14 +113,18 @@ public final class DAG {
     // Connect all parents of u with children of v.
     for (int i = 0; i < numParents; i++) {
       TIntHashSet p = neighbours(-parents[i]);
-      if (p.contains(v)) continue;
+      if (p.contains(v)) {
+        continue;
+      }
       for (int j = 0; j < numChildren; j++) {
         p.add(children[j]);
       }
     }
     for (int i = 0; i < numChildren; i++) {
       TIntHashSet c = neighbours(-children[i]);
-      if (c.contains(-u)) continue;
+      if (c.contains(-u)) {
+        continue;
+      }
       for (int j = 0; j < numParents; j++) {
         c.add(parents[j]);
       }
@@ -119,6 +135,9 @@ public final class DAG {
 
   /**
    * Returns all nodes n such that -n => n if edge u, v is added.
+   *
+   * @param u source literal
+   * @param v destination literal
    */
   public TIntHashSet findContradictions(final int u, final int v) {
     TIntHashSet contradictions = new TIntHashSet();
@@ -318,7 +337,6 @@ public final class DAG {
     return units;
   }
 
-  TIntArrayList[] tsGraph = null;
 
   /**
    * Produces a topological sort of dag.
@@ -372,12 +390,16 @@ public final class DAG {
         TIntArrayList neighbours = tsGraph[mapZtoN(u)];
         for (int i = 0, last = 0; i < neighbours.size(); ++i) {
           int v = tsGraph[mapZtoN(u)].get(i);
-          if (-u < v) continue;
+          if (-u < v) {
+            continue;
+          }
 
           boolean good = last == 0 || !neighbours(last).contains(v);
           for (int j = 0; j < 10 && good; ++j) {
             int w = tsGraph[mapZtoN(u)].get(j);
-            if (w == v) break;
+            if (w == v) {
+              break;
+            }
             good = !neighbours(w).contains(v);
           }
           if (good) {
@@ -393,5 +415,4 @@ public final class DAG {
     tsGraph = null;
     return skeleton;
   }
-
 }

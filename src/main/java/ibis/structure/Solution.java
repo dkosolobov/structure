@@ -4,6 +4,17 @@ import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIntIterator;
 
 
+/**
+ * Solution represents the solution for an instance.
+ *
+ * There are three posibilities
+ *
+ * <ul>
+ * <tt>SATISFIABLE</tt> A solution was found.
+ * <tt>UNSATISFIABLE</tt> Instance is unsatisfiable.
+ * <tt>UNKNOWN</tt> a solution was not found, more branching is required.
+ * </ul>
+ */
 public final class Solution {
   public static final int SATISFIABLE = 10;
   public static final int UNSATISFIABLE = 20;
@@ -11,24 +22,42 @@ public final class Solution {
 
   private int solved = UNKNOWN;  // SATISFIABLE, UNSATISFIABLE or UNKNOWN
   private TIntIntHashMap variableMap = null;
+  /** A vector of units. */
   private int[] units = null;
+  /** Proxies for equivalent literals */
   private int[] proxies = null;
+  /** Core instance without units and equivalent literals */
   private Skeleton core = null;
+  /** The branch */
   private int branch = 0;
 
+  /**
+   * Returns a solution representing an unsatifiable instance.
+   */
   public static Solution unsatisfiable() {
     Solution solution = new Solution(UNSATISFIABLE);
     return solution;
   }
 
-  public static Solution satisfiable(int[] units, int[] proxies) {
+  /**
+   * Returns a solution representing a satifiable instance.
+   *
+   * Solution contains units and proxies.
+   */
+  public static Solution satisfiable(final int[] units, final int[] proxies) {
     Solution solution = new Solution(SATISFIABLE);
     solution.units = units;
     solution.proxies = proxies;
     return solution;
   }
 
-  public static Solution unknown(int[] units, int[] proxies, Skeleton core, int branch) {
+  /**
+   * Returns a solution representing an unknown instance.
+   *
+   * Solution contains units, proxies, normalized core instance and branch.
+   */
+  public static Solution unknown(final int[] units, final int[] proxies,
+                                 final Skeleton core, final int branch) {
     Solution solution = new Solution(UNKNOWN);
     solution.units = units;
     solution.proxies = proxies;
@@ -38,7 +67,7 @@ public final class Solution {
     return solution;
   }
 
-  private Solution(int solved) {
+  private Solution(final int solved) {
     this.solved = solved;
   }
 
@@ -64,6 +93,8 @@ public final class Solution {
 
   /**
    * Returns the solution as an array of units.
+   *
+   * @return all units.
    */
   public int[] solution() {
     assert solved == SATISFIABLE;
@@ -72,6 +103,8 @@ public final class Solution {
 
   /**
    * Returns the solution as an array of units.
+   *
+   * @return all units
    */
   public int[] solution(final int[] coreSolution) {
     assert solved != UNSATISFIABLE;

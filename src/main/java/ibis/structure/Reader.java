@@ -23,6 +23,16 @@ public final class Reader {
     return parseStream(new ByteArrayInputStream(text.getBytes("UTF-8")));
   }
 
+  /**
+   * Parses an url.
+   *
+   * If url starts with http:// the instance is downloaded.
+   * If url ends with .gz it is assumed to be a gziped stream.
+   *
+   * @param url location of instance
+   * @return read skeleton
+   * @throws ParseException if url contains an invalid instance
+   */
   public static Skeleton parseURL(String url)
       throws IOException, ParseException {
     InputStream source = null;
@@ -43,7 +53,14 @@ public final class Reader {
     }
   }
 
-  private static Skeleton parseStream(InputStream source)
+  /**
+   * Parses a stream for a CNF instance.
+   *
+   * @param source input stream
+   * @return read skeleton
+   * @throws ParseException if stream contains an invalid instance
+   */
+  private static Skeleton parseStream(final InputStream source)
       throws IOException, ParseException {
     Scanner scanner = new Scanner(source);
 
@@ -55,8 +72,8 @@ public final class Reader {
         token = scanner.next();
       }
       if (!token.equals("p")) {
-        throw new ParseException("Excepted 'p', but '" + token +
-                                 "' was found");
+        throw new ParseException(
+            "Excepted 'p', but '" + token + "' was found");
       }
     } catch (NoSuchElementException e) {
       throw new ParseException("Header not found");
@@ -67,8 +84,8 @@ public final class Reader {
     try {
       String cnf = scanner.next();
       if (!cnf.equals("cnf")) {
-        throw new ParseException("Expected 'cnf', but '" + cnf +
-                                 "' was found");
+        throw new ParseException(
+            "Expected 'cnf', but '" + cnf + "' was found");
       }
       numVariables = scanner.nextInt();
       numClauses = scanner.nextInt();
@@ -93,8 +110,8 @@ public final class Reader {
         }
       }
     } catch (NoSuchElementException e) {
-      throw new ParseException("Incomplete problem: " + numClauses +
-                               " clauses are missing");
+      throw new ParseException(
+          "Incomplete problem: " + numClauses + " clauses are missing");
     }
 
     return skeleton;

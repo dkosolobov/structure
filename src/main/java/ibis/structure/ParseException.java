@@ -1,7 +1,13 @@
 package ibis.structure;
 
+/**
+ * ParseException is thrown when input files contains an invalid instance.
+ */
 public class ParseException extends Exception {
-  public ParseException(String message) {
-    super("Invalid input file: " + message);
+  /**
+   * @param message message to include with exception.
+   */
+  public ParseException(final String message) {
+    super("Input file " + Configure.inputFile + " is invalid: " + message);
   }
 }

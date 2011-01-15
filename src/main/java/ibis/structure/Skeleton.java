@@ -11,6 +11,7 @@ import java.util.Comparator;
 import java.util.Vector;
 import org.apache.log4j.Logger;
 
+
 /**
  * @todo store initial number of variables
  */
