@@ -74,7 +74,7 @@ public final class Job extends Activity {
       unitsSet.set(unit);
       if (unitsSet.get(-unit)) {
         logger.error("Contradictory units for");
-        logger.error("by " + units);
+        logger.error("by " + (new TIntArrayList(units)));
         logger.error("in branch " + branch);
         logger.error("and instance " + instance.toString());
         assert false;
@@ -89,7 +89,7 @@ public final class Job extends Activity {
         if (!satisfied) {
           TIntArrayList clause = instance.clauses.subList(lastClauseStart, i);
           logger.error("Clause " + clause + " not satisfied");
-          logger.error("by " + units);
+          logger.error("by " + (new TIntArrayList(units)));
           logger.error("in branch " + branch);
           logger.error("and instance " + instance.toString());
           assert false;
