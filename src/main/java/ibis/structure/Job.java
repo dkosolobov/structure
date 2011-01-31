@@ -14,6 +14,8 @@ import java.io.PrintStream;
 public final class Job extends Activity {
   private static final Logger logger = Logger.getLogger(Job.class);
 
+  private static boolean stopSearch = false;
+
   private ActivityIdentifier parent;
   private int depth;
   private Skeleton instance;
@@ -35,6 +37,15 @@ public final class Job extends Activity {
   @Override
   public void initialize() {
     // logger.info("At depth " + depth + " on " + Thread.currentThread().getName());
+
+    synchronized (Job.class) {
+      if (stopSearch) {
+        // If search has stopped ignores all jobs.
+        sendSolution(null);
+        finish();
+        return;
+      }
+    }
 
     try {
       Solver solver = new Solver(instance);
@@ -122,6 +133,9 @@ public final class Job extends Activity {
       // logger.info("Received " + (new TIntArrayList(reply)));
       // logger.info("from " + solution.core());
       sendSolution(solution.solution(reply));
+      synchronized (Job.class) {
+        stopSearch = true;
+      }
     }
 
     ++numReplies;
