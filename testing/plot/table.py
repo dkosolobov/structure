@@ -9,9 +9,9 @@ def main():
   for filename in filenames:
     with open(filename) as f:
       for line in f:
-        instance, returncode, solution, elapsed = line.split()
-        if solution not in ['unknown', 'satisfiable', 'unsatisfiable']:
-          solution = 'unknown'
+        instance, returncode, solution, elapsed, interval = line.split()
+        if solution not in ['UNKNOWN', 'SATISFIABLE', 'UNSATISFIABLE']:
+          solution = 'UNKNOWN'
 
         instance_results = results.setdefault(instance, {})
         instance_results[filename] = solution, elapsed
@@ -32,7 +32,7 @@ def main():
     print('      <td>%s</td>' % instance)
     for filename in filenames:
       solution, elapsed = results[instance].get(filename, (None, None))
-      if solution == 'unknown':
+      if solution == 'UNKNOWN':
         print('      <td>-</td>')
       elif solution is None:
         print('      <td></td>')
