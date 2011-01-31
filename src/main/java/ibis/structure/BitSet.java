@@ -24,13 +24,6 @@ public final class BitSet {
   }
 
   /**
-   * Returns a clone of this bitset.
-   */
-  public Object clone() {
-    return new BitSet(this);
-  }
-
-  /**
    * Sets bit at index.
    *
    * @param index number to add to bitset.
