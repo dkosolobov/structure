@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# Usage: run-local.py timeout program args...
-# Prints: stdout_file elapsed_seconds
 
 import subprocess
 import sys
@@ -102,7 +100,9 @@ def main():
       usage="usage: %prog [options] instance program...",
       description="SAT solver checker")
   parser.add_option('-t', dest='timeout', metavar='N', type=int, default=None,
-                    help='number of seconds to allow the program to run')
+                    help='number of seconds the program is allowed to run')
+  parser.add_option('-p', dest='path', metavar='PATH', type=str, default='%s',
+                    help='location of instance. \%s is replaced by instance name')
   parser.add_option('-s', dest='satisfiable', action='store_true', default=False,
                     help='if instance is known to be satisfiable')
   parser.disable_interspersed_args()
@@ -111,13 +111,14 @@ def main():
   if len(args) < 2:
     parser.error("Not enough arguments")
   instance, program = args[0], args[1:]
+  path = options.path % instance
 
   returncode = None
   status = None
   elapsed = None
 
   try:
-    # creates termporary files
+    # creates temporary files
     tmpdir = tempfile.mkdtemp(prefix='structure-%s-' % os.path.basename(instance))
     stdout = os.path.join(tmpdir, 'stdout')
     stderr = os.path.join(tmpdir, 'stderr')
@@ -136,7 +137,7 @@ def main():
       signal.alarm(0)
 
       returncode = process.returncode
-      status = validate(instance, stdout, options.satisfiable)
+      status = validate(path, stdout, options.satisfiable)
     except Alarm:
       process.kill();
       status = 'timedout'
@@ -151,7 +152,7 @@ def main():
     system.exit(0)
   finally:
     elapsed = time.time() - start_time
-    print(returncode, status, elapsed)
+    print(instance, returncode, status, elapsed)
     exit(int(status not in ['unknown', 'satisfiable', 'unsatisfiable']))
 
 

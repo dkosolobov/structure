@@ -1,11 +1,11 @@
 #!/bin/sh
 
-# mvn assembly:assembly
+cd `dirname $0`/..
 
 while true; do
   instance=`mktemp -t -u instance-XXXXXXXX`.cnf
   ./bin/sgen1 -sat -s $RANDOM$RANDOM -n $1 > $instance
-  ./testing/validator.py -s $instance ./solve -e 1 $instance
+  ./testing/validate.py -s $instance ./solve -e 1 $instance
   returncode=$?
   if [ $returncode -ne 0 ]; then
     bug=`mktemp -u bug-XXXXXXXX`.cnf
@@ -13,5 +13,5 @@ while true; do
     echo Copied instance to $bug
     exit
   fi
-  #rm -rf $instance
+  rm -rf $instance
 done
