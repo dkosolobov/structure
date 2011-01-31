@@ -4,15 +4,14 @@ import subprocess
 import sys
 import time
 import os
-import resource
-import urllib.request
 import tempfile
 import traceback
 import gzip
-import socket
-import errno
 import signal
 import optparse
+
+
+VALID_SOLUTIONS = ['SATISFIABLE', 'UNSATISFIABLE', 'UNKNOWN']
 
 
 class Alarm(Exception):
@@ -42,10 +41,9 @@ def validate(input, output, satisfiable):
         if answer is not None:
           return 'duplicate_solution'
         answer = line[2:-1]
-        if answer not in ['UNKNOWN', 'SATISFIABLE', 'UNSATISFIABLE']:
+        if answer not in VALID_SOLUTIONS:
           return 'invalid_solution'
-        answer = answer.lower()
-        if answer != 'satisfiable':
+        if answer != 'SATISFIABLE':
           if satisfiable:
             return 'wrong_solution'
           return answer
@@ -88,11 +86,40 @@ def validate(input, output, satisfiable):
       if literal in solution:
         satisfied = True
 
-  return 'satisfiable'
+  return 'SATISFIABLE'
 
 
-def done(instance, returncode, status, elapsed):
-  exit()
+def run(num, path, program, tmpdir, timeout, satisfiable):
+  print('.', end='', file=sys.stderr)
+  sys.stderr.flush()
+
+  # creates temporary files
+  stdout = os.path.join(tmpdir, 'stdout-%d' % num)
+  stderr = os.path.join(tmpdir, 'stderr-%d' % num)
+
+  # sets timeout
+  if timeout is not None:
+    signal.signal(signal.SIGALRM, alarm_handler)
+    signal.alarm(timeout)
+
+  start_time = time.time()
+  returncode = None
+  try:
+    process = subprocess.Popen(
+        args=program, stdin=open('/dev/null', 'rb'),
+        stdout=open(stdout, 'ab'), stderr=open(stderr, 'ab'))
+    process.wait()
+    signal.alarm(0)
+    elapsed = time.time() - start_time
+    status = validate(path, stdout, satisfiable)
+    if status not in VALID_SOLUTIONS: elapsed = None
+  except Alarm:
+    process.kill();
+    elapsed = None
+    status = 'timedout'
+
+  returncode = process.returncode
+  return [returncode, status, elapsed]
 
 
 def main():
@@ -101,6 +128,8 @@ def main():
       description="SAT solver checker")
   parser.add_option('-t', dest='timeout', metavar='N', type=int, default=None,
                     help='number of seconds the program is allowed to run')
+  parser.add_option('-r', dest='repeat', metavar='N', type=int, default=3,
+                    help='number of times to repeat measurements')
   parser.add_option('-p', dest='path', metavar='PATH', type=str, default='%s',
                     help='location of instance. \%s is replaced by instance name')
   parser.add_option('-s', dest='satisfiable', action='store_true', default=False,
@@ -113,37 +142,28 @@ def main():
   instance, program = args[0], args[1:]
   path = options.path % instance
 
-  returncode = None
-  status = None
   elapsed = None
-
+  tmpdir = tempfile.mkdtemp(prefix='structure-%s-' % os.path.basename(instance))
   try:
-    # creates temporary files
-    tmpdir = tempfile.mkdtemp(prefix='structure-%s-' % os.path.basename(instance))
-    stdout = os.path.join(tmpdir, 'stdout')
-    stderr = os.path.join(tmpdir, 'stderr')
+    for r in range(options.repeat):
+      run_returncode, run_status, run_elapsed = run(
+          r, path, program, tmpdir, options.timeout, options.satisfiable)
+      if run_status not in VALID_SOLUTIONS:
+        returncode, status, elapsed = run_returncode, run_status, None
+        break
 
-    # sets timeout
-    if options.timeout is not None:
-      signal.signal(signal.SIGALRM, alarm_handler)
-      signal.alarm(options.timeout)
-
-    start_time = time.time()
-    try:
-      process = subprocess.Popen(
-          args=program, stdin=open('/dev/null', 'rb'),
-          stdout=open(stdout, 'ab'), stderr=open(stderr, 'ab'))
-      process.wait()
-      signal.alarm(0)
-
-      returncode = process.returncode
-      status = validate(path, stdout, options.satisfiable)
-    except Alarm:
-      process.kill();
-      status = 'timedout'
+      if r == 0:
+        returncode, status = run_returncode, run_status
+        elapsed = [run_elapsed]
+      else:
+        if returncode != run_returncode or status != run_status:
+          returncode, status, elapsed = None, 'inconsistent_results', None
+          break
+        else:
+          elapsed.append(run_elapsed)
   except Exception as e:
     print(e, file=sys.stderr)
-    #traceback.print_exc()
+    traceback.print_exc()
     status = 'error'
   except KeyboardInterrupt as e:
     print('interrupted', file=sys.stderr)
@@ -151,9 +171,16 @@ def main():
     status = 'unknown'
     system.exit(0)
   finally:
-    elapsed = time.time() - start_time
-    print(instance, returncode, status, elapsed)
-    exit(int(status not in ['unknown', 'satisfiable', 'unsatisfiable']))
+    if status in VALID_SOLUTIONS:
+      avg = sum(elapsed) / len(elapsed)
+      std = (sum((e - avg)**2 for e in elapsed) / len(elapsed)) ** 0.5
+      ci = 1.96 * std / (len(elapsed) ** 0.5)
+      print(instance, returncode, status, avg, ci)
+    else:
+      print(instance, returncode, status, None, None)
+
+    sys.stdout.flush()
+    exit(int(status not in VALID_SOLUTIONS))
 
 
 if __name__ == '__main__':
