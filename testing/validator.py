@@ -150,7 +150,7 @@ def main():
     system.exit(0)
   finally:
     elapsed = time.time() - start_time
-    print(instance, returncode, status, elapsed)
+    print(returncode, status, elapsed)
     exit(int(status not in ['unknown', 'satisfiable', 'unsatisfiable']))
 
 
