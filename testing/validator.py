@@ -66,6 +66,7 @@ def validate(input, output, satisfiable):
       return 'contradictory_values'
 
   # reads instance
+  # NOTE: assumes that instance is correct
   clauses = []
   with open_input(input) as f:
     for line in f:
@@ -73,7 +74,7 @@ def validate(input, output, satisfiable):
       if line.startswith("c "):  # comment
         pass
       elif line.startswith("p "):  # header
-        pass  # TODO: check literals
+        pass
       else:
         clauses.extend(line.split())
   clauses = list(map(int, clauses))
