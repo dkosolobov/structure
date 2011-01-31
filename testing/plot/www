@@ -1,0 +1,30 @@
+#!/bin/sh
+# requires http://www.kryogenix.org/code/browser/sorttable/sorttable.js
+
+dir=`dirname $0`
+
+rm -f graph.{png,html}
+$dir/plot $* > graph.png
+
+cat >> graph.html <<EOF
+<html>
+<head>
+<title>Graph</title>
+<script src="sorttable.js" ></script>
+</head>
+<body>
+<p>
+<img src="graph.png" />
+</p>
+<p>
+EOF
+
+$dir/table.py $* >> graph.html
+
+cat >> graph.html <<EOF
+</p>
+</body>
+</html>
+EOF
+
+scp graph.{html,png} keg.cs.vu.nl:www/
