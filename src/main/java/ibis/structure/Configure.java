@@ -38,6 +38,7 @@ public class Configure {
     options.addOption("e", true, "# of executors (0 for number of CPUs)");
     options.addOption("o", true, "output file (defaults to stdout)");
     options.addOption("debug", false, "enable expensive checks");
+    options.addOption("q", false, "be quiet");
 
     options.addOption("nobsss", false, "disable binary self subsumming");
     options.addOption("nopl", false, "disable pure literals");
@@ -73,6 +74,9 @@ public class Configure {
     }
     if (cl.hasOption("debug")) {
       enableExpensiveChecks = true;
+    }
+    if (cl.hasOption("q")) {
+      verbose = false;
     }
 
     if (cl.hasOption("nobsss")) {
