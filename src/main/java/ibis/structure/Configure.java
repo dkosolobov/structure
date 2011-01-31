@@ -11,14 +11,25 @@ import org.apache.log4j.Logger;
 public class Configure {
   private static final Logger logger = Logger.getLogger(Structure.class);
 
+  /** Start time of program. */
   public static long startTime = System.currentTimeMillis();
+  /** Path to input file. */
   public static String inputFile = null;
+  /** Path to output file. */
   public static String outputFile = null;
+  /** Number of executors to used. */
   public static int numExecutors = Runtime.getRuntime().availableProcessors();
+  /** True to enable expensive checks for debugging. */
   public static boolean enableExpensiveChecks = false;
+  /** True to print more info. */
+  public static boolean verbose = true;
+  /** True to perform binary (self) subsumming. */
   public static boolean binarySelfSubsumming = true;
+  /** True to perform pure literals. */
   public static boolean pureLiterals = true;
+  /** True to perform subsumming. */
   public static boolean subsumming = true;
+  /** Number of hyper binary resolutions to perform. 0 to disable. */
   public static int numHyperBinaryResolutions = 2;
 
   public static boolean configure(String[] args) {
@@ -36,7 +47,7 @@ public class Configure {
     BasicParser parser = new BasicParser();
     CommandLine cl = null;
     boolean wrongArguments = false;
-    
+
     try {
       cl = parser.parse(options, args);
       args = cl.getArgs();
