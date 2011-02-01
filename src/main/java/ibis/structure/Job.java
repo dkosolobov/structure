@@ -1,6 +1,5 @@
 package ibis.structure;
 
-import java.lang.ref.WeakReference;
 import org.apache.log4j.Logger;
 import gnu.trove.TIntArrayList;
 import ibis.constellation.Activity;
@@ -8,8 +7,6 @@ import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import ibis.constellation.context.UnitActivityContext;
 
-import java.io.FileOutputStream;
-import java.io.PrintStream;
 
 public final class Job extends Activity {
   private static final Logger logger = Logger.getLogger(Job.class);
@@ -22,8 +19,8 @@ public final class Job extends Activity {
   private int branch;
 
   private Solution solution = null;
+  private int[] replies = new int[2];
   private int numReplies = 0;
-  private boolean solved = false;
 
   public Job(final ActivityIdentifier parent, final int depth,
              final Skeleton instance, final int branch) {
@@ -36,12 +33,10 @@ public final class Job extends Activity {
 
   @Override
   public void initialize() {
-    // logger.info("At depth " + depth + " on " + Thread.currentThread().getName());
-
     synchronized (Job.class) {
       if (stopSearch) {
         // If search has stopped ignores all jobs.
-        sendSolution(null);
+        sendReply(Solution.unknown());
         finish();
         return;
       }
@@ -49,7 +44,9 @@ public final class Job extends Activity {
 
     try {
       Solver solver = new Solver(instance);
-      // instance = null;  // helps GC
+      if (!Configure.enableExpensiveChecks) {
+        instance = null;  // helps GC
+      }
       solution = solver.solve(branch);
     } catch (AssertionError e) {
       e.printStackTrace();
@@ -58,10 +55,10 @@ public final class Job extends Activity {
     }
 
     if (solution.isSatisfiable()) {
-      sendSolution(solution.solution());
+      sendReply(solution);
       finish();
     } else if (solution.isUnsatisfiable()) {
-      sendSolution(null);
+      sendReply(solution.unsatisfiable());
       finish();
     } else {
       assert solution.isUnknown();
@@ -77,8 +74,9 @@ public final class Job extends Activity {
    * Checks solution.
    */
   private void checkSolution(final int[] units) {
-    if (!Configure.enableExpensiveChecks)
+    if (!Configure.enableExpensiveChecks) {
       return;
+    }
       
     BitSet unitsSet = new BitSet();
     for (int unit : units) {
@@ -117,37 +115,44 @@ public final class Job extends Activity {
   /**
    * Sends solution to parent.
    */
-  private void sendSolution(final int[] units) {
-    if (units != null) checkSolution(units);
-    executor.send(new Event(identifier(), parent, units));
+  private void sendReply(Solution reply) {
+    executor.send(new Event(identifier(), parent, reply));
   }
 
-  // TODO: The other branch should be canceled, however
-  //       canceling is not implemented in Constellation.
   @Override
   public void process(Event e) throws Exception {
-    int[] reply = (int[])e.data;
-    if (reply != null && !solved) {
-      /* Sends the solution to parent. */
-      solved = true;
-      // logger.info("Received " + (new TIntArrayList(reply)));
-      // logger.info("from " + solution.core());
-      sendSolution(solution.solution(reply));
+    Solution reply = (Solution)e.data;
+    if (solution.isUnknown() && reply.isSatisfiable()) {
+      // Sends the solution to parent.
+      solution.merge(reply);
+      sendReply(solution);
       synchronized (Job.class) {
         stopSearch = true;
       }
     }
 
-    ++numReplies;
+    replies[numReplies] = reply.solved();
+    numReplies++;
+
     if (numReplies == 1) {
-      /* Waits for the other branch to finish. */
+      // Waits for the other branch to finish.
       suspend();
-    } else {
-      /* Both branches finished */
-      assert numReplies == 2;
-      if (!solved) sendSolution(null);
-      finish();
+      return;
     }
+
+    /* Both branches finished */
+    assert numReplies == 2;
+    if (replies[0] == Solution.SATISFIABLE
+        || replies[1] == Solution.SATISFIABLE) {
+      // A solution was already found and sent to parent.
+    } else if (replies[0] == Solution.UNSATISFIABLE
+        && replies[1] == Solution.UNSATISFIABLE) {
+      // Both braches returned UNSATISFIABLE so the instance is unsatifiable
+      sendReply(Solution.unsatisfiable());
+    } else {
+      sendReply(Solution.unknown());
+    }
+    finish();
   }
 
   @Override

@@ -76,43 +76,17 @@ public class Structure {
         constellation.submit(root);
         constellation.submit(new Job(root.identifier(), 0, instance, 0));
 
-        int[] model = (int[])root.waitForEvent().data;
+        Solution solution = (Solution)root.waitForEvent().data;
         final long endTime = System.currentTimeMillis();
         output.println("c Elapsed time " + (endTime - Configure.startTime) / 1000.);
-
-        if (model == null) {
-          printUnsatisfiable(output);
-        } else {
-          printSolution(output, model);
-        }
+        solution.print(output);
       }
     } catch (Exception e) {
       logger.error("Caught unhandled exception", e);
-      printUnknown(System.out);
+      Solution.unknown().print(output);
     } finally {
       constellation.done();
       System.exit(0);
     }
-  }
-
-  private static void printSolution(PrintStream out, int[] model) {
-    printSatisfiable(out);
-    out.print("v");
-    for (int i = 0; i < model.length; ++i) {
-       out.print(" " + model[i]);
-    }
-    out.println(" 0");
-  }
-
-  private static void printSatisfiable(PrintStream out) {
-    out.println("s SATISFIABLE");
-  }
-
-  private static void printUnsatisfiable(PrintStream out) {
-    out.println("s UNSATISFIABLE");
-  }
-
-  private static void printUnknown(PrintStream out) {
-    out.println("s UNKNOWN");
   }
 }

@@ -1,5 +1,7 @@
 package ibis.structure;
 
+import java.io.PrintStream;
+
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIntIterator;
 
@@ -10,9 +12,9 @@ import gnu.trove.TIntIntIterator;
  * There are three posibilities
  *
  * <ul>
- * <tt>SATISFIABLE</tt> A solution was found.
- * <tt>UNSATISFIABLE</tt> Instance is unsatisfiable.
- * <tt>UNKNOWN</tt> a solution was not found, more branching is required.
+ * <li><tt>SATISFIABLE</tt> A solution was found.</li>
+ * <li><tt>UNSATISFIABLE</tt> Instance is unsatisfiable.</li>
+ * <li><tt>UNKNOWN</tt> a solution was not found, more branching is required.</li>
  * </ul>
  */
 public final class Solution {
@@ -20,16 +22,18 @@ public final class Solution {
   public static final int UNSATISFIABLE = 20;
   public static final int UNKNOWN = 30;
 
-  private int solved = UNKNOWN;  // SATISFIABLE, UNSATISFIABLE or UNKNOWN
-  private TIntIntHashMap variableMap = null;
-  /** A vector of units. */
+  /** One of: SATISFIABLE, UNSATISFIABLE or UNKNOWN */
+  private int solved = UNKNOWN;
+  /** Units. */
   private int[] units = null;
+  /** The variable map for denormalization. */
+  transient private TIntIntHashMap variableMap = null;
   /** Proxies for equivalent literals */
-  private int[] proxies = null;
+  transient private int[] proxies = null;
   /** Core instance without units and equivalent literals */
-  private Skeleton core = null;
+  transient private Skeleton core = null;
   /** The branch */
-  private int branch = 0;
+  transient private int branch = 0;
 
   /**
    * Returns a solution representing an unsatifiable instance.
@@ -48,7 +52,12 @@ public final class Solution {
     Solution solution = new Solution(SATISFIABLE);
     solution.units = units;
     solution.proxies = proxies;
+    solution.merge(null);
     return solution;
+  }
+
+  public static Solution unknown() {
+    return new Solution(UNKNOWN);
   }
 
   /**
@@ -87,38 +96,31 @@ public final class Solution {
     return core;
   }
 
+  public int solved() {
+    return solved;
+  }
+
   public int branch() {
     return branch;
   }
 
   /**
-   * Returns the solution as an array of units.
+   * Merges a core solution.
    *
-   * @return all units.
+   * Core becomes unusable.
    */
-  public int[] solution() {
-    assert solved == SATISFIABLE;
-    return solution(null);
-  }
-
-  /**
-   * Returns the solution as an array of units.
-   *
-   * @return all units
-   */
-  public int[] solution(final int[] coreSolution) {
-    assert solved != UNSATISFIABLE;
-    BitSet all = new BitSet();
+  public void merge(Solution core) {
+    assert core == null || core.solved == SATISFIABLE;
 
     // Adds units and core's solution
+    BitSet all = new BitSet();
     all.addAll(units);
-    if (!isSatisfiable()) {
-      assert solved == UNKNOWN && coreSolution != null;
-      denormalize(coreSolution);
-      all.addAll(coreSolution);
+    if (core != null) {
+      denormalize(core.units);
+      all.addAll(core.units);
     }
 
-    // Satisfiy missing proxies
+    // Satisfiy redundant literals
     for (int literal = 1; literal < proxies.length; ++literal) {
       if (literal == proxies[literal]) {
         if (!all.contains(literal) && !all.contains(-literal)) {
@@ -138,7 +140,39 @@ public final class Solution {
       }
     }
 
-    return all.elements();
+    solved = SATISFIABLE;
+    units = all.elements();
+    variableMap = null;
+    proxies = null;
+    core = null;
+    branch = 0;
+  }
+
+  /**
+   * Prints solution to out.
+   */
+  public void print(PrintStream out) {
+    switch (solved) {
+      case SATISFIABLE:
+        out.println("s SATISFIABLE");
+        break;
+
+      case UNSATISFIABLE:
+        out.println("s UNSATISFIABLE");
+        break;
+
+      case UNKNOWN:
+        out.println("s UNKNOWN");
+        break;
+    }
+
+    if (isSatisfiable()) {
+      out.print("v");
+      for (int i = 0; i < units.length; ++i) {
+         out.print(" " + units[i]);
+      }
+      out.println(" 0");
+    }
   }
 
   /**
@@ -166,7 +200,7 @@ public final class Solution {
   }
 
   /**
-   * Denormalizes an array of literals.
+   * Denormalizes inplace an array of units.
    */
   private void denormalize(final int[] array) {
     /* variableMap is the inverse of inverseMap */
