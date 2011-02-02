@@ -9,16 +9,12 @@ public final class BitSet {
   /** A bitset storing only positive indexes. */
   private java.util.BitSet bs;
 
-  /**
-   * Creates an empty bitset.
-   */
+  /** Creates an empty bitset. */
   public BitSet() {
     bs = new java.util.BitSet();
   }
 
-  /**
-   * Creates a copy of another bitset.
-   */
+  /** Creates a copy of another bitset.  */
   private BitSet(final BitSet copy) {
     bs = (java.util.BitSet) copy.bs.clone();
   }
@@ -47,15 +43,13 @@ public final class BitSet {
     }
   }
 
-  /**
-   * Gets the value at index.
-   */
+  /** Gets the value at index. */
   public boolean get(final int index) {
     return bs.get(mapZtoN(index));
   }
 
   public boolean contains(final int index) {
-    return get(index);
+    return bs.get(mapZtoN(index));
   }
 
   /**
