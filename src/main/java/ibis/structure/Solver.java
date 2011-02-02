@@ -148,7 +148,7 @@ public final class Solver {
         }
 
         length++;
-        assert !isAssigned(literal)
+        assert !isLiteralAssigned(literal)
             : "Literal " + literal + " is assigned";
         assert watchList(literal).contains(start)
             : "Clause " + start + " not in watch list of " + literal;
@@ -180,7 +180,7 @@ public final class Solver {
    */
   private void verifyAssigned() {
     for (int u = -numVariables; u <= numVariables; ++u) {
-      if (u != 0 && isAssigned(u)) {
+      if (u != 0 && isLiteralAssigned(u)) {
         assert watchList(u).isEmpty()
             : "Assigned literal " + u + " has non empty watch list";
         assert dag.neighbours(u) == null
@@ -205,7 +205,7 @@ public final class Solver {
    *
    * @return clauses with REMOVED elements removed
    */
-  public TIntArrayList cleanClauses() {
+  public TIntArrayList compact() {
     TIntArrayList clean = new TIntArrayList();
     for (int i = 0; i < clauses.size(); i++) {
       int literal = clauses.get(i);
@@ -228,7 +228,7 @@ public final class Solver {
 
     // Appends the implications graph and clauses
     skeleton.append(dag.skeleton());
-    skeleton.append(cleanClauses());
+    skeleton.append(compact());
 
     // Appends units and equivalent relations
     for (int literal = -numVariables; literal <= numVariables; ++literal) {
@@ -273,49 +273,63 @@ public final class Solver {
    */
   public Solution solve(final int branch) {
     buildWatchLists();
+    if (branch != 0) {
+      addUnit(branch);
+    }
 
-    int solved = Solution.UNKNOWN;
     try {
-      if (branch != 0) {
-        addUnit(branch);
-      }
-      simplify(branch == 0);
+      simplify();
     } catch (ContradictionException e) {
       return Solution.unsatisfiable();
     }
 
-    // Computes proxies for every literal.
-    for (int literal = 1; literal <= numVariables; ++literal) {
-      getRecursiveProxy(literal);
-    }
-
-    TIntArrayList compact = cleanClauses();
-    if (compact.size() == 0) {
-      // Solves the remaining 2SAT encoded in the implication graph
-      for (TIntIterator it = dag.solve().iterator(); it.hasNext();) {
-        int unit = it.next();
-        if (!units.contains(unit)) {
-          addUnit(unit);
+    // Checks if all clauses were satisfied.
+    boolean satisfied = true;
+    for (int literal = -numVariables; literal <= numVariables; literal++) {
+      if (literal != 0) {
+        if (!watchList(literal).isEmpty()) {
+          satisfied = false;
+          break;
         }
       }
-      return Solution.satisfiable(units.elements(), proxies);
     }
 
-    // Gets the core instance that needs to be solved further
-    Skeleton core = new Skeleton();
-    core.append(dag.skeleton());
-    core.append(compact);
-    int newBranch = chooseBranch();
+    if (satisfied) {
+      // Solves the remaining 2SAT encoded in the implication graph
+      for (TIntIterator it = dag.solve().iterator(); it.hasNext();) {
+        addUnit(it.next());
+      }
+    }
 
-    return Solution.unknown(units.elements(), proxies, core, newBranch);
+    // Satisfies literals with satisfied proxies.
+    for (int literal = 1; literal <= numVariables; ++literal) {
+      int proxy = getRecursiveProxy(literal);
+      if (literal != proxy) {
+        if (units.contains(proxy)) {
+          units.add(literal);
+          proxies[literal] = literal;
+        } else if (units.contains(-proxy)) {
+          units.add(-literal);
+          proxies[literal] = literal;
+        }
+      }
+    }
+
+    if (satisfied) {
+      return Solution.satisfiable(units.elements());
+    }
+
+    return Solution.unknown();
   }
 
-  /**
-   * Computes a a score for a possible branch.
-   *
-   * @param branch a literal
-   * @return a score
-   */
+  public Core core() {
+    Skeleton core = new Skeleton();
+    core.append(dag.skeleton());
+    core.append(compact());
+    return new Core(units.elements(), proxies, core);
+  }
+
+  /** Computes a score for a possible branch.  */
   private double score(final int branch) {
     int num = 0;
     TIntHashSet neighbours = dag.neighbours(branch);
@@ -331,18 +345,14 @@ public final class Solver {
     return Math.pow(1 + random.nextDouble(), num);
   }
 
-  /**
-   * Chooses a branch.
-   *
-   * @return best branch
-   */
-  private int chooseBranch() {
+  /** Returns a literal for branching. */
+  public int chooseBranchingLiteral() {
     int bestBranch = 0;
     double bestValue = Double.NEGATIVE_INFINITY;
     for (int branch = 1; branch <= numVariables; ++branch) {
       boolean isMutex =
           watchList(branch).isEmpty() && watchList(-branch).isEmpty();
-      if (!isMutex && !isAssigned(branch)) {
+      if (!isMutex && !isLiteralAssigned(branch)) {
         double positive = score(branch);
         double negative = score(-branch);
         double value = positive * negative;
@@ -357,14 +367,13 @@ public final class Solver {
     return bestBranch;
   }
 
-
   /**
    * Simplifies the instance.
    *
    * @param isRoot true if solver is at the root of branching tree
    * @throws ContradictionException if contradiction was found
    */
-  public void simplify(final boolean isRoot) throws ContradictionException {
+  public void simplify() throws ContradictionException {
     propagate();
 
     for (int i = 0; i < Configure.numHyperBinaryResolutions; ++i) {
@@ -384,14 +393,8 @@ public final class Solver {
       propagate();
     }
 
-    if (Configure.pureLiterals) {
-      boolean newUnits = pureLiterals();
-      propagate();
-      if (isRoot && newUnits) {
-        pureLiterals();
-        propagate();
-      }
-    }
+    pureLiterals();
+    propagate();
 
     verify();
   }
@@ -580,7 +583,7 @@ public final class Solver {
     int numUnits = 0;
 
     for (int u = 1; u <= numVariables; u++) {
-      if (isAssigned(u)) {
+      if (isLiteralAssigned(u)) {
         continue;
       }
       if (numBinaries(u) == 0 && watchList(u).size() == 0) {
@@ -799,13 +802,8 @@ public final class Solver {
     return watchLists[mapZtoN(u)];
   }
 
-  /**
-   * Returns true if u is already assigned.
-   *
-   * @param u a literal
-   * @return true if literal was assigned
-   */
-  private boolean isAssigned(final int u) {
+  /** Returns true if literal u is already assigned. */
+  private boolean isLiteralAssigned(final int u) {
     assert u != 0;
     return getRecursiveProxy(u) != u || units.get(u) || units.get(-u);
   }
@@ -913,7 +911,7 @@ public final class Solver {
    * @param u unit to add.
    */
   private void addUnit(final int u) {
-    assert !isAssigned(u) : "Unit " + u + " already assigned";
+    assert !isLiteralAssigned(u) : "Unit " + u + " already assigned";
 
     if (dag.hasNode(u)) {
       int[] neighbours = dag.neighbours(u).toArray();
@@ -935,8 +933,8 @@ public final class Solver {
    * @param v a literal
    */
   private void addBinary(final int u, final int v) {
-    assert !isAssigned(u) : "First literal " + u + " is assigned";
-    assert !isAssigned(v) : "Second literal " + v + " is assigned";
+    assert !isLiteralAssigned(u) : "First literal " + u + " is assigned";
+    assert !isLiteralAssigned(v) : "Second literal " + v + " is assigned";
 
     // propagates contradictions contradictions
     TIntHashSet contradictions = dag.findContradictions(-u, v);
@@ -998,8 +996,8 @@ public final class Solver {
    * @param v new literal name
    */
   private void renameLiteral(final int u, final int v) {
-    assert !isAssigned(u);
-    assert !isAssigned(v);
+    assert !isLiteralAssigned(u);
+    assert !isLiteralAssigned(v);
 
     mergeWatchLists(u, v);
     mergeWatchLists(-u, -v);

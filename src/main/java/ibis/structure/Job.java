@@ -18,8 +18,8 @@ public final class Job extends Activity {
   private Skeleton instance;
   private int branch;
 
-  private Solution solution = null;
-  private int[] replies = new int[2];
+  private Core core = null;
+  private Solution[] replies = new Solution[2];
   private int numReplies = 0;
 
   public Job(final ActivityIdentifier parent, final int depth,
@@ -42,15 +42,16 @@ public final class Job extends Activity {
       }
     }
 
+    Solver solver = null;
+    Solution solution = null;
     try {
-      Solver solver = new Solver(instance);
+      solver = new Solver(instance);
+      solution = solver.solve(branch);
       if (!Configure.enableExpensiveChecks) {
         instance = null;  // helps GC
       }
-      solution = solver.solve(branch);
     } catch (AssertionError e) {
       e.printStackTrace();
-      // Crashes on error.
       System.exit(1);
     }
 
@@ -62,10 +63,15 @@ public final class Job extends Activity {
       finish();
     } else {
       assert solution.isUnknown();
+
+      core = solver.core();
+      int branchingLiteral = solver.chooseBranchingLiteral();
+      branchingLiteral = core.normalize(branchingLiteral);
+
       executor.submit(new Job(identifier(), depth + 1,
-                      solution.core(), solution.branch()));
+                      core.instance(), branchingLiteral));
       executor.submit(new Job(identifier(), depth + 1,
-                      solution.core(), -solution.branch()));
+                      core.instance(), -branchingLiteral));
       suspend();
     }
   }
@@ -101,7 +107,7 @@ public final class Job extends Activity {
           logger.error("by " + (new TIntArrayList(units)));
           logger.error("in branch " + branch);
           logger.error("and instance " + instance.toString());
-          assert false;
+          assert false: "Clause not satisfied";
         }
         lastClauseStart = i + 1;
         satisfied = false;
@@ -116,22 +122,26 @@ public final class Job extends Activity {
    * Sends solution to parent.
    */
   private void sendReply(Solution reply) {
+    if (reply.isSatisfiable()) {
+      checkSolution(reply.units());
+    }
     executor.send(new Event(identifier(), parent, reply));
   }
 
   @Override
   public void process(Event e) throws Exception {
     Solution reply = (Solution)e.data;
-    if (solution.isUnknown() && reply.isSatisfiable()) {
-      // Sends the solution to parent.
-      solution.merge(reply);
-      sendReply(solution);
-      synchronized (Job.class) {
-        stopSearch = true;
+    if (reply.isSatisfiable()) {
+      if (numReplies == 0 || !replies[0].isSatisfiable()) {
+        // Sends the solution to parent.
+        sendReply(core.merge(reply));
+        synchronized (Job.class) {
+          stopSearch = true;
+        }
       }
     }
 
-    replies[numReplies] = reply.solved();
+    replies[numReplies] = reply;
     numReplies++;
 
     if (numReplies == 1) {
@@ -140,13 +150,11 @@ public final class Job extends Activity {
       return;
     }
 
-    /* Both branches finished */
+    // Both branches finished
     assert numReplies == 2;
-    if (replies[0] == Solution.SATISFIABLE
-        || replies[1] == Solution.SATISFIABLE) {
+    if (replies[0].isSatisfiable() || replies[1].isSatisfiable()) {
       // A solution was already found and sent to parent.
-    } else if (replies[0] == Solution.UNSATISFIABLE
-        && replies[1] == Solution.UNSATISFIABLE) {
+    } else if (replies[0].isUnsatisfiable() && replies[1].isUnsatisfiable()) {
       // Both braches returned UNSATISFIABLE so the instance is unsatifiable
       sendReply(Solution.unsatisfiable());
     } else {
