@@ -307,7 +307,7 @@ public final class Solver {
     core.append(compact);
     int newBranch = chooseBranch();
 
-    return Solution.unknown(units.elements(), proxies, core, newBranch);
+    return Solution.branch(units.elements(), proxies, core, newBranch);
   }
 
   /**

@@ -19,7 +19,7 @@ public final class Job extends Activity {
   private int branch;
 
   private Solution solution = null;
-  private int[] replies = new int[2];
+  private Solution[] replies = new Solution[2];
   private int numReplies = 0;
 
   public Job(final ActivityIdentifier parent, final int depth,
@@ -58,15 +58,22 @@ public final class Job extends Activity {
       sendReply(solution);
       finish();
     } else if (solution.isUnsatisfiable()) {
-      sendReply(solution.unsatisfiable());
+      solution.learned.add(-branch);
+      solution.learned.add(0);
+      sendReply(solution);
       finish();
     } else {
-      assert solution.isUnknown();
-      executor.submit(new Job(identifier(), depth + 1,
-                      solution.core(), solution.branch()));
-      executor.submit(new Job(identifier(), depth + 1,
-                      solution.core(), -solution.branch()));
-      suspend();
+      assert solution.isBranch();
+      if (depth > 0) {
+        executor.submit(new Job(identifier(), depth - 1,
+                        solution.core(), solution.branch()));
+        executor.submit(new Job(identifier(), depth - 1,
+                        solution.core(), -solution.branch()));
+        suspend();
+      } else {
+        sendReply(Solution.unknown());
+        suspend();
+      }
     }
   }
 
@@ -116,13 +123,16 @@ public final class Job extends Activity {
    * Sends solution to parent.
    */
   private void sendReply(Solution reply) {
+    // logger.info("Learned = " + reply.learned);
     executor.send(new Event(identifier(), parent, reply));
   }
 
   @Override
   public void process(Event e) throws Exception {
     Solution reply = (Solution)e.data;
-    if (solution.isUnknown() && reply.isSatisfiable()) {
+    replies[numReplies++] = reply;
+
+    if (solution.isBranch() && reply.isSatisfiable()) {
       // Sends the solution to parent.
       solution.merge(reply);
       sendReply(solution);
@@ -130,9 +140,6 @@ public final class Job extends Activity {
         stopSearch = true;
       }
     }
-
-    replies[numReplies] = reply.solved();
-    numReplies++;
 
     if (numReplies == 1) {
       // Waits for the other branch to finish.
@@ -142,15 +149,38 @@ public final class Job extends Activity {
 
     /* Both branches finished */
     assert numReplies == 2;
-    if (replies[0] == Solution.SATISFIABLE
-        || replies[1] == Solution.SATISFIABLE) {
+    if (replies[0].isSatisfiable() || replies[1].isSatisfiable()) {
       // A solution was already found and sent to parent.
-    } else if (replies[0] == Solution.UNSATISFIABLE
-        && replies[1] == Solution.UNSATISFIABLE) {
+    } else if (replies[0].isUnsatisfiable() && replies[1].isUnsatisfiable()) {
       // Both braches returned UNSATISFIABLE so the instance is unsatifiable
-      sendReply(Solution.unsatisfiable());
+      reply = Solution.unsatisfiable();
+      reply.learned.add(-branch);
+      reply.learned.add(0);
+      sendReply(reply);
     } else {
-      sendReply(Solution.unknown());
+      reply = solution.unknown();
+
+      if (!replies[0].learned.isEmpty() || !replies[1].learned.isEmpty()) {
+        reply.learned.add(-branch);
+
+        for (int i = 0; i < 2; ++i) {
+          int[] tmp = replies[i].learned.toNativeArray();
+          solution.denormalize(tmp, 0, tmp.length);
+
+          if (replies[1 - i].isUnsatisfiable()) {
+            if (tmp.length > 0) {
+              reply.learned.add(tmp, 1, tmp.length - 2);
+              // reply.learned.add(tmp);
+            }
+          } else {
+            reply.learned.add(tmp);
+          }
+        }
+
+        reply.learned.add(0);
+      }
+
+      sendReply(reply);
     }
     finish();
   }

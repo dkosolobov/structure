@@ -10,6 +10,7 @@ import ibis.constellation.context.UnitWorkerContext;
 import java.io.PrintStream;
 import java.io.FileOutputStream;
 import org.apache.log4j.Logger;
+import gnu.trove.TIntArrayList;
 
 public class Structure {
   private static final Logger logger = Logger.getLogger(Structure.class);
@@ -70,18 +71,34 @@ public class Structure {
     try {
       displayHeader();
       if (constellation.isMaster()) {
+        Solver solver = new Solver(instance);
+        Solution solution = solver.solve(0);
+        logger.info("solution is " + solution.solved());
 
-        // starts solver
-        SingleEventCollector root = new SingleEventCollector();
-        constellation.submit(root);
-        constellation.submit(new Job(root.identifier(), 0, instance, 0));
+        for (int depth = 1; solution.isBranch(); depth = Math.min(depth * 2, 24)) {
+          logger.info("At depth " + depth);
+          // starts solver
+          SingleEventCollector root = new SingleEventCollector();
+          constellation.submit(root);
+          constellation.submit(new Job(root.identifier(), depth, solution.core(), 0));
+          Solution core = (Solution)root.waitForEvent().data;
 
-        Solution solution = (Solution)root.waitForEvent().data;
-        final long endTime = System.currentTimeMillis();
-        output.println("c Elapsed time " + (endTime - Configure.startTime) / 1000.);
+          if (core.isUnsatisfiable()) {
+            solution = Solution.unsatisfiable();
+          } else if (core.isSatisfiable()) {
+            solution.merge(core);
+          }
+
+          final long endTime = System.currentTimeMillis();
+          output.println("c At depth " + depth
+              + ". Elapsed time " + (endTime - Configure.startTime) / 1000.);
+          printLearned(core.learned);
+        }
+
         solution.print(output);
       }
     } catch (Exception e) {
+      e.printStackTrace();
       logger.error("Caught unhandled exception", e);
       Solution.unknown().print(output);
     } finally {
@@ -89,4 +106,33 @@ public class Structure {
       System.exit(0);
     }
   }
+
+  static void printLearned(TIntArrayList learned) {
+    if (learned.isEmpty()) return;
+    if (learned.size() == 1) {
+      logger.info("clause = " + learned);
+      return;
+    }
+    // logger.info("learned is " + learned);
+    printLearned(learned, 0, new TIntArrayList());
+  }
+
+  static int printLearned(TIntArrayList learned, int pos, TIntArrayList path) {
+    path.add(learned.get(pos));
+
+    int numChildren = 0;
+    pos += 1;
+    while (learned.get(pos) != 0) {
+      numChildren += 1;
+      pos = printLearned(learned, pos, path);
+    }
+
+    if (numChildren == 0) {
+      logger.info("clause = " + path);
+    }
+
+    path.remove(path.size() - 1);
+    return pos + 1;
+  }
+
 }

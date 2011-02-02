@@ -1,9 +1,11 @@
 package ibis.structure;
 
 import java.io.PrintStream;
+import java.util.Arrays;
 
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIntIterator;
+import gnu.trove.TIntArrayList;
 
 
 /**
@@ -21,11 +23,14 @@ public final class Solution {
   public static final int SATISFIABLE = 10;
   public static final int UNSATISFIABLE = 20;
   public static final int UNKNOWN = 30;
+  public static final int BRANCH = 40;
 
   /** One of: SATISFIABLE, UNSATISFIABLE or UNKNOWN */
   private int solved = UNKNOWN;
   /** Units. */
   private int[] units = null;
+  /** Learned tree */
+  public TIntArrayList learned = new TIntArrayList();
   /** The variable map for denormalization. */
   transient private TIntIntHashMap variableMap = null;
   /** Proxies for equivalent literals */
@@ -39,8 +44,7 @@ public final class Solution {
    * Returns a solution representing an unsatifiable instance.
    */
   public static Solution unsatisfiable() {
-    Solution solution = new Solution(UNSATISFIABLE);
-    return solution;
+    return new Solution(UNSATISFIABLE);
   }
 
   /**
@@ -52,22 +56,25 @@ public final class Solution {
     Solution solution = new Solution(SATISFIABLE);
     solution.units = units;
     solution.proxies = proxies;
-    solution.merge(null);
+    solution.satisfy();
     return solution;
   }
 
+  /**
+   * Returns a solution representing an unsatisfiable instance.
+   */
   public static Solution unknown() {
     return new Solution(UNKNOWN);
   }
 
   /**
-   * Returns a solution representing an unknown instance.
+   * Returns a solution representing a branching instance.
    *
    * Solution contains units, proxies, normalized core instance and branch.
    */
-  public static Solution unknown(final int[] units, final int[] proxies,
-                                 final Skeleton core, final int branch) {
-    Solution solution = new Solution(UNKNOWN);
+  public static Solution branch(final int[] units, final int[] proxies,
+                                final Skeleton core, final int branch) {
+    Solution solution = new Solution(BRANCH);
     solution.units = units;
     solution.proxies = proxies;
     solution.core = core;
@@ -92,6 +99,10 @@ public final class Solution {
     return solved == UNKNOWN;
   }
 
+  public boolean isBranch() {
+    return solved == BRANCH;
+  }
+
   public Skeleton core() {
     return core;
   }
@@ -106,24 +117,37 @@ public final class Solution {
 
   /**
    * Merges a core solution.
-   *
-   * Core becomes unusable.
    */
   public void merge(Solution core) {
-    assert core == null || core.solved == SATISFIABLE;
+    assert isBranch(): "Solution must be a branch to merge";
+    assert core.isSatisfiable(): "Core solution must be satisfiable to merge";
 
     // Adds units and core's solution
     BitSet all = new BitSet();
     all.addAll(units);
     if (core != null) {
-      denormalize(core.units);
-      all.addAll(core.units);
+      int numUnits = units.length;
+      int numCoreUnits = core.units.length;
+
+      units = Arrays.copyOf(units, numUnits + numCoreUnits);
+      for (int i = 0; i < numCoreUnits; ++i) {
+        units[i + numUnits] = core.units[i];
+      }
+      denormalize(units, numUnits, numUnits + numCoreUnits);
     }
 
+    satisfy();
+  }
+
+  private void satisfy() {
+    assert !isUnsatisfiable();
+
     // Satisfiy redundant literals
+    BitSet all = new BitSet();
+    all.addAll(units);
     for (int literal = 1; literal < proxies.length; ++literal) {
       if (literal == proxies[literal]) {
-        if (!all.contains(literal) && !all.contains(-literal)) {
+        if (!all.get(literal) && !all.get(-literal)) {
           all.add(literal);
         }
       }
@@ -132,9 +156,9 @@ public final class Solution {
     // Adds equivalent literals
     for (int literal = 1; literal < proxies.length; ++literal) {
       if (literal != proxies[literal]) {
-        if (all.contains(proxies[literal])) {
+        if (all.get(proxies[literal])) {
           all.add(literal);
-        } else if (all.contains(-proxies[literal])) {
+        } else if (all.get(-proxies[literal])) {
           all.add(-literal);
         }
       }
@@ -164,6 +188,9 @@ public final class Solution {
       case UNKNOWN:
         out.println("s UNKNOWN");
         break;
+
+      default:
+        assert false: "Unknown solved " + solved;
     }
 
     if (isSatisfiable()) {
@@ -202,15 +229,16 @@ public final class Solution {
   /**
    * Denormalizes inplace an array of units.
    */
-  private void denormalize(final int[] array) {
-    /* variableMap is the inverse of inverseMap */
+  public void denormalize(final int[] array, int start, int end) {
+    // Constracts inverse of variableMap
     TIntIntHashMap inverseMap = new TIntIntHashMap();
-    for (TIntIntIterator it = variableMap.iterator(); it.hasNext(); ) {
+    TIntIntIterator it = variableMap.iterator();
+    for (int size = variableMap.size(); size > 0; size--) {
       it.advance();
       inverseMap.put(it.value(), it.key());
     }
 
-    for (int i = 0; i < array.length; ++i) {
+    for (int i = start; i < end; ++i) {
       array[i] = inverseMap.get(array[i]);
     }
   }
