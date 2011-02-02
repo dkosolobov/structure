@@ -11,7 +11,7 @@ import java.io.PrintStream;
 import java.io.FileOutputStream;
 import org.apache.log4j.Logger;
 
-public class Structure {
+class Structure {
   private static final Logger logger = Logger.getLogger(Structure.class);
 
 
@@ -35,7 +35,6 @@ public class Structure {
     }
     return executors;
   }
-
 
   public static void main(String[] args) throws Exception {
     if (!Configure.configure(args)) {
@@ -70,13 +69,8 @@ public class Structure {
     try {
       displayHeader();
       if (constellation.isMaster()) {
+        Solution solution = solve(constellation, instance);
 
-        // starts solver
-        SingleEventCollector root = new SingleEventCollector();
-        constellation.submit(root);
-        constellation.submit(new Job(root.identifier(), 0, instance, 0));
-
-        Solution solution = (Solution)root.waitForEvent().data;
         final long endTime = System.currentTimeMillis();
         output.println("c Elapsed time " + (endTime - Configure.startTime) / 1000.);
         solution.print(output);
@@ -88,5 +82,12 @@ public class Structure {
       constellation.done();
       System.exit(0);
     }
+  }
+
+  private static Solution solve(Constellation constellation, Skeleton instance) {
+    SingleEventCollector root = new SingleEventCollector();
+    constellation.submit(root);
+    constellation.submit(new Job(root.identifier(), instance.numVariables, instance, 0));
+    return (Solution)root.waitForEvent().data;
   }
 }

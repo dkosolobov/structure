@@ -64,15 +64,19 @@ public final class Job extends Activity {
     } else {
       assert solution.isUnknown();
 
-      core = solver.core();
-      int branchingLiteral = solver.chooseBranchingLiteral();
-      branchingLiteral = core.normalize(branchingLiteral);
+      if (depth > 0) {
+        core = solver.core();
+        int branchingLiteral = solver.chooseBranchingLiteral();
+        branchingLiteral = core.normalize(branchingLiteral);
 
-      executor.submit(new Job(identifier(), depth + 1,
-                      core.instance(), branchingLiteral));
-      executor.submit(new Job(identifier(), depth + 1,
-                      core.instance(), -branchingLiteral));
-      suspend();
+        executor.submit(new Job(identifier(), depth - 1,
+                        core.instance(), branchingLiteral));
+        executor.submit(new Job(identifier(), depth - 1,
+                        core.instance(), -branchingLiteral));
+        suspend();
+      } else {
+        finish();
+      }
     }
   }
 
