@@ -33,51 +33,41 @@ public final class Skeleton implements Serializable {
     }
   };
 
+  /** Number of variables */
   public int numVariables = -1;
+  /** Instance */
   public TIntArrayList clauses = new TIntArrayList();
 
-  /**
-   * Returns a measure of difficulty of the instance.
-   */
+  /** Returns a measure of difficulty of the instance. */
   public int difficulty() {
     return clauses.size();
   }
 
-  /**
-   * Adds a clause.
-   */
+  /** Adds a clause  */
   public void add(int[] clause) {
     assert clause.length > 0;
     clauses.add(clause);
     clauses.add(0);
   }
 
-  /**
-   * Adds a clause.
-   */
+  /** Adds a clause. */
   public void add(int clause0, int... clause) {
     clauses.add(clause0);
     clauses.add(clause);
     clauses.add(0);
   }
 
-  /**
-   * Concatenates another instance.
-   */
+  /** Concatenates another instance. */
   public void append(TIntArrayList other) {
     clauses.add(other.toNativeArray());
   }
 
-  /**
-   * Concatenates another instance.
-   */
+  /** Concatenates another instance. */
   public void append(Skeleton other) {
     append(other.clauses);
   }
 
-  /**
-   * Returns the skeleton as in DIMACS format.
-   */
+  /** Returns the skeleton as in DIMACS format. */
   public String toString() {
     int numVariables = 0, numClauses = 0;
     for (int i = 0; i < clauses.size(); ++i) {
@@ -97,9 +87,7 @@ public final class Skeleton implements Serializable {
     return result.toString();
   }
 
-  /**
-   * Sorts clauses and literals in clauses.
-   */
+  /** Sorts clauses and literals in clauses. */
   public void canonicalize() {
     Vector<Vector<Integer>> clauses = new Vector<Vector<Integer>>();
     clauses.add(new Vector<Integer>());
