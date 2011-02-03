@@ -153,23 +153,25 @@ def main():
         break
 
       if r == 0:
+        # Set the expected results
         returncode, status = run_returncode, run_status
         elapsed = [run_elapsed]
       else:
         if returncode != run_returncode or status != run_status:
+          # Results don't match
           returncode, status, elapsed = None, 'inconsistent_results', None
           break
         else:
+          # Extra set
           elapsed.append(run_elapsed)
   except Exception as e:
+    # Unexpected error in script itself
     print(e, file=sys.stderr)
-    traceback.print_exc()
+    #traceback.print_exc()
     status = 'error'
   except KeyboardInterrupt as e:
     print('interrupted', file=sys.stderr)
-    returncode = None
-    status = 'unknown'
-    system.exit(0)
+    returncode, status, elapsed = None, 'interrupted', None
   finally:
     if status in VALID_SOLUTIONS:
       avg = sum(elapsed) / len(elapsed)
@@ -180,7 +182,7 @@ def main():
       print(instance, returncode, status, None, None)
 
     sys.stdout.flush()
-    exit(int(status not in VALID_SOLUTIONS))
+    exit(int(status not in ['interrupted'] + VALID_SOLUTIONS))
 
 
 if __name__ == '__main__':
