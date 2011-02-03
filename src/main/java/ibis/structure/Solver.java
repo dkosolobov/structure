@@ -275,9 +275,16 @@ public final class Solver {
     buildWatchLists();
     if (branch != 0) {
       addUnit(branch);
+    } else {
     }
 
     try {
+      if (branch == 0) {
+        if (Configure.pureLiterals) {
+          propagate();
+          pureLiterals();
+        }
+      }
       simplify();
     } catch (ContradictionException e) {
       return Solution.unsatisfiable();
