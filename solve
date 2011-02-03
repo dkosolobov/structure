@@ -1,4 +1,19 @@
 #!/bin/sh
 
+CLASSPATH+=":$IPL_HOME/lib/*"
+CLASSPATH+=":`dirname $0`/target/structure-0.1-jar-with-dependencies.jar"
+export CLASSPATH
+
 location=`dirname $0`
-exec $location/run ibis.structure.Structure $*
+pool=ami650-$RANDOM
+
+exec java                                             \
+  -server                                             \
+  -ea                                                 \
+  -verbose:gc                                         \
+  -XX:+UseParallelGC                                  \
+  -Xmx3g                                              \
+  -Dibis.constellation.tracer.outputFile=log          \
+  -Dibis.properties.file=$location/ibis.properties    \
+  -Dibis.pool.name=$pool                              \
+  ibis.structure.Structure $*
