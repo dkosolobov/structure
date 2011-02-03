@@ -266,7 +266,7 @@ public final class Solver {
   }
 
   /**
-   * Returns a normalized literal to branch on.
+   * Returns a literal to branch on.
    *
    * @param branch literal to branch on. 0 for no branching.
    * @return solution or simplified instance.
