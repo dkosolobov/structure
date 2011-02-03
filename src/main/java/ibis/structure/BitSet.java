@@ -32,6 +32,11 @@ public final class BitSet {
     set(index);
   }
 
+  /** Removes index from set. */
+  public void remove(final int index) {
+    bs.clear(mapZtoN(index));
+  }
+
   /**
    * Adds all indexes in array.
    *
