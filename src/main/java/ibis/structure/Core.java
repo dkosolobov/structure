@@ -3,23 +3,28 @@ package ibis.structure;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIntIterator;
 import gnu.trove.TIntArrayList;
+import org.apache.log4j.Logger;
 
 
 public final class Core {
+  private static final Logger logger = Logger.getLogger(Core.class);
+
   /** Units. */
   private BitSet units = new BitSet();
   /** Proxies for equivalent literals */
   private int[] proxies = null;
+  private BCE bce = null;
   /** Core instance without units and equivalent literals */
   private Skeleton instance = null;
   /** The variable map for (de)normalization. */
   private TIntIntHashMap variableMap = null;
 
-  public Core(final int[] units, final int[] proxies, final Skeleton instance) {
+  public Core(final int[] units, final int[] proxies, BCE bce, final Skeleton instance) {
     assert !instance.clauses.isEmpty();
 
     this.units.addAll(units);
     this.proxies = proxies;
+    this.bce = bce;
     this.instance = instance;
 
     buildVariableMap();
@@ -40,6 +45,10 @@ public final class Core {
     denormalize(newUnits);
     units.addAll(newUnits);
 
+    if (bce != null) {
+      bce.patch(newUnits);
+    }
+
     // Adds equivalent literals
     for (int literal = 1; literal < proxies.length; ++literal) {
       if (literal != proxies[literal]) {
@@ -51,11 +60,12 @@ public final class Core {
       }
     }
 
-    Solution result = Solution.satisfiable(units.elements());
+    newUnits = units.elements();
+    Solution result = Solution.satisfiable(newUnits);
 
     // this Core becomes unusable
     units = null;
-    variableMap = null;
+    // variableMap = null;
     proxies = null;
     instance = null;
 
@@ -101,6 +111,20 @@ public final class Core {
 
     for (int i = 0; i < array.length; ++i) {
       array[i] = inverseMap.get(array[i]);
+    }
+  }
+
+  public void denormalize(TIntArrayList array) {
+    // variableMap is the inverse of inverseMap
+    TIntIntHashMap inverseMap = new TIntIntHashMap();
+    TIntIntIterator it = variableMap.iterator();
+    for (int size = variableMap.size(); size > 0; size--) {
+      it.advance();
+      inverseMap.put(it.value(), it.key());
+    }
+
+    for (int i = 0; i < array.size(); ++i) {
+      array.set(i, inverseMap.get(array.get(i)));
     }
   }
 }

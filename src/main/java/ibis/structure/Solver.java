@@ -44,6 +44,7 @@ public final class Solver {
    * May contains satisfied clauses.
    */
   private TIntArrayList queue = new TIntArrayList();
+  private BCE bce = null;
 
   /**
    * Constructor.
@@ -72,7 +73,7 @@ public final class Solver {
   /**
    * Builds watch lists.
    */
-  private void buildWatchLists() {
+  public void buildWatchLists() {
     int start = 0;
     boolean satisfied = false;
 
@@ -275,17 +276,16 @@ public final class Solver {
     buildWatchLists();
     if (branch != 0) {
       addUnit(branch);
-    } else {
     }
 
     try {
+      simplify();
       if (branch == 0) {
-        if (Configure.pureLiterals) {
+        bce = blockedClauseElimination();
+        while (pureLiterals()) {
           propagate();
-          pureLiterals();
         }
       }
-      simplify();
     } catch (ContradictionException e) {
       return Solution.unsatisfiable();
     }
@@ -304,7 +304,10 @@ public final class Solver {
     if (satisfied) {
       // Solves the remaining 2SAT encoded in the implication graph
       for (TIntIterator it = dag.solve().iterator(); it.hasNext();) {
-        addUnit(it.next());
+        int unit = it.next();
+        if (!units.contains(unit)) {
+          addUnit(unit);
+        }
       }
     }
 
@@ -323,7 +326,9 @@ public final class Solver {
     }
 
     if (satisfied) {
-      return Solution.satisfiable(units.elements());
+      int[] solution = units.elements();
+      if (bce != null) bce.patch(solution);
+      return Solution.satisfiable(solution);
     }
 
     return Solution.unknown();
@@ -333,7 +338,7 @@ public final class Solver {
     Skeleton core = new Skeleton();
     core.append(dag.skeleton());
     core.append(compact());
-    return new Core(units.elements(), proxies, core);
+    return new Core(units.elements(), proxies, bce, core);
   }
 
   /** Computes a score for a possible branch.  */
@@ -400,8 +405,10 @@ public final class Solver {
       propagate();
     }
 
-    pureLiterals();
-    propagate();
+    // Obligatory to assigned missing variables
+    while (pureLiterals()) {
+      propagate();
+    }
 
     verify();
   }
@@ -416,6 +423,7 @@ public final class Solver {
     if (isSatisfied(start)) {
       return;
     }
+
     int length = lengths.get(start);
     assert 0 <= length && length < 3
         : "Invalid clause of length " + length + " in queue";
@@ -739,7 +747,6 @@ public final class Solver {
         continue;
       }
 
-
       // Finds literal included in minimum number of clauses
       int bestLiteral = 0;
       int minNumClauses = Integer.MAX_VALUE;
@@ -798,6 +805,75 @@ public final class Solver {
       }
     }
   }
+
+  public BCE blockedClauseElimination() {
+    long start_ = System.currentTimeMillis();
+
+    TIntArrayList blockedClauses = new TIntArrayList();;
+    int numBlocked = 0;
+    int numLiterals = 0;
+
+    for (int clause : lengths.keys()) {
+      boolean blocked = false;
+      int blockedLiteral = 0;
+
+      for (int i = clause; !blocked; i++) {
+        int literal = clauses.get(i);
+        if (literal == 0) break;
+        if (literal == REMOVED) continue;
+        if (numBinaries(-literal) != 0) continue;
+        if (numBinaries(literal) != 0) continue;
+
+        TIntHashSet all = new TIntHashSet();
+        for (int j = clause; ; ++j) {
+          int other = clauses.get(j);
+          if (other == 0) break;
+          if (other == REMOVED) continue;
+          if (other == literal) continue;
+          all.addAll(watchList(-other).toArray());
+        }
+
+        blocked = true;
+        blockedLiteral = literal;
+        for (int otherClause : watchList(-literal).toArray()) {
+          if (!all.contains(otherClause)) {
+            blocked = false;
+            break;
+          }
+        }
+      }
+
+      if (blocked) {
+        numBlocked++;
+        int start = blockedClauses.size();
+
+        for (int i = clause; ; i++) {
+          int literal = clauses.get(i);
+          if (literal == REMOVED) {
+            continue;
+          }
+
+          blockedClauses.add(literal);
+          if (literal == blockedLiteral) {
+            int temp = blockedClauses.get(start);
+            blockedClauses.set(start, literal);
+            blockedClauses.set(blockedClauses.size() - 1, temp);
+          }
+
+          if (literal == 0) {
+            // logger.info("found blocked clause " + clauseToString(clause));
+            removeClause(clause);
+            break;
+          }
+        }
+      }
+    }
+
+    long end_ = System.currentTimeMillis();
+    logger.info("Removed " + blockedClauses.size() + " literals in " + ((end_ - start_) / 1000.));
+    return new BCE(blockedClauses);
+  }
+
 
   /**
    * Returns the watch list for a literal u.

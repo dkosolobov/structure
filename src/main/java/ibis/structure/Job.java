@@ -1,11 +1,11 @@
 package ibis.structure;
 
-import org.apache.log4j.Logger;
 import gnu.trove.TIntArrayList;
 import ibis.constellation.Activity;
 import ibis.constellation.ActivityIdentifier;
-import ibis.constellation.Event;
 import ibis.constellation.context.UnitActivityContext;
+import ibis.constellation.Event;
+import org.apache.log4j.Logger;
 
 
 public final class Job extends Activity {
@@ -56,6 +56,7 @@ public final class Job extends Activity {
     }
 
     if (solution.isSatisfiable()) {
+      // logger.info("found solution");
       sendReply(solution);
       finish();
     } else if (solution.isUnsatisfiable()) {
@@ -87,7 +88,11 @@ public final class Job extends Activity {
     if (!Configure.enableExpensiveChecks) {
       return;
     }
-      
+
+    assert units.length == instance.numVariables:
+        "Not enough units " + units.length + " given versus "
+        + instance.numVariables + " required";
+    
     BitSet unitsSet = new BitSet();
     for (int unit : units) {
       unitsSet.set(unit);
@@ -134,14 +139,17 @@ public final class Job extends Activity {
 
   @Override
   public void process(Event e) throws Exception {
+    if (branch == 0) logger.info("processing");
+
     Solution reply = (Solution)e.data;
     if (reply.isSatisfiable()) {
       if (numReplies == 0 || !replies[0].isSatisfiable()) {
         // Sends the solution to parent.
-        sendReply(core.merge(reply));
         synchronized (Job.class) {
           stopSearch = true;
         }
+
+        sendReply(core.merge(reply));
       }
     }
 
