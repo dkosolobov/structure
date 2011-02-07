@@ -101,9 +101,9 @@ public class ImplicationsGraphTest {
 
   @Test
   public void propagate() throws ContradictionException {
-    create(6);
     int[] propagated;
 
+    create(6);
     add(1, 2, 3);
     propagated = graph.propagate(1).toNativeArray();
     assertFalse(graph.contains(1, 2));
@@ -112,12 +112,14 @@ public class ImplicationsGraphTest {
     assertFalse(graph.contains(-3, -1));
     compare(propagated, 1, 2, 3);
 
+    create(6);
     add(1, 2);
     propagated = graph.propagate(2).toNativeArray();
     assertFalse(graph.contains(1, 2));
     assertFalse(graph.contains(-2, -1));
     compare(propagated, 2);
 
+    create(6);
     add(5, 1);
     add(1, 2, 3);
     add(2, 4);
@@ -132,6 +134,7 @@ public class ImplicationsGraphTest {
     assertFalse(graph.contains(-1, -5));
     compare(propagated, 4, 1, 2, 3);
 
+    create(6);
     add(5, 1);
     add(1, 2);
     add(2, 3);
@@ -160,15 +163,16 @@ public class ImplicationsGraphTest {
 
   @Test
   public void findContradictions() {
-    create(6);
     int[] contradictions;
 
+    create(6);
     add(1, -1);
     graph.topologicalSort();
     graph.transitiveClosure();
     contradictions = graph.findContradictions().toNativeArray();
     compare(contradictions, -1);
     
+    create(6);
     add(2, 3);
     add(3, 4);
     add(4, -2);
@@ -177,6 +181,7 @@ public class ImplicationsGraphTest {
     contradictions = graph.findContradictions().toNativeArray();
     compare(contradictions, -2);
 
+    create(6);
     add(5, 1);
     add(1, 2);
     add(2, -1);
@@ -186,7 +191,7 @@ public class ImplicationsGraphTest {
     contradictions = graph.findContradictions().toNativeArray();
     compare(contradictions, -1, -5);
 
-    create(5);
+    create(6);
     add(-5, 1, 2, 3, 5, -3);
     add(-3, 1, 5, 2);
     add(-2, 1, 5, -3, 2, 3);

@@ -3,6 +3,8 @@ package ibis.structure;
 import gnu.trove.TIntArrayList;
 
 public class ImplicationsGraph {
+  private static final TIntArrayList EMPTY = new TIntArrayList();
+
   private int numVariables;
   private TIntArrayList[] edges = null;
   private int[] topologicalSort;
@@ -15,7 +17,7 @@ public class ImplicationsGraph {
 
     edges = new TIntArrayList[2 * numVariables + 1];
     for (int u = 0; u < 2 * numVariables + 1; u++) {
-      edges[u] = new TIntArrayList();
+      edges[u] = EMPTY; // new TIntArrayList();
     }
 
     topologicalSort = create();
@@ -26,8 +28,19 @@ public class ImplicationsGraph {
 
   /** Adds a new implication u &rarr; v. */
   public void add(int u, int v) {
+    createLiteral(u);
+    createLiteral(-v);
+
     edges(u).add(v);
     edges(-v).add(-u);
+  }
+
+  /** Creats edges for literals u and -u */
+  private void createLiteral(int u) {
+    if (edges(u) == EMPTY) {
+      edges[u + numVariables] = new TIntArrayList();
+      edges[-u + numVariables] = new TIntArrayList();
+    }
   }
 
   /** Returns true if implication u &rarrr; v is valid */
@@ -77,8 +90,9 @@ public class ImplicationsGraph {
       TIntArrayList children = edges(u);
       TIntArrayList parents = edges(-u);
 
-      edges[u + numVariables] = new TIntArrayList();
-      edges[-u + numVariables] = new TIntArrayList();
+      assert EMPTY.isEmpty();
+      edges[u + numVariables] = EMPTY;
+      edges[-u + numVariables] = EMPTY;
 
       for (int j = 0; j < parents.size(); j++) {
         int v = -parents.get(j);
