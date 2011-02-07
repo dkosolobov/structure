@@ -43,16 +43,8 @@ public final class Skeleton implements Serializable {
     return clauses.size();
   }
 
-  /** Adds a clause  */
-  public void add(int[] clause) {
-    assert clause.length > 0;
-    clauses.add(clause);
-    clauses.add(0);
-  }
-
   /** Adds a clause. */
-  public void add(int clause0, int... clause) {
-    clauses.add(clause0);
+  public void add(int... clause) {
     clauses.add(clause);
     clauses.add(0);
   }
