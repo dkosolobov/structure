@@ -100,12 +100,12 @@ public class ImplicationsGraphTest {
   }
 
   @Test
-  public void remove() {
+  public void propagate() throws ContradictionException {
     create(6);
     int[] propagated;
 
     add(1, 2, 3);
-    propagated = graph.remove(1).toNativeArray();
+    propagated = graph.propagate(1).toNativeArray();
     assertFalse(graph.contains(1, 2));
     assertFalse(graph.contains(-2, -1));
     assertFalse(graph.contains(1, 3));
@@ -113,7 +113,7 @@ public class ImplicationsGraphTest {
     compare(propagated, 1, 2, 3);
 
     add(1, 2);
-    propagated = graph.remove(2).toNativeArray();
+    propagated = graph.propagate(2).toNativeArray();
     assertFalse(graph.contains(1, 2));
     assertFalse(graph.contains(-2, -1));
     compare(propagated, 2);
@@ -123,7 +123,7 @@ public class ImplicationsGraphTest {
     add(2, 4);
     add(3, 4);
     add(4, 1);
-    propagated = graph.remove(4).toNativeArray();
+    propagated = graph.propagate(4).toNativeArray();
     assertFalse(graph.contains(1, 2));
     assertFalse(graph.contains(-2, -1));
     assertFalse(graph.contains(1, 3));
@@ -142,8 +142,20 @@ public class ImplicationsGraphTest {
     add(2, 3);
     add(3, 4);
     add(4, 5);
-    propagated = graph.remove(3).toNativeArray();
+    propagated = graph.propagate(3).toNativeArray();
     compare(propagated, 3, 4, 5, 1, 2);
+  }
+
+  @Test(expected=ContradictionException.class)
+  public void propagateContradiction() throws ContradictionException {
+    create(4);
+
+    add(-1, 1);
+    add(1, 2);
+    add(2, 3);
+    add(3, 4);
+    add(4, -1);
+    graph.propagate(3);
   }
 
   @Test

@@ -40,11 +40,25 @@ public class ImplicationsGraph {
     return edges[u + numVariables];
   }
 
-  /** Propagates assignment of u and returns assigned literals. */
-  public TIntArrayList remove(int u) {
+  /**
+   * Propagates assignment of u and returns assigned literals.
+   *
+   * @param u unit to propagate
+   * @return list of units propagated
+   * @throws ContradictionException if a literal and its negation are propagated.
+   */
+  public TIntArrayList propagate(int u) throws ContradictionException {
     currentColor++;
     TIntArrayList visited = new TIntArrayList();
     dfs(u, visited);
+
+    for (int i = 0; i < visited.size(); i++) {
+      int v = visited.get(i);
+      if (isVisited(-v)) {
+        throw new ContradictionException();
+      }
+    }
+
     remove(visited);
     return visited;
   }
@@ -68,14 +82,14 @@ public class ImplicationsGraph {
 
       for (int j = 0; j < parents.size(); j++) {
         int v = -parents.get(j);
-        if (v != -u) {
+        if (v != u && v != -u) {
           edges(v).remove(edges(v).indexOf(u));
         }
       }
 
       for (int j = 0; j < children.size(); j++) {
         int v = -children.get(j);
-        if (v != u) {
+        if (v != u && v != -u) {
           edges(v).remove(edges(v).indexOf(-u));
         }
       }
@@ -112,7 +126,6 @@ public class ImplicationsGraph {
     // every node w in the subtree of child v is already a child of v.
     for (int i = 0; i < topologicalSort.length; i++) {
       int u = topologicalSort[i];
-      // System.err.println("u = " + u + " edges are " + edges(u));
 
       TIntArrayList all = new TIntArrayList();
       currentColor++;
@@ -242,7 +255,7 @@ public class ImplicationsGraph {
       }
     }
 
-    System.err.println("Removed " + removed + " edges");
+    // System.err.println("Removed " + removed + " edges");
     return java.util.Arrays.copyOfRange(colapsed, numVariables, 2 * numVariables + 1);
   }
 
@@ -290,22 +303,35 @@ public class ImplicationsGraph {
     return time;
   }
 
-  private void verify() {
+  private String verify_() {
     for (int u = -numVariables; u <= numVariables; u++) {
       for (int i = 0; i < edges(u).size(); i++) {
         int v = edges(u).get(i);
-        assert edges(-v).contains(-u): "Missing reverse edge " + (-v) + " -> " + (-u);
+        if (!edges(-v).contains(-u)) {
+          return "Missing reverse edge " + (-v) + " -> " + (-u);
+        }
       }
     }
+    return null;
+  }
+
+  private void verify() {
+    String error = verify_();
+    assert error == null : error;
+  }
+
+  public String toString() {
+    StringBuffer buffer = new StringBuffer();
+    for (int u = -numVariables; u <= numVariables; u++) {
+      buffer.append(u + " -> " + edges(u) + "\n");
+    }
+    return buffer.toString();
   }
 
   /** Prints the implication graph to stderr. */
   public void print(String message) {
     System.err.println(message);
-    for (int u = -numVariables; u <= numVariables; u++) {
-      System.err.println(u + " -> " + edges(u));
-    }
-    System.err.println();
+    System.err.println(toString());
   }
 
   /** Returns the graph as a SAT instance */
