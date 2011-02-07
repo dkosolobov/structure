@@ -49,31 +49,36 @@ public class ImplicationsGraph {
     return visited;
   }
 
-  /** Removes a list of nodes.  */
-  private void remove(TIntArrayList nodes) {
-    // Detaches nodes from parents
-    for (int i = 0; i < nodes.size(); i++) {
-      int u = nodes.get(i);
-      for (int j = 0; j < edges(-u).size(); j++) {
-        int v = -edges(-u).get(j);
-        edges(v).remove(edges(v).indexOf(u));
-      }
-    }
- 
-    // Detaches -nodes from parents
-    for (int i = 0; i < nodes.size(); i++) {
-      int u = nodes.get(i);
-      for (int j = 0; j < edges(u).size(); j++) {
-        int v = -edges(u).get(j);
-        edges(v).remove(edges(v).indexOf(-u));
-      }
-    }
+  /**
+   * Removes a list of literals and their negation.
+   *
+   * u and -u cannot be both in literals.
+   *
+   */
+  private void remove(TIntArrayList literals) {
+    for (int i = 0; i < literals.size(); i++) {
+      int u = literals.get(i);
+      assert !literals.contains(-u);
 
-    // Detaches children from nodes
-    for (int i = 0; i < nodes.size(); i++) {
-      int u = nodes.get(i);
-      edges(u).clear();
-      edges(-u).clear();
+      TIntArrayList children = edges(u);
+      TIntArrayList parents = edges(-u);
+
+      edges[u + numVariables] = new TIntArrayList();
+      edges[-u + numVariables] = new TIntArrayList();
+
+      for (int j = 0; j < parents.size(); j++) {
+        int v = -parents.get(j);
+        if (v != -u) {
+          edges(v).remove(edges(v).indexOf(u));
+        }
+      }
+
+      for (int j = 0; j < children.size(); j++) {
+        int v = -children.get(j);
+        if (v != u) {
+          edges(v).remove(edges(v).indexOf(-u));
+        }
+      }
     }
   }
 
@@ -133,12 +138,13 @@ public class ImplicationsGraph {
   /**
    * Solves the 2-SAT encoded in the implication graph.
    */
-  public TIntArrayList solve(int[] assigned) {
+  public TIntArrayList solve(TIntArrayList assigned) throws ContradictionException {
     topologicalSort();
     removeStronglyConnectedComponents();
 
     currentColor++;
-    for (int u : assigned) {
+    for (int i = 0; i < assigned.size(); i++) {
+      int u = assigned.get(i);
       assert edges(u).isEmpty() && edges(-u).isEmpty();
       visit(u);
     }
@@ -146,7 +152,7 @@ public class ImplicationsGraph {
     TIntArrayList visited = new TIntArrayList();
     for (int i = topologicalSort.length; i-- > 0;) {
       int u = topologicalSort[i];
-      if (!isVisited(u) && !isVisited(-u)) {
+      if (u != 0 && !isVisited(u) && !isVisited(-u)) {
         dfs(u, visited);
       }
     }
@@ -163,7 +169,8 @@ public class ImplicationsGraph {
    * The implemnted algorithm is described at
    *   http://www.cs.berkeley.edu/~vazirani/s99cs170/notes/lec12.pdf
    */
-  public int[] removeStronglyConnectedComponents() {
+  public int[] removeStronglyConnectedComponents()
+      throws ContradictionException {
     for (int u = -numVariables; u <= numVariables; u++) {
       set(colapsed, u, u);
     }
@@ -192,6 +199,14 @@ public class ImplicationsGraph {
       for (int j = 0; j < component.size(); j++) {
         int u = component.get(j);
         set(colapsed, u, best);
+      }
+    }
+
+    // Checks if a literal and its negation are in
+    // the same cycle which means there is a contradiction.
+    for (int u = 1; u <= numVariables; u++) {
+      if (get(colapsed, u) == get(colapsed, -u)) {
+        throw new ContradictionException();
       }
     }
 
@@ -228,7 +243,7 @@ public class ImplicationsGraph {
     }
 
     System.err.println("Removed " + removed + " edges");
-    return colapsed;
+    return java.util.Arrays.copyOfRange(colapsed, numVariables, 2 * numVariables + 1);
   }
 
   /** Performs a depth first search keeping track of visited nodes. */
@@ -275,6 +290,15 @@ public class ImplicationsGraph {
     return time;
   }
 
+  private void verify() {
+    for (int u = -numVariables; u <= numVariables; u++) {
+      for (int i = 0; i < edges(u).size(); i++) {
+        int v = edges(u).get(i);
+        assert edges(-v).contains(-u): "Missing reverse edge " + (-v) + " -> " + (-u);
+      }
+    }
+  }
+
   /** Prints the implication graph to stderr. */
   public void print(String message) {
     System.err.println(message);
@@ -282,6 +306,19 @@ public class ImplicationsGraph {
       System.err.println(u + " -> " + edges(u));
     }
     System.err.println();
+  }
+
+  /** Returns the graph as a SAT instance */
+  public Skeleton skeleton() {
+    // TODO: simplify
+    Skeleton skeleton = new Skeleton();
+    for (int u = -numVariables; u <= numVariables; u++) {
+      for (int i = 0; i < edges(u).size(); i++) {
+        int v = edges(u).get(i);
+        skeleton.add(-u, v);
+      }
+    }
+    return skeleton;
   }
 
   /** Returns true if node is painted with current color otherwise paint it. */

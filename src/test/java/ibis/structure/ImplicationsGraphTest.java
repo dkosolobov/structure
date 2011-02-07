@@ -28,7 +28,8 @@ public class ImplicationsGraphTest {
   }
 
   @Test
-  public void stronglyConnectedComponents() {
+  public void stronglyConnectedComponents()
+      throws ContradictionException {
     create(6);
     int[] colapsed;
 
@@ -40,16 +41,29 @@ public class ImplicationsGraphTest {
     add(6, 4);
     graph.topologicalSort();
     colapsed = graph.removeStronglyConnectedComponents();
-    compare(colapsed, -4, -4, -4, -3, -1, -1, 0, 1, 1, 3, 4, 4, 4);
+    compare(colapsed, 0, 1, 1, 3, 4, 4, 4);
 
     add(4, 3);
     graph.topologicalSort();
     colapsed = graph.removeStronglyConnectedComponents();
-    compare(colapsed, -6, -5, -3, -3, -2, -1, 0, 1, 2, 3, 3, 5, 6);
+    compare(colapsed, 0, 1, 2, 3, 3, 5, 6);
+  }
+
+  @Test(expected=ContradictionException.class)
+  public void stronglyConnectedComponentsContradiction()
+      throws ContradictionException {
+    create(3);
+
+    add(-1, 3);
+    add(3, 2);
+    add(2, 1);
+    add(1, -1);
+    graph.topologicalSort();
+    graph.removeStronglyConnectedComponents();
   }
 
   @Test
-  public void transitiveClosure() {
+  public void transitiveClosure() throws ContradictionException {
     create(8);
     add(1, 2, 3);
     add(2, 4);
@@ -160,10 +174,16 @@ public class ImplicationsGraphTest {
     contradictions = graph.findContradictions().toNativeArray();
     compare(contradictions, -1, -5);
 
-    add(1, -1);
-    add(-1, 1);
+    create(5);
+    add(-5, 1, 2, 3, 5, -3);
+    add(-3, 1, 5, 2);
+    add(-2, 1, 5, -3, 2, 3);
+    add(-1, 2, 3, 1, 5, -3);
+    add(3, 1, 5, 2);
+    graph.topologicalSort();
+    graph.transitiveClosure();
     contradictions = graph.findContradictions().toNativeArray();
-    compare(contradictions, 1, -1);
+    compare(contradictions, 5, 2, 1);
   }
 
   private void create(int numVariables) {
