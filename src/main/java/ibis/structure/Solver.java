@@ -39,11 +39,10 @@ public final class Solver {
   private TIntHashSet[] watchLists;
   /** Maps start of clause to # unsatisfied literals. */
   private TIntIntHashMap lengths = new TIntIntHashMap();
-  /**
-   * Queue of clauses with at most 2 unsatisfied literals.
-   * May contains satisfied clauses.
-   */
+  /** Queue of clauses with at most 2 unsatisfied literals. */
   private TIntArrayList queue = new TIntArrayList();
+  /** Queue of units to be propagated. */
+  private TIntArrayList unitsQueue = new TIntArrayList();
 
   /**
    * Constructor.
@@ -89,6 +88,7 @@ public final class Solver {
         start = i + 1;
         satisfied = false;
       } else {
+        // TODO: remove
         if (watchList(literal).contains(start)) {  // duplicate literal
           logger.error("Found duplicate literal");
           clauses.set(i, REMOVED);
@@ -458,9 +458,7 @@ public final class Solver {
           position++;
         }
         addBinary(u, v);
-        if (!isSatisfied(start)) {
-          removeClause(start);
-        }
+        removeClause(start);
         break;
 
       default:
@@ -494,6 +492,8 @@ public final class Solver {
    * @throws ContradictionException if a clause of length 0 was found
    */
   private boolean propagate() throws ContradictionException {
+    propagateUnitsQueue();
+
     // NOTE: any new clause is appended.
     for (int i = 0; i < queue.size(); ++i) {
       propagateClause(queue.get(i));
@@ -539,14 +539,16 @@ public final class Solver {
    * @throws ContradictionException if contradiction was found
    */
   public boolean hyperBinaryResolution() throws ContradictionException {
-    // logger.info("Hyper binary resolution on " + this);
-
     int[] counts = new int[2 * numVariables + 1];
     int[] sums = new int[2 * numVariables + 1];
     int[] touched = new int[2 * numVariables + 1];
-    int numUnits = 0, numBinaries = 0;
+    int numBinaries = 0;
+    BitSet twice = new BitSet();
 
-    for (int start : lengths.keys()) {
+    TIntIntIterator it = lengths.iterator();
+    for (int size = lengths.size(); size > 0; size--) {
+      it.advance();
+      int start = it.key();
       int numLiterals = 0;
       int clauseSum = 0;
       int numTouched = 0;
@@ -560,21 +562,21 @@ public final class Solver {
           continue;
         }
 
-        TIntHashSet twice = new TIntHashSet();
-
         numLiterals++;
         clauseSum += literal;
         TIntArrayList edges = graph.edges(literal);
         for (int i = 0; i < edges.size(); i++) {
-          int node = mapZtoN(-edges.get(i));
-          if (twice.contains(node)) {
-            // logger.info("twice");
-          } else {
+          int node = -edges.get(i) + numVariables;
+          if (!twice.contains(node)) {
             twice.add(node);
             if (counts[node] == 0) touched[numTouched++] = node;
             counts[node] += 1;
             sums[node] += literal;
           }
+        }
+        for (int i = 0; i < edges.size(); i++) {
+          int node = -edges.get(i) + numVariables;
+          twice.remove(node);
         }
       }
 
@@ -586,44 +588,19 @@ public final class Solver {
 
       for (int i = 0; i < numTouched && !isSatisfied(start); ++i) {
         int touch = touched[i];
-        int literal = mapNtoZ(touch);
+        int literal = touch - numVariables;
+        assert !isLiteralAssigned(literal);
 
         if (counts[touch] == numLiterals) {
-          // There is an edge from literal to all literals in clause.
-          int proxy = getRecursiveProxy(literal);
-          if (units.contains(proxy)) {
-            throw new ContradictionException();
-          }
-          if (!units.contains(-proxy)) {
-            addUnit(-proxy);
-            ++numUnits;
-          }
+          unitsQueue.add(-literal);
         } else if (counts[touch] + 1 == numLiterals) {
           // There is an edge from literal to all literals in clause except one.
-          // New implication: proxy -> missing
-          int proxy = getRecursiveProxy(literal);
-          int missing = getRecursiveProxy(clauseSum - sums[touch]);
+          // New implication: literal -> missing
+          int missing = clauseSum - sums[touch];
+          assert !isLiteralAssigned(missing);
 
-          if (units.contains(proxy)) {
-            if (units.contains(-missing)) {
-              // true -> false
-              throw new ContradictionException();
-            } else if (!units.contains(missing)) {
-              // true -> missing => missing
-              addUnit(missing);
-              ++numUnits;
-            }
-          } else if (units.contains(-proxy) || units.contains(missing)) {
-            // false -> missing or proxy -> true
-          } else if (units.contains(-missing)) {
-            // proxy -> false => -proxy
-            addUnit(-proxy);
-            ++numUnits;
-          } else {
-            // logger.info("implication " + proxy + " " + missing + " on " + clauseToString(start));
-            addBinary(-proxy, missing);
-            ++numBinaries;
-          }
+          addBinary(-literal, missing);
+          ++numBinaries;
         }
 
         counts[touch] = 0;
@@ -631,6 +608,7 @@ public final class Solver {
       }
     }
 
+    int numUnits = unitsQueue.size();
     if (Configure.verbose) {
       if (numUnits > 0) {
         System.err.print("hu" + numUnits + ".");
@@ -649,24 +627,20 @@ public final class Solver {
    * @throws ContradictionException if contradiction was found
    */
   public boolean pureLiterals() throws ContradictionException {
-    int numUnits = 0;
-
     for (int u = 1; u <= numVariables; u++) {
-      if (isLiteralAssigned(u)) {
-        continue;
-      }
-      if (numBinaries(u) == 0 && watchList(u).size() == 0) {
-        addUnit(-u);
-        numUnits++;
-        continue;
-      }
-      if (numBinaries(-u) == 0 && watchList(-u).size() == 0) {
-        addUnit(u);
-        numUnits++;
-        continue;
+      if (!isLiteralAssigned(u)) {
+        if (numBinaries(u) == 0 && watchList(u).size() == 0) {
+          unitsQueue.add(-u);
+          continue;
+        }
+        if (numBinaries(-u) == 0 && watchList(-u).size() == 0) {
+          unitsQueue.add(u);
+          continue;
+        }
       }
     }
 
+    int numUnits = unitsQueue.size();
     if (Configure.verbose) {
       if (numUnits > 0) {
         System.err.print("p" + numUnits + ".");
@@ -938,15 +912,30 @@ public final class Solver {
     lengths.remove(clause);
     assert isSatisfied(clause);
     for (int c = clause;; c++) {
-      int literal = clauses.get(c);
-      clauses.set(c, REMOVED);
-      if (literal == 0) {
-        break;
-      }
+      int literal = clauses.getSet(c, REMOVED);
       if (literal == REMOVED) {
         continue;
       }
+      if (literal == 0) {
+        break;
+      }
       watchList(literal).remove(clause);
+    }
+  }
+
+  /**
+   * Propagates all units in unit queue.
+   *
+   * Usually this is faster than calling addUnit for each unit.
+   */
+  private void propagateUnitsQueue() throws ContradictionException {
+    TIntArrayList propagated = graph.propagate(unitsQueue);
+    unitsQueue.reset();
+
+    for (int i = 0; i < propagated.size(); i++) {
+      int v = propagated.get(i);
+      propagateUnit(v);
+      units.add(v);
     }
   }
 

@@ -54,16 +54,20 @@ public class ImplicationsGraph {
   }
 
   /**
-   * Propagates assignment of u and returns assigned literals.
+   * Propagates assignment of all literals and returns propagations
    *
-   * @param u unit to propagate
+   * @param literals units to propagate
    * @return list of units propagated
    * @throws ContradictionException if a literal and its negation are propagated.
    */
-  public TIntArrayList propagate(int u) throws ContradictionException {
+  public TIntArrayList propagate(TIntArrayList literals) throws ContradictionException {
     currentColor++;
+
     TIntArrayList visited = new TIntArrayList();
-    dfs(u, visited);
+    for (int i = 0; i < literals.size(); i++) {
+      int u = literals.get(i);
+      dfs(u, visited);
+    }
 
     for (int i = 0; i < visited.size(); i++) {
       int v = visited.get(i);
@@ -74,6 +78,10 @@ public class ImplicationsGraph {
 
     remove(visited);
     return visited;
+  }
+
+  public TIntArrayList propagate(int... u) throws ContradictionException {
+    return propagate(new TIntArrayList(u));
   }
 
   /**
