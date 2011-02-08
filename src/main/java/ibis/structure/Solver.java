@@ -342,6 +342,8 @@ public final class Solver {
   public Core core() {
     Skeleton core = new Skeleton();
     core.append(graph.skeleton());
+    // logger.info("core size is " + core.clauses.size());
+    // System.exit(1);
     core.append(compact());
     return new Core(units.elements(), proxies, core);
   }
@@ -401,10 +403,10 @@ public final class Solver {
       propagate();
     }
 
-    simplifyImplicationGraph();
-    propagate();
-
     if (Configure.binarySelfSubsumming) {
+      simplifyImplicationGraph();
+      propagate();
+
       binarySelfSubsumming();
       propagate();
     }
@@ -414,10 +416,15 @@ public final class Solver {
       propagate();
     }
 
-    while (pureLiterals()) {
+    if (Configure.pureLiterals) {
+      pureLiterals();
       propagate();
     }
 
+    simplifyImplicationGraph();
+    propagate();
+
+    missingLiterals();
     verify();
   }
 
@@ -505,7 +512,6 @@ public final class Solver {
   }
 
   public void simplifyImplicationGraph() throws ContradictionException {
-    graph.topologicalSort();
     int[] colapsed = graph.removeStronglyConnectedComponents();
     for (int u = 1; u <= numVariables; ++u) {
       int proxy = colapsed[u];
@@ -621,7 +627,7 @@ public final class Solver {
   }
 
   /**
-   * Pure literal assignment.
+   * Assigns literals that appear only as plus or as minus.
    *
    * @return true if any unit was discovered
    * @throws ContradictionException if contradiction was found
@@ -644,6 +650,31 @@ public final class Solver {
     if (Configure.verbose) {
       if (numUnits > 0) {
         System.err.print("p" + numUnits + ".");
+      }
+    }
+    return numUnits > 0;
+  }
+
+  /**
+   * Assigns literals don't appear at all in the instance.
+   */
+  public boolean missingLiterals() {
+    int numUnits = 0;
+    for (int u = 1; u <= numVariables; u++) {
+      if (!isLiteralAssigned(u)) {
+        if (numBinaries(u) == 0 && watchList(u).size() == 0) {
+          if (numBinaries(-u) == 0 && watchList(-u).size() == 0) {
+            units.add(u);
+            numUnits++;
+            continue;
+          }
+        }
+      }
+    }
+
+    if (Configure.verbose) {
+      if (numUnits > 0) {
+        System.err.print("m" + numUnits + ".");
       }
     }
     return numUnits > 0;

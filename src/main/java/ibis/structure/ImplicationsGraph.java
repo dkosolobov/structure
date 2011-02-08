@@ -198,14 +198,11 @@ public class ImplicationsGraph {
   /**
    * Finds all strongly connected components.
    *
-   * Requires a correct topological sort.
-   * Topological is remains correct after components are removed.
-   *
    * The implemnted algorithm is described at
    *   http://www.cs.berkeley.edu/~vazirani/s99cs170/notes/lec12.pdf
    */
-  public int[] removeStronglyConnectedComponents()
-      throws ContradictionException {
+  private void findStronglyConnectedComponents() {
+    topologicalSort();
     for (int u = -numVariables; u <= numVariables; u++) {
       set(colapsed, u, u);
     }
@@ -229,13 +226,21 @@ public class ImplicationsGraph {
         }
       }
 
-      // System.err.println("component = " + component);
-
       for (int j = 0; j < component.size(); j++) {
         int u = component.get(j);
         set(colapsed, u, best);
       }
     }
+  }
+
+  /**
+   * Removes all strongly connected components.
+   *
+   * Requires a correct topological sort.
+   */
+  public int[] removeStronglyConnectedComponents()
+      throws ContradictionException {
+    findStronglyConnectedComponents();
 
     // Checks if a literal and its negation are in
     // the same cycle which means there is a contradiction.
@@ -358,12 +363,40 @@ public class ImplicationsGraph {
 
   /** Returns the graph as a SAT instance */
   public Skeleton skeleton() {
-    // TODO: simplify
     Skeleton skeleton = new Skeleton();
+    findStronglyConnectedComponents();
+
+    // TODO: simplify
     for (int u = -numVariables; u <= numVariables; u++) {
+      int u_ = get(colapsed, u);
       for (int i = 0; i < edges(u).size(); i++) {
         int v = edges(u).get(i);
-        skeleton.add(-u, v);
+        int v_ = get(colapsed, v);
+
+        if (-u > v) {
+          continue;
+        }
+
+        boolean good = true;
+        for (int j = Math.min(i - 1, 9); good && j >= 0; j--) {
+          int w = edges(u).get(j);
+          int w_ = get(colapsed, w);
+          good = w_ == u_ || w_ == v_ || !contains(w, v);
+        }
+        for (int j = Math.max(i - 5, 0); good && j < i; j++) {
+          int w = edges(u).get(j);
+          int w_ = get(colapsed, w);
+          good = w_ == u_ || w_ == v_ || !contains(w, v);
+        }
+        for (int j = Math.min(i + 5, edges(u).size() - 1); good && j > i; j--) {
+          int w = edges(u).get(j);
+          int w_ = get(colapsed, w);
+          good = w_ == u_ || w_ == v_ || !contains(w, v);
+        }
+
+        if (good) {
+          skeleton.add(-u, v);
+        }
       }
     }
     return skeleton;
