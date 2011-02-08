@@ -1,6 +1,8 @@
 package ibis.structure;
 
 import gnu.trove.TIntArrayList;
+import gnu.trove.TIntStack;
+
 
 public class ImplicationsGraph {
   private static final TIntArrayList EMPTY = new TIntArrayList();
@@ -11,6 +13,7 @@ public class ImplicationsGraph {
   private int[] colors;
   private int currentColor;
   private int[] colapsed;
+  private int[] stack;
 
   public ImplicationsGraph(int numVariables) {
     this.numVariables = numVariables;
@@ -24,6 +27,7 @@ public class ImplicationsGraph {
     colors = create();
     currentColor = 0;
     colapsed = create();
+    stack = create();
   }
 
   /** Adds a new implication u &rarr; v. */
@@ -294,11 +298,20 @@ public class ImplicationsGraph {
     if (visit(u)) {
       return;
     }
+
+    int stackTop = 0;
+    stack[stackTop++] = u;
     visited.add(u);
 
-    for (int i = 0; i < edges(u).size(); i++) {
-      int v = edges(u).get(i);
-      dfs(v, visited);
+    while (stackTop > 0) {
+      u = stack[--stackTop];
+      for (int i = 0; i < edges(u).size(); i++) {
+        int v = edges(u).get(i);
+        if (!visit(v)) {
+          stack[stackTop++] = v;
+          visited.add(v);
+        }
+      }
     }
   }
 
