@@ -270,12 +270,11 @@ public class ImplicationsGraph {
         // Moves u's edges into parent
         // TODO: inefficient toNativeArray()
         edges(get(colapsed, u)).add(edges(u).toNativeArray());
-        edges(u).clear();
+        edges[u + numVariables] = EMPTY;
         continue;
       }
     }
 
-    int removed = 0;
     for (int u = -numVariables; u <= numVariables; u++) {
       if (get(colapsed, u) != u) {
         continue;
@@ -285,14 +284,14 @@ public class ImplicationsGraph {
       visit(u);
       int pos = 0;
       for (int j = 0; j < edges(u).size(); j++) {
-        int v = get(colapsed, edges(u).get(j));
+        int v = get(colapsed, edges(u).getQuick(j));
         if (!visit(v)) {
           edges(u).set(pos++, v);
         }
       }
-      removed += edges(u).size() - pos;
-      if (pos != edges(u).size()) {
-        edges(u).remove(pos, edges(u).size() - pos);
+      int removed = edges(u).size() - pos;
+      if (removed != 0) {  // bug in trove4j
+        edges(u).remove(pos, removed);
       }
     }
 
@@ -313,7 +312,7 @@ public class ImplicationsGraph {
     while (stackTop > 0) {
       u = stack[--stackTop];
       for (int i = 0; i < edges(u).size(); i++) {
-        int v = edges(u).get(i);
+        int v = edges(u).getQuick(i);
         if (!visit(v)) {
           stack[stackTop++] = v;
           visited.add(v);
