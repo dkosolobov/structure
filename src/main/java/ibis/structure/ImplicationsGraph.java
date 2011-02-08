@@ -133,7 +133,7 @@ public class ImplicationsGraph {
     currentColor++;
     TIntArrayList visited = new TIntArrayList();
     for (int u = -numVariables; u <= numVariables; u++) {
-      if (contains(u, -u)) {
+      if (!isVisited(-u) && contains(u, -u)) {
         dfs(-u, visited);
       }
     }
@@ -145,9 +145,11 @@ public class ImplicationsGraph {
   /**
    * Performs transitive closure.
    *
-   * Requires correct topological sort and no strongly connected components.
+   * Requires no strongly connected components.
    */
   public void transitiveClosure() {
+    topologicalSort();
+
     // Nodes are visited in topological order therefore
     // every node w in the subtree of child v is already a child of v.
     for (int i = 0; i < topologicalSort.length; i++) {
@@ -156,9 +158,9 @@ public class ImplicationsGraph {
         continue;
       }
 
-      TIntArrayList all = new TIntArrayList();
       currentColor++;
       visit(u);
+      TIntArrayList all = new TIntArrayList();
       for (int j = 0; j < edges(u).size(); j++) {
         int v = edges(u).get(j);
         if (visit(v)) {
@@ -180,7 +182,8 @@ public class ImplicationsGraph {
   /**
    * Solves the 2-SAT encoded in the implication graph.
    */
-  public TIntArrayList solve(TIntArrayList assigned) throws ContradictionException {
+  public TIntArrayList solve(final TIntArrayList assigned)
+      throws ContradictionException {
     topologicalSort();
     removeStronglyConnectedComponents();
 
@@ -196,6 +199,12 @@ public class ImplicationsGraph {
       int u = topologicalSort[i];
       if (u != 0 && !isVisited(u) && !isVisited(-u)) {
         dfs(u, visited);
+      }
+    }
+
+    for (int u = 1; u <= numVariables; u++) {
+      if (isVisited(u) && isVisited(-u)) {
+        throw new ContradictionException();
       }
     }
 
@@ -217,7 +226,7 @@ public class ImplicationsGraph {
     currentColor++;
     TIntArrayList component = new TIntArrayList();
     for (int i = 0; i < topologicalSort.length; i++) {
-      component.clear();
+      component.reset();
       dfs(topologicalSort[i], component);
       if (component.size() <= 1) {
         continue;
@@ -242,8 +251,6 @@ public class ImplicationsGraph {
 
   /**
    * Removes all strongly connected components.
-   *
-   * Requires a correct topological sort.
    */
   public int[] removeStronglyConnectedComponents()
       throws ContradictionException {
