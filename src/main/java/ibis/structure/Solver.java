@@ -551,15 +551,15 @@ public final class Solver {
     int[] twice = new int[2 * numVariables + 1];
     int twiceColor = 0, numBinaries = 0;
 
-    TIntIntIterator it = lengths.iterator();
-    for (int size = lengths.size(); size > 0; size--) {
-      it.advance();
-      int start = it.key();
+    TIntArrayList binaries = new TIntArrayList();
+
+    for (int start = 0; start < clauses.size(); ) {
       int numLiterals = 0;
       int clauseSum = 0;
       int numTouched = 0;
+      int end = start;
 
-      for (int end = start; end < clauses.size(); end++) {
+      for (; end < clauses.size(); end++) {
         int literal = clauses.get(end);
         if (literal == REMOVED) {
           continue;
@@ -583,6 +583,8 @@ public final class Solver {
         }
       }
 
+      start = end + 1;
+
       if (numLiterals < 3) {
         // Clause is too small for hyper binary resolution.
         // propagateClause(start);
@@ -601,9 +603,8 @@ public final class Solver {
           // New implication: literal -> missing
           int missing = clauseSum - sums[touch];
           assert !isLiteralAssigned(missing);
-
-          addBinary(-literal, missing);
-          ++numBinaries;
+          binaries.add(-literal);
+          binaries.add(missing);
         }
 
         counts[touch] = 0;
@@ -611,7 +612,12 @@ public final class Solver {
       }
     }
 
+    for (int i = 0; i < binaries.size(); i += 2) {
+      addBinary(binaries.get(i), binaries.get(i + 1));
+    }
+
     int numUnits = unitsQueue.size();
+    int numBinaries = binaries.size() / 2;
     if (Configure.verbose) {
       if (numUnits > 0) {
         System.err.print("hu" + numUnits + ".");
