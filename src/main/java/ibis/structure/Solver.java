@@ -548,8 +548,8 @@ public final class Solver {
     int[] counts = new int[2 * numVariables + 1];
     int[] sums = new int[2 * numVariables + 1];
     int[] touched = new int[2 * numVariables + 1];
-    int numBinaries = 0;
-    BitSet twice = new BitSet();
+    int[] twice = new int[2 * numVariables + 1];
+    int twiceColor = 0, numBinaries = 0;
 
     TIntIntIterator it = lengths.iterator();
     for (int size = lengths.size(); size > 0; size--) {
@@ -561,28 +561,25 @@ public final class Solver {
 
       for (int end = start; end < clauses.size(); end++) {
         int literal = clauses.get(end);
-        if (literal == 0) {
-          break;
-        }
         if (literal == REMOVED) {
           continue;
         }
+        if (literal == 0) {
+          break;
+        }
 
+        twiceColor++;
         numLiterals++;
         clauseSum += literal;
         TIntArrayList edges = graph.edges(literal);
         for (int i = 0; i < edges.size(); i++) {
           int node = -edges.get(i) + numVariables;
-          if (!twice.contains(node)) {
-            twice.add(node);
+          if (twice[node] != twiceColor) {
+            twice[node] = twiceColor;
             if (counts[node] == 0) touched[numTouched++] = node;
             counts[node] += 1;
             sums[node] += literal;
           }
-        }
-        for (int i = 0; i < edges.size(); i++) {
-          int node = -edges.get(i) + numVariables;
-          twice.remove(node);
         }
       }
 
@@ -592,7 +589,7 @@ public final class Solver {
         continue;
       }
 
-      for (int i = 0; i < numTouched && !isSatisfied(start); ++i) {
+      for (int i = 0; i < numTouched; ++i) {
         int touch = touched[i];
         int literal = touch - numVariables;
         assert !isLiteralAssigned(literal);
