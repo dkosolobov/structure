@@ -148,6 +148,9 @@ public class ImplicationsGraph {
     // every node w in the subtree of child v is already a child of v.
     for (int i = 0; i < topologicalSort.length; i++) {
       int u = topologicalSort[i];
+      if (edges(u).isEmpty()) {
+        continue;
+      }
 
       TIntArrayList all = new TIntArrayList();
       currentColor++;
