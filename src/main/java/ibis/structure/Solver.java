@@ -301,7 +301,6 @@ public final class Solver {
     }
 
     if (satisfied) {
-      logger.info("solving " + compact());
       // Solves the remaining 2SAT encoded in the implication graph
       TIntArrayList assigned = new TIntArrayList(units.elements());
       for (int u = 1; u <= numVariables; ++u) {
@@ -311,8 +310,7 @@ public final class Solver {
       }
 
       try {
-        int[] solution = graph.solve(assigned).toNativeArray();
-        units.addAll(solution);
+        units.addAll(graph.solve(assigned).toNativeArray());
       } catch (ContradictionException e) {
         return Solution.unsatisfiable();
       }
@@ -522,7 +520,6 @@ public final class Solver {
       }
     }
 
-    graph.topologicalSort();
     graph.transitiveClosure();
 
     TIntArrayList propagated = graph.findContradictions();
@@ -549,10 +546,13 @@ public final class Solver {
     int[] sums = new int[2 * numVariables + 1];
     int[] touched = new int[2 * numVariables + 1];
     int[] twice = new int[2 * numVariables + 1];
-    int twiceColor = 0, numBinaries = 0;
-
+    int twiceColor = 0;
     TIntArrayList binaries = new TIntArrayList();
 
+    final int cacheSize = 1 << 9;
+    int[] cache = new int[cacheSize * 2];
+
+    int filtered = 0;
     for (int start = 0; start < clauses.size(); ) {
       int numLiterals = 0;
       int clauseSum = 0;
@@ -603,8 +603,19 @@ public final class Solver {
           // New implication: literal -> missing
           int missing = clauseSum - sums[touch];
           assert !isLiteralAssigned(missing);
-          binaries.add(-literal);
-          binaries.add(missing);
+
+          if (literal != missing) {
+            int hash = hash(missing) ^ literal;
+            hash = 2 * (hash & (cacheSize - 1));
+            if (cache[hash] != -literal || cache[hash + 1] != missing) {
+              cache[hash] = -literal;
+              cache[hash + 1] = missing;
+              binaries.add(-literal);
+              binaries.add(missing);
+            } else {
+              filtered++;
+            }
+          }
         }
 
         counts[touch] = 0;
@@ -612,9 +623,20 @@ public final class Solver {
       }
     }
 
+    // Filters some duplicate binaries
+    int[] last0 = sums;
+    int[] last1 = counts;
     for (int i = 0; i < binaries.size(); i += 2) {
-      addBinary(binaries.get(i), binaries.get(i + 1));
+      int u = binaries.get(i), u_ = u + numVariables;
+      int v = binaries.get(i + 1), v_ = v + numVariables;
+      if (last0[u_] != v && last1[u_] != v
+          && last0[v_] != u && last1[v_] != u) {
+        last0[u_] = last1[u_];
+        last1[u_] = v;
+        addBinary(u, v);
+      }
     }
+    // logger.info("filtered = " + filtered + " left " + binaries.size()/2);
 
     int numUnits = unitsQueue.size();
     int numBinaries = binaries.size() / 2;
@@ -804,7 +826,6 @@ public final class Solver {
         // Ignores very long clauses to improve perfomance.
         continue;
       }
-
 
       // Finds literal included in minimum number of clauses
       int bestLiteral = 0;
