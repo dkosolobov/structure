@@ -391,20 +391,18 @@ public final class Solver {
   public void simplify() throws ContradictionException {
     propagate();
 
+    simplifyImplicationGraph();
+    propagate();
+
     for (int i = 0; i < Configure.numHyperBinaryResolutions; ++i) {
-      simplifyImplicationGraph();
+      if (!hyperBinaryResolution()) { break; }
       propagate();
 
-      if (!hyperBinaryResolution()) {
-        break;
-      }
+      simplifyImplicationGraph();
       propagate();
     }
 
     if (Configure.binarySelfSubsumming) {
-      simplifyImplicationGraph();
-      propagate();
-
       binarySelfSubsumming();
       propagate();
     }
@@ -509,7 +507,8 @@ public final class Solver {
     return simplified;
   }
 
-  public void simplifyImplicationGraph() throws ContradictionException {
+  public void simplifyImplicationGraph(boolean tc)
+      throws ContradictionException {
     int[] colapsed = graph.removeStronglyConnectedComponents();
     for (int u = 1; u <= numVariables; ++u) {
       int proxy = colapsed[u];
@@ -520,15 +519,119 @@ public final class Solver {
       }
     }
 
-    graph.transitiveClosure();
+    if (tc) {
+      graph.transitiveClosure();
+    }
 
     TIntArrayList propagated = graph.findContradictions();
     for (int i = 0; i < propagated.size(); i++) {
-      int u = propagated.get(i);
-      if (units.contains(-u)) {
-        throw new ContradictionException();
+      addUnit(propagated.get(i));
+    }
+  }
+
+  /**
+   * Does hyper binary resolution.
+   */
+  private class Split extends Thread {
+    /** A vector to store generated binaries. */
+    TIntArrayList binaries;
+    /** An iterator over clauses. */
+    TIntIntIterator iterator;
+
+    public Split(TIntArrayList binaries, TIntIntIterator iterator) {
+      super("HyperBinaryResolution");
+      this.binaries = binaries;
+      this.iterator = iterator;
+    }
+
+    public void run() {
+      int[] counts = new int[2 * numVariables + 1];
+      int[] sums = new int[2 * numVariables + 1];
+      int[] touched = new int[2 * numVariables + 1];
+      int[] twice = new int[2 * numVariables + 1];
+      int twiceColor = 0;
+
+      final int cacheSize = 1 << 10;
+      int[] cache = new int[cacheSize * 2];
+
+      while (true) {
+        int start;
+        synchronized (iterator) {
+          if (!iterator.hasNext()) break;
+          iterator.advance();
+          start = iterator.key();
+        }
+        
+        int numLiterals = 0;
+        int clauseSum = 0;
+        int numTouched = 0;
+        int end = start;
+
+        for (; end < clauses.size(); end++) {
+          int literal = clauses.get(end);
+          if (literal == REMOVED) {
+            continue;
+          }
+          if (literal == 0) {
+            break;
+          }
+
+          twiceColor++;
+          numLiterals++;
+          clauseSum += literal;
+          TIntArrayList edges = graph.edges(literal);
+          for (int i = 0; i < edges.size(); i++) {
+            int node = -edges.get(i) + numVariables;
+            if (twice[node] != twiceColor) {
+              twice[node] = twiceColor;
+              if (counts[node] == 0) touched[numTouched++] = node;
+              counts[node] += 1;
+              sums[node] += literal;
+            }
+          }
+        }
+
+        start = end + 1;
+
+        if (numLiterals < 3) {
+          // Clause is too small for hyper binary resolution.
+          // propagateClause(start);
+          continue;
+        }
+
+        for (int i = 0; i < numTouched; ++i) {
+          int touch = touched[i];
+          int literal = touch - numVariables;
+          assert !isLiteralAssigned(literal);
+
+          if (counts[touch] == numLiterals) {
+            synchronized (unitsQueue) {
+              unitsQueue.add(-literal);
+            }
+          } else if (counts[touch] + 1 == numLiterals) {
+            // There is an edge from literal to all literals in clause except one.
+            // New implication: literal -> missing
+            int missing = clauseSum - sums[touch];
+            assert !isLiteralAssigned(missing);
+
+            if (literal != missing) {
+              int hash = hash(missing) ^ literal;
+              hash = 2 * (hash & (cacheSize - 1));
+              if (cache[hash] != -literal || cache[hash + 1] != missing) {
+                cache[hash] = -literal;
+                cache[hash + 1] = missing;
+                synchronized (binaries) {
+                  binaries.add(-literal);
+                  binaries.add(missing);
+                }
+              }
+            }
+          }
+
+          counts[touch] = 0;
+          sums[touch] = 0;
+        }
       }
-      addUnit(u);
     }
   }
 
@@ -542,101 +645,38 @@ public final class Solver {
    * @throws ContradictionException if contradiction was found
    */
   public boolean hyperBinaryResolution() throws ContradictionException {
-    int[] counts = new int[2 * numVariables + 1];
-    int[] sums = new int[2 * numVariables + 1];
-    int[] touched = new int[2 * numVariables + 1];
-    int[] twice = new int[2 * numVariables + 1];
-    int twiceColor = 0;
     TIntArrayList binaries = new TIntArrayList();
+    TIntIntIterator iterator = lengths.iterator();
 
-    final int cacheSize = 1 << 9;
-    int[] cache = new int[cacheSize * 2];
+    int numThreads = Math.min(Configure.numExecutors, Math.max(1,
+          lengths.size() / 10000));
 
-    int filtered = 0;
-    for (int start = 0; start < clauses.size(); ) {
-      int numLiterals = 0;
-      int clauseSum = 0;
-      int numTouched = 0;
-      int end = start;
-
-      for (; end < clauses.size(); end++) {
-        int literal = clauses.get(end);
-        if (literal == REMOVED) {
-          continue;
-        }
-        if (literal == 0) {
-          break;
-        }
-
-        twiceColor++;
-        numLiterals++;
-        clauseSum += literal;
-        TIntArrayList edges = graph.edges(literal);
-        for (int i = 0; i < edges.size(); i++) {
-          int node = -edges.get(i) + numVariables;
-          if (twice[node] != twiceColor) {
-            twice[node] = twiceColor;
-            if (counts[node] == 0) touched[numTouched++] = node;
-            counts[node] += 1;
-            sums[node] += literal;
-          }
-        }
+    if (numThreads == 1) {
+      (new Split(binaries, iterator)).run();
+    } else {
+      Thread[] threads = new Thread[numThreads];
+      for (int i = 0; i < threads.length; i++) {
+        threads[i] = new Split(binaries, iterator);
+        threads[i].start();
       }
 
-      start = end + 1;
-
-      if (numLiterals < 3) {
-        // Clause is too small for hyper binary resolution.
-        // propagateClause(start);
-        continue;
-      }
-
-      for (int i = 0; i < numTouched; ++i) {
-        int touch = touched[i];
-        int literal = touch - numVariables;
-        assert !isLiteralAssigned(literal);
-
-        if (counts[touch] == numLiterals) {
-          unitsQueue.add(-literal);
-        } else if (counts[touch] + 1 == numLiterals) {
-          // There is an edge from literal to all literals in clause except one.
-          // New implication: literal -> missing
-          int missing = clauseSum - sums[touch];
-          assert !isLiteralAssigned(missing);
-
-          if (literal != missing) {
-            int hash = hash(missing) ^ literal;
-            hash = 2 * (hash & (cacheSize - 1));
-            if (cache[hash] != -literal || cache[hash + 1] != missing) {
-              cache[hash] = -literal;
-              cache[hash + 1] = missing;
-              binaries.add(-literal);
-              binaries.add(missing);
-            } else {
-              filtered++;
-            }
-          }
-        }
-
-        counts[touch] = 0;
-        sums[touch] = 0;
+      for (int i = 0; i < threads.length; i++) {
+        try { threads[i].join(); }
+        catch (InterruptedException e) { }
       }
     }
 
     // Filters some duplicate binaries
-    int[] last0 = sums;
-    int[] last1 = counts;
+    int[] last = new int[2 * numVariables + 1];
     for (int i = 0; i < binaries.size(); i += 2) {
       int u = binaries.get(i), u_ = u + numVariables;
       int v = binaries.get(i + 1), v_ = v + numVariables;
-      if (last0[u_] != v && last1[u_] != v
-          && last0[v_] != u && last1[v_] != u) {
-        last0[u_] = last1[u_];
-        last1[u_] = v;
+      if (last[u_] != v && last[v_] != u) {
+        // Binary was not found in cached
+        last[u_] = v;
         addBinary(u, v);
       }
     }
-    // logger.info("filtered = " + filtered + " left " + binaries.size()/2);
 
     int numUnits = unitsQueue.size();
     int numBinaries = binaries.size() / 2;

@@ -333,8 +333,6 @@ public class ImplicationsGraph {
       topologicalSort[i] = topologicalSort[topologicalSort.length - i - 1];
       topologicalSort[topologicalSort.length - i - 1] = temp;
     }
-
-    // System.err.println("Topological sort is " + (new TIntArrayList(topologicalSort)));
   }
 
   /** Orders nodes by exit times in reversed graph. */
