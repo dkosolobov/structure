@@ -95,29 +95,49 @@ public class ImplicationsGraph {
    *
    */
   private void remove(TIntArrayList literals) {
+    // Finds all nodes that have dirty edges.
+    currentColor++;
+    int stackTop = 0;
     for (int i = 0; i < literals.size(); i++) {
       int u = literals.get(i);
-      assert !literals.contains(-u);
+      for (int j = 0; j < edges(-u).size(); j++) {
+        int v = -edges(-u).get(j);
+        if (!visit(v)) stack[stackTop++] = v;
+      }
+      for (int j = 0; j < edges(u).size(); j++) {
+        int v = -edges(u).get(j);
+        if (!visit(v)) stack[stackTop++] = v;
+      }
+    }
 
-      TIntArrayList children = edges(u);
-      TIntArrayList parents = edges(-u);
+    // Marks all literals to be removed.
+    currentColor++;
+    for (int i = 0; i < literals.size(); i++) {
+      int u = literals.get(i);
+      assert !isVisited(u);
+      visit(u);
+      visit(-u);
 
       assert EMPTY.isEmpty();
       edges[u + numVariables] = EMPTY;
       edges[-u + numVariables] = EMPTY;
+    }
 
-      for (int j = 0; j < parents.size(); j++) {
-        int v = -parents.get(j);
-        if (v != u && v != -u) {
-          edges(v).remove(edges(v).indexOf(u));
+    // Removes unwanted literals from dirty nodes.
+    for (int i = 0; i < stackTop; i++) {
+      int u = stack[i];
+
+      int p = 0;
+      for (int j = 0; j < edges(u).size(); j++) {
+        int v = edges(u).get(j);
+        if (!isVisited(v)) {
+          edges(u).set(p++, v);
         }
       }
 
-      for (int j = 0; j < children.size(); j++) {
-        int v = -children.get(j);
-        if (v != u && v != -u) {
-          edges(v).remove(edges(v).indexOf(-u));
-        }
+      int removed = edges(u).size() - p;
+      if (removed > 0) {
+        edges(u).remove(p, removed);
       }
     }
   }
