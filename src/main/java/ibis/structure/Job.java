@@ -50,7 +50,8 @@ public final class Job extends Activity {
       if (!Configure.enableExpensiveChecks) {
         instance = null;  // helps GC
       }
-    } catch (AssertionError e) {
+    } catch (Exception e) {
+      logger.info("Failed on branch " + branch + " with instance " + instance);
       e.printStackTrace();
       System.exit(1);
     }
