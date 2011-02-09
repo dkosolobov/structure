@@ -31,11 +31,13 @@ public class Configure {
   public static boolean subsumming = true;
   /** Number of hyper binary resolutions to perform. 0 to disable. */
   public static int numHyperBinaryResolutions = 2;
+  /** Threshold for transitive closure. */
+  public static double ttc = 1.10;
 
   public static boolean configure(String[] args) {
     Options options = new Options();
     options.addOption("help", false, "print this help");
-    options.addOption("e", true, "# of executors (0 for number of CPUs)");
+    options.addOption("e", true, "# of executors (defaults to number of CPUs)");
     options.addOption("o", true, "output file (defaults to stdout)");
     options.addOption("debug", false, "enable expensive checks");
     options.addOption("q", false, "be quiet");
@@ -44,6 +46,7 @@ public class Configure {
     options.addOption("nopl", false, "disable pure literals");
     options.addOption("noss", false, "disable subsumming");
     options.addOption("hbr", true, "# of hyper binary resolutions (0 to disable)");
+    options.addOption("ttc", true, "threshold for transitive closure");
 
     BasicParser parser = new BasicParser();
     CommandLine cl = null;
@@ -90,6 +93,9 @@ public class Configure {
     }
     if (cl.hasOption("hbr")) {
       numHyperBinaryResolutions = Integer.parseInt(cl.getOptionValue("hbr"));
+    }
+    if (cl.hasOption("ttc")) {
+      ttc = Double.parseDouble(cl.getOptionValue("ttc"));
     }
 
     return true;

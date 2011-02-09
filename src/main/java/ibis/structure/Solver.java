@@ -391,11 +391,8 @@ public final class Solver {
   public void simplify() throws ContradictionException {
     propagate();
 
-    simplifyImplicationGraph();
-    propagate();
-
     for (int i = 0; i < Configure.numHyperBinaryResolutions; ++i) {
-      if (!hyperBinaryResolution()) { break; }
+      if (!hyperBinaryResolution()) break;
       propagate();
 
       simplifyImplicationGraph();
@@ -507,8 +504,7 @@ public final class Solver {
     return simplified;
   }
 
-  public void simplifyImplicationGraph(boolean tc)
-      throws ContradictionException {
+  public void renameEquivalentLiterals() throws ContradictionException {
     int[] colapsed = graph.removeStronglyConnectedComponents();
     for (int u = 1; u <= numVariables; ++u) {
       int proxy = colapsed[u];
@@ -518,15 +514,18 @@ public final class Solver {
         renameLiteral(u, proxy);
       }
     }
+  }
 
-    if (tc) {
+  public void simplifyImplicationGraph() throws ContradictionException {
+    renameEquivalentLiterals();
+    TIntArrayList propagated;
+    if (graph.density() < Configure.ttc) {
       graph.transitiveClosure();
+      propagated = graph.findContradictions();
+    } else {
+      propagated = graph.findAllContradictions();
     }
-
-    TIntArrayList propagated = graph.findContradictions();
-    for (int i = 0; i < propagated.size(); i++) {
-      addUnit(propagated.get(i));
-    }
+    unitsQueue.add(propagated.toNativeArray());
   }
 
   /**

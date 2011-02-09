@@ -123,11 +123,67 @@ public class ImplicationsGraph {
   }
 
   /**
+   * Finds all contradictions and returns a list of assigned literals.
+   *
+   * Returned units are removed from the graph.
+   */
+  public TIntArrayList findAllContradictions() {
+    TIntArrayList units = new TIntArrayList();
+    for (int u = -numVariables; u <= numVariables; u++) {
+      currentColor++;
+      dfs(u, -u);
+      if (isVisited(-u)) {
+        units.add(-u);
+      }
+    }
+
+    currentColor++;
+    TIntArrayList visited = new TIntArrayList();
+    for (int i = 0; i < units.size(); i++) {
+      int unit = units.get(i);
+      if (unit != 0) {
+        dfs(unit, visited);
+      }
+    }
+
+    remove(visited);
+    return visited;
+  }
+
+  /**
+   * Depth first search start at u and stoping at when stop is found.
+   */
+  private void dfs(int u, int stop) {
+    if (visit(u)) {
+      return;
+    }
+
+    int stackTop = 0;
+    stack[stackTop++] = u;
+
+    while (stackTop > 0) {
+      u = stack[--stackTop];
+      for (int i = 0; i < edges(u).size(); i++) {
+        int v = edges(u).getQuick(i);
+        if (!visit(v)) {
+          if (v == stop) {
+            break;
+          }
+          stack[stackTop++] = v;
+        }
+      }
+    }
+  }
+
+  /**
    * Finds contradictions and returns a list of assigned literals.
    *
    * Returned units are removed from the graph.
    *
-   * Requires transitive closure.
+   * This function is faster than findAllContradictions, but find
+   * less contradictions because it doesn't recurse.
+   *
+   * If the graph is transitive closed this is similar to findAllContradictions().
    */
   public TIntArrayList findContradictions() {
     currentColor++;
@@ -140,6 +196,17 @@ public class ImplicationsGraph {
 
     remove(visited);
     return visited;
+  }
+
+  /** Returns a score of density of the graph. */
+  public double density() {
+    int n = 0, m = 0;
+    for (int u = -numVariables; u <= numVariables; u++) {
+      if (edges(u) == EMPTY) continue;
+      n += 1;
+      m += edges(u).size();
+    }
+    return Math.log(m) / Math.log(n);
   }
 
   /**
