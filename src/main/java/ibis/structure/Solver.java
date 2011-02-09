@@ -70,35 +70,43 @@ public final class Solver {
 
   /**
    * Builds watch lists.
+   *
+   * Watch list for a literal u contains the start position of clauses containing u.
    */
-  private void buildWatchLists() {
-    int start = 0;
-    boolean satisfied = false;
+  private void buildWatchLists() throws ContradictionException {
+    for (int start = 0; start < clauses.size();) {
+      if (clauses.get(start + 0) == 0) {  // empty clause
+        throw new ContradictionException();
+      }
 
-    for (int i = 0; i < clauses.size(); ++i) {
-      int literal = clauses.get(i);
-      if (literal == 0) {
-        int length = i - start;
-        lengths.put(start, length);
-        if (satisfied) {
-          removeClause(start);
-        } else if (length <= 2) {
-          queue.add(start);
+      if (clauses.get(start + 1) == 0) {  // unit
+        unitsQueue.add(clauses.getSet(start, REMOVED));
+        clauses.set(start + 1, REMOVED);
+        start += 2;
+        continue;
+      }
+
+      if (clauses.get(start + 2) == 0) {  // binary
+        addBinary(clauses.getSet(start, REMOVED),
+                  clauses.getSet(start + 1, REMOVED));
+        clauses.set(start + 2, REMOVED);
+        start += 3;
+        continue;
+      }
+
+
+      for (int end = start; ; end++) {
+        int u = clauses.get(end);
+        if (u == 0) {
+          assert end - start >= 3;
+          lengths.put(start, end - start);
+          start = end + 1;
+          break;
         }
-        start = i + 1;
-        satisfied = false;
-      } else {
-        // TODO: remove
-        if (watchList(literal).contains(start)) {  // duplicate literal
-          logger.error("Found duplicate literal");
-          clauses.set(i, REMOVED);
-        } else {
-          watchList(literal).add(start);
-          if (watchList(-literal).contains(start)) {
-            logger.error("Found satisfied clause");
-            satisfied = true;
-          }
-        }
+
+        assert !watchList(u).contains(start): "Found duplicate literal";
+        assert !watchList(-u).contains(start): "Found satisfied clause";
+        watchList(u).add(start);
       }
     }
   }
@@ -272,9 +280,9 @@ public final class Solver {
    * @return solution or simplified instance.
    */
   public Solution solve(final int branch) {
-    buildWatchLists();
-
     try {
+      buildWatchLists();
+
       if (branch == 0) {
         if (Configure.pureLiterals) {
           propagate();
