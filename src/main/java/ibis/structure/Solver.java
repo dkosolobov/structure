@@ -21,6 +21,7 @@ import static ibis.structure.BitSet.mapNtoZ;;
 public final class Solver {
   /** Marks a removed literal */
   private static final int REMOVED = Integer.MAX_VALUE;
+  private static final TIntHashSet EMPTY = new TIntHashSet();
 
   private static final Logger logger = Logger.getLogger(Solver.class);
   private static final java.util.Random random = new java.util.Random(1);
@@ -166,9 +167,7 @@ public final class Solver {
     }
   }
 
-  /**
-   * Verifies watch lists.
-   */
+  /** Verifies watch lists. */
   private void verifyWatchLists() {
     for (int u = -numVariables; u <= numVariables; ++u) {
       if (u != 0) {
@@ -183,9 +182,7 @@ public final class Solver {
     }
   }
 
-  /**
-   * Verifies that assigned instances are removed.
-   */
+  /** Verifies that assigned instances are removed.  */
   private void verifyAssigned() {
     for (int u = -numVariables; u <= numVariables; ++u) {
       if (u != 0 && isLiteralAssigned(u)) {
@@ -197,9 +194,7 @@ public final class Solver {
     }
   }
 
-  /**
-   * Checks solver for consistency.
-   */
+  /** Checks solver for consistency.  */
   private void verify() {
     if (Configure.enableExpensiveChecks) {
       verifyLengths();
@@ -378,16 +373,20 @@ public final class Solver {
     int bestBranch = 0;
     double bestValue = Double.NEGATIVE_INFINITY;
     for (int branch = 1; branch <= numVariables; ++branch) {
-      boolean isMutex =
-          watchList(branch).isEmpty() && watchList(-branch).isEmpty();
-      if (!isMutex && !isLiteralAssigned(branch)) {
-        double positive = score(branch);
-        double negative = score(-branch);
-        double value = positive * negative;
-        if (value > bestValue) {
-          bestBranch = positive > negative ? -branch : branch;
-          bestValue = value;
-        }
+      if (isLiteralAssigned(branch)) {
+        continue;
+      }
+      if (watchList(branch).isEmpty() && watchList(-branch).isEmpty()) {
+        // branch is a mutex
+        continue;
+      }
+
+      double positive = score(branch);
+      double negative = score(-branch);
+      double value = positive * negative;
+      if (value > bestValue) {
+        bestBranch = positive > negative ? -branch : branch;
+        bestValue = value;
       }
     }
 
@@ -1074,6 +1073,7 @@ public final class Solver {
     graph.add(-u, v);
   }
 
+
   /**
    * Merges watchlist of u into v.
    *
@@ -1089,12 +1089,13 @@ public final class Solver {
         // renaming creates a tautology
         removeClause(clause);
       } else {
+        // renames literal in clause
         int position = findLiteral(clause, u);
         clauses.set(position, v);
         watchList(v).add(clause);
-        watchList(u).remove(clause);
       }
     }
+    watchLists[mapZtoN(u)] = EMPTY;
   }
 
   /**
