@@ -333,6 +333,36 @@ public class ImplicationsGraph {
         set(colapsed, u, best);
       }
     }
+ 
+    // Verifies components
+    if (Configure.enableExpensiveChecks) {
+      for (int u = -numVariables; u <= numVariables; u++) {
+        for (int v = -numVariables; v <= numVariables; v++) {
+          boolean same = true;
+
+          currentColor++;
+          dfs(u, v);
+          same = same && isVisited(v);
+
+          currentColor++;
+          dfs(v, u);
+          same = same && isVisited(u);
+
+          assert !same || get(colapsed, u) == get(colapsed, v);
+        }
+      }
+
+
+      for (int u = -numVariables; u <= numVariables; u++) {
+        currentColor++;
+        dfs(u, 0);
+        assert isVisited(get(colapsed, u));
+
+        currentColor++;
+        dfs(get(colapsed, u), 0);
+        assert isVisited(u);
+      }
+    }
   }
 
   /**
@@ -349,6 +379,7 @@ public class ImplicationsGraph {
         throw new ContradictionException();
       }
     }
+
 
     // Renames literals and remove duplicates.
     for (int u = -numVariables; u <= numVariables; u++) {
@@ -437,42 +468,44 @@ public class ImplicationsGraph {
   }
 
   /** Verifies the implication graph for consistency */
-  private void verify() {
-    String error = verifyToString();
-    assert error == null : error;
-  }
+  public void verify() {
+    if (!Configure.enableExpensiveChecks) {
+      return;
+    }
 
-  private String verifyToString() {
     for (int u = -numVariables; u <= numVariables; u++) {
-      if (get(colors, u) >= currentColor) {
-        return "Wrong color for literal " + u;
-      }
+      assert get(colors, u) <= currentColor:
+          "Wrong color for literal " + u;
+    }
+
+    for (int u = -numVariables; u <= numVariables; u++) {
+      set(stack, u, 0);
     }
 
     for (int u = -numVariables; u <= numVariables; u++) {
       for (int i = 0; i < edges(u).size(); i++) {
         int v = edges(u).get(i);
-        if (!edges(-v).contains(-u)) {
-          return "Missing reverse edge " + (-v) + " -> " + (-u);
-        }
+        set(stack, v, get(stack, v) + 1);
+        assert edges(-v).contains(-u):
+           "Missing reverse edge " + (-v) + " -> " + (-u);
       }
     }
-    return null;
+
+    for (int u = -numVariables; u <= numVariables; u++) {
+      assert get(stack, u) == edges(-u).size():
+          "Wrong number of edges for literal " + (-u);
+    }
   }
 
-
+  /** Returns the implication graph as a dot digraph. */
   public String toString() {
     StringBuffer buffer = new StringBuffer();
+    buffer.append("digraph ig {\n");
     for (int u = -numVariables; u <= numVariables; u++) {
-      buffer.append(u + " -> " + edges(u) + "\n");
+      buffer.append(u + " -> " + edges(u).toString().replace(',', ';') + ";\n");
     }
+    buffer.append("}");
     return buffer.toString();
-  }
-
-  /** Prints the implication graph to stderr. */
-  public void print(String message) {
-    System.err.println(message);
-    System.err.println(toString());
   }
 
   /** Returns the graph as a SAT instance */
@@ -480,7 +513,6 @@ public class ImplicationsGraph {
     Skeleton skeleton = new Skeleton();
     findStronglyConnectedComponents();
 
-    // TODO: simplify
     for (int u = -numVariables; u <= numVariables; u++) {
       int u_ = get(colapsed, u);
       for (int i = 0; i < edges(u).size(); i++) {
