@@ -301,15 +301,20 @@ public final class Solver {
     }
 
     if (satisfied) {
-      // Solves the remaining 2SAT encoded in the implication graph
-      TIntArrayList assigned = new TIntArrayList(units.elements());
-      for (int u = 1; u <= numVariables; ++u) {
-        if (proxies[u] != u) {
-          assigned.add(u);
-        }
-      }
-
       try {
+        // Collapses strongly connected components.
+        // No new binary clause is created because there are no clauses
+        // of longer length.
+        renameEquivalentLiterals();
+
+        // Solves the remaining 2SAT encoded in the implication graph
+        TIntArrayList assigned = new TIntArrayList(units.elements());
+        for (int u = 1; u <= numVariables; ++u) {
+          if (proxies[u] != u) {
+            assigned.add(u);
+          }
+        }
+
         units.addAll(graph.solve(assigned).toNativeArray());
       } catch (ContradictionException e) {
         return Solution.unsatisfiable();
@@ -505,9 +510,9 @@ public final class Solver {
   }
 
   public void renameEquivalentLiterals() throws ContradictionException {
-    int[] colapsed = graph.removeStronglyConnectedComponents();
+    int[] collapsed = graph.removeStronglyConnectedComponents();
     for (int u = 1; u <= numVariables; ++u) {
-      int proxy = colapsed[u];
+      int proxy = collapsed[u];
       if (proxy != u) {
         assert proxies[u] == u : "Variable already renamed";
         assert proxy != 0 : "Colapsed to 0";
@@ -518,6 +523,7 @@ public final class Solver {
 
   public void simplifyImplicationGraph() throws ContradictionException {
     renameEquivalentLiterals();
+
     TIntArrayList propagated;
     if (graph.density() < Configure.ttc) {
       graph.transitiveClosure();
@@ -525,6 +531,7 @@ public final class Solver {
     } else {
       propagated = graph.findAllContradictions();
     }
+
     unitsQueue.add(propagated.toNativeArray());
   }
 

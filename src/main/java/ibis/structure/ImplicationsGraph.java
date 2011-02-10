@@ -248,12 +248,11 @@ public class ImplicationsGraph {
 
   /**
    * Solves the 2-SAT encoded in the implication graph.
+   *
+   * Requires all strongly connected components removed.
    */
   public TIntArrayList solve(final TIntArrayList assigned)
       throws ContradictionException {
-    topologicalSort();
-    removeStronglyConnectedComponents();
-
     currentColor++;
     for (int i = 0; i < assigned.size(); i++) {
       int u = assigned.get(i);
@@ -417,7 +416,19 @@ public class ImplicationsGraph {
     return time;
   }
 
-  private String verify_() {
+  /** Verifies the implication graph for consistency */
+  private void verify() {
+    String error = verifyToString();
+    assert error == null : error;
+  }
+
+  private String verifyToString() {
+    for (int u = -numVariables; u <= numVariables; u++) {
+      if (get(colors, u) >= currentColor) {
+        return "Wrong color for literal " + u;
+      }
+    }
+
     for (int u = -numVariables; u <= numVariables; u++) {
       for (int i = 0; i < edges(u).size(); i++) {
         int v = edges(u).get(i);
@@ -429,10 +440,6 @@ public class ImplicationsGraph {
     return null;
   }
 
-  private void verify() {
-    String error = verify_();
-    assert error == null : error;
-  }
 
   public String toString() {
     StringBuffer buffer = new StringBuffer();
@@ -491,6 +498,7 @@ public class ImplicationsGraph {
 
   /** Returns true if node is painted with current color otherwise paint it. */
   private boolean visit(int u) {
+    assert get(colors, u) <= currentColor;
     if (get(colors, u) == currentColor) {
       return true;
     }
