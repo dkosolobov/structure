@@ -24,7 +24,6 @@ public final class Solver {
   private static final TIntHashSet EMPTY = new TIntHashSet();
 
   private static final Logger logger = Logger.getLogger(Solver.class);
-  private static final java.util.Random random = new java.util.Random(1);
 
   /** Number of variables. */
   private int numVariables;
