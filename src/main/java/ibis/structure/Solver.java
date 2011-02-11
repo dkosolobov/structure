@@ -197,6 +197,7 @@ public final class Solver {
   /** Checks solver for consistency.  */
   private void verify() {
     if (Configure.enableExpensiveChecks) {
+      graph.verify();
       verifyLengths();
       verifyWatchLists();
       verifyAssigned();
@@ -304,13 +305,14 @@ public final class Solver {
     }
 
     if (satisfied) {
+      // Solves the remaining 2SAT encoded in the implication graph
       try {
-        // Collapses strongly connected components.
+        // Collapses strongly connected components and removes contradictions.
         // No new binary clause is created because there are no clauses
         // of longer length.
-        renameEquivalentLiterals();
+        simplifyImplicationGraph();
+        propagate();
 
-        // Solves the remaining 2SAT encoded in the implication graph
         TIntArrayList assigned = new TIntArrayList(units.elements());
         for (int u = 1; u <= numVariables; ++u) {
           if (proxies[u] != u) {
@@ -318,7 +320,8 @@ public final class Solver {
           }
         }
 
-        units.addAll(graph.solve(assigned).toNativeArray());
+        TIntArrayList newUnits = graph.solve(assigned);
+        units.addAll(newUnits.toNativeArray());
       } catch (ContradictionException e) {
         return Solution.unsatisfiable();
       }
