@@ -334,6 +334,7 @@ public class ImplicationsGraph {
       }
     }
  
+    /*
     // Verifies components
     if (Configure.enableExpensiveChecks) {
       for (int u = -numVariables; u <= numVariables; u++) {
@@ -363,6 +364,7 @@ public class ImplicationsGraph {
         assert isVisited(u);
       }
     }
+    */
   }
 
   /**

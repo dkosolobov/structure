@@ -87,7 +87,7 @@ class Structure {
   private static Solution solve(Constellation constellation, Skeleton instance) {
     SingleEventCollector root = new SingleEventCollector();
     constellation.submit(root);
-    constellation.submit(new Job(root.identifier(), instance.numVariables, instance, 0));
-    return (Solution)root.waitForEvent().data;
+    constellation.submit(new SolveActivity(root.identifier(), instance.numVariables, instance, 0));
+    return (Solution) root.waitForEvent().data;
   }
 }

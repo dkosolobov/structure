@@ -350,51 +350,12 @@ public final class Solver {
 
   public Core core() {
     Skeleton core = new Skeleton();
+    core.numVariables = numVariables;
     core.append(graph.skeleton());
     // logger.info("core size is " + core.clauses.size());
     // System.exit(1);
     core.append(compact());
     return new Core(units.elements(), proxies, core);
-  }
-
-  /** Computes a score for a possible branch.  */
-  private double score(final int branch) {
-    int num = watchList(branch).size();
-    TIntArrayList edges = graph.edges(branch);
-    if (edges.isEmpty()) {
-      return Math.pow(1 + random.nextDouble(), num);
-    } else {
-      for (int i = 0; i < edges.size(); i++) {
-        num += watchList(edges.get(i)).size();
-      }
-      return Math.pow(2 + random.nextDouble(), num);
-    }
-  }
-
-  /** Returns a literal for branching. */
-  public int chooseBranchingLiteral() {
-    int bestBranch = 0;
-    double bestValue = Double.NEGATIVE_INFINITY;
-    for (int branch = 1; branch <= numVariables; ++branch) {
-      if (isLiteralAssigned(branch)) {
-        continue;
-      }
-      if (watchList(branch).isEmpty() && watchList(-branch).isEmpty()) {
-        // branch is a mutex
-        continue;
-      }
-
-      double positive = score(branch);
-      double negative = score(-branch);
-      double value = positive * negative;
-      if (value > bestValue) {
-        bestBranch = positive > negative ? -branch : branch;
-        bestValue = value;
-      }
-    }
-
-    assert bestBranch != 0;
-    return bestBranch;
   }
 
   /**
