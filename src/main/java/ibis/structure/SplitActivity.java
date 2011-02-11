@@ -99,14 +99,15 @@ public final class SplitActivity extends Activity {
       }
     }
 
-    logger.info("Splitting in " + subInstances.size());
-
     TIntObjectIterator<Skeleton> it = subInstances.iterator();
+    TIntArrayList sizes = new TIntArrayList();
     for (int size = subInstances.size(); size > 0; size--) {
       it.advance();
+      sizes.add(it.value().clauses.size());
       executor.submit(new BranchActivity(identifier(), depth, it.value()));
     }
 
+    logger.info("Split " + instance.clauses.size() + " into " + sizes);
     suspend();
   }
 
