@@ -30,7 +30,7 @@ public class Configure {
   /** True to perform subsumming. */
   public static boolean subsumming = true;
   /** Number of hyper binary resolutions to perform. 0 to disable. */
-  public static int numHyperBinaryResolutions = 2;
+  public static int numHyperBinaryResolutions = 3;
   /** Threshold for transitive closure. */
   public static double ttc = 1.10;
 
