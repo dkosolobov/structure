@@ -57,10 +57,8 @@ public final class Solver {
     clauses = (TIntArrayList) instance.clauses.clone();
     watchLists = new TIntHashSet[2 * numVariables + 1];
 
-    for (int literal = 1; literal <= numVariables; ++literal) {
-      watchLists[mapZtoN(literal)] = new TIntHashSet();
-      watchLists[mapZtoN(-literal)] = new TIntHashSet();
-      proxies[literal] = literal;
+    for (int u = 1; u <= numVariables; ++u) {
+      proxies[u] = u;
     }
 
     if (Configure.verbose) {
@@ -75,6 +73,11 @@ public final class Solver {
    * Watch list for a literal u contains the start position of clauses containing u.
    */
   private void buildWatchLists() throws ContradictionException {
+    for (int u = 1; u <= numVariables; ++u) {
+      watchLists[mapZtoN(u)] = new TIntHashSet();
+      watchLists[mapZtoN(-u)] = new TIntHashSet();
+    }
+
     for (int start = 0; start < clauses.size();) {
       if (clauses.get(start + 0) == 0) {  // empty clause
         throw new ContradictionException();
@@ -548,14 +551,14 @@ public final class Solver {
   /**
    * Does hyper binary resolution.
    */
-  private class Split extends Thread {
+  private class HyperBinaryResolution extends Thread {
     /** A vector to store generated binaries. */
     TIntArrayList binaries;
     /** An iterator over clauses. */
     TIntIntIterator iterator;
 
-    public Split(TIntArrayList binaries, TIntIntIterator iterator) {
-      super("HyperBinaryResolution");
+    public HyperBinaryResolution(TIntArrayList binaries,
+                                 TIntIntIterator iterator) {
       this.binaries = binaries;
       this.iterator = iterator;
     }
@@ -567,6 +570,7 @@ public final class Solver {
       int[] twice = new int[2 * numVariables + 1];
       int twiceColor = 0;
 
+      // Cache is used to filter many duplicate binaries.
       final int cacheSize = 1 << 10;
       int[] cache = new int[cacheSize * 2];
 
@@ -608,12 +612,6 @@ public final class Solver {
         }
 
         start = end + 1;
-
-        if (numLiterals < 3) {
-          // Clause is too small for hyper binary resolution.
-          // propagateClause(start);
-          continue;
-        }
 
         for (int i = 0; i < numTouched; ++i) {
           int touch = touched[i];
@@ -664,22 +662,20 @@ public final class Solver {
     TIntArrayList binaries = new TIntArrayList();
     TIntIntIterator iterator = lengths.iterator();
 
-    int numThreads = Math.min(Configure.numExecutors, Math.max(1,
-          lengths.size() / 10000));
+    int numThreads = Math.min(Configure.numExecutors,
+                              Math.max(1, lengths.size() / 10000));
+    // Runs numThreads HyperBinaryResolution simultaneously.
+    Thread[] threads = new Thread[numThreads];
+    for (int i = 1; i < threads.length; i++) {
+      threads[i] = new HyperBinaryResolution(binaries, iterator);
+      threads[i].start();
+    }
 
-    if (numThreads == 1) {
-      (new Split(binaries, iterator)).run();
-    } else {
-      Thread[] threads = new Thread[numThreads];
-      for (int i = 0; i < threads.length; i++) {
-        threads[i] = new Split(binaries, iterator);
-        threads[i].start();
-      }
+    (new HyperBinaryResolution(binaries, iterator)).run();
 
-      for (int i = 0; i < threads.length; i++) {
-        try { threads[i].join(); }
-        catch (InterruptedException e) { }
-      }
+    for (int i = 1; i < threads.length; i++) {
+      try { threads[i].join(); }
+      catch (InterruptedException e) { }
     }
 
     // Filters some duplicate binaries
