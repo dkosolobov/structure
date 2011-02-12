@@ -809,50 +809,60 @@ public final class Solver {
    * This is the algorithm implemented in SatELite.
    */
   public void subsumming() {
-    int[] keys = lengths.keys();
+    long startTime = System.currentTimeMillis();
 
-    // Computes clause hashes
-    TIntLongHashMap hashes = new TIntLongHashMap();
+    int[] keys = lengths.keys();
+    long[] hashes = new long[keys.length];
+    TIntIntHashMap index = new TIntIntHashMap();
+
+    // Computes clauses' hashes
     for (int i = 0; i < keys.length; ++i) {
       int start = keys[i];
+      index.put(start, i);
+
       long hash = 0;
-      for (int j = start;; j++) {
-        int literal = clauses.get(j);
-        if (literal == 0) {
-          break;
-        }
-        if (literal == REMOVED) {
+      int end = start;
+      for (;; end++) {
+        int u = clauses.get(end);
+        if (u == REMOVED) {
           continue;
         }
-        hash |= 1 << (hash(literal) >>> 26);
+        if (u == 0) {
+          break;
+        }
+        hash |= 1L << (hash(u) >>> 26);
       }
-      hashes.put(start, hash);
+      // To fast check that A is not included in B
+      // ~hashes[A] & hashes[B] != 0
+      hashes[i] = ~hash;
     }
 
+    // List of subsummed clauses to be removed.
+    TIntHashSet subsummed = new TIntHashSet();
+    // Same as watchList() but as an array for faster access.
+    int[][] watchLists = new int[2 * numVariables + 1][];
+
     // For each clause finds which other clause includes it.
-    int numTries = 0, numGood = 0;
-    int numRemovedClauses = 0;
-    for (int i = 0; i < keys.length; ++i) {
-      int start = keys[i];
-      if (isSatisfied(start)) {
-        // Ignores already subsummed clauses.
+    int numTotal = 0, numTries = 0, numGood = 0;
+    for (int start : keys) {
+      if (subsummed.contains(start)) {
         continue;
       }
-      if (lengths.get(start) > 16) {
-        // Ignores very long clauses to improve perfomance.
-        continue;
-      }
+
+      int startIndex = index.get(start);
+      final long startHash = ~hashes[startIndex];
 
       // Finds literal included in minimum number of clauses
       int bestLiteral = 0;
       int minNumClauses = Integer.MAX_VALUE;
-      for (int j = start;; j++) {
-        int literal = clauses.get(j);
-        if (literal == 0) {
-          break;
-        }
+      int end = start;
+      for (;; end++) {
+        int literal = clauses.get(end);
         if (literal == REMOVED) {
           continue;
+        }
+        if (literal == 0) {
+          break;
         }
         int numClauses = watchList(literal).size();
         if (numClauses < minNumClauses) {
@@ -861,37 +871,64 @@ public final class Solver {
         }
       }
 
+      if (end - start > 16) {
+        // Ignores very long clauses to improve perfomance.
+        continue;
+      }
       if (watchList(bestLiteral).size() <= 1) {
         // Can't include any other clause.
         continue;
       }
-      final long startHash = hashes.get(start);
-      for (int clause : watchList(bestLiteral).toArray()) {
-        if (clause == start) {
-          // Ignores identical clause
+
+      // Lazy initializes the watchList
+      int[] watchList = watchLists[bestLiteral + numVariables];
+      if (watchList == null) {
+        watchList = watchList(bestLiteral).toArray();
+        watchLists[bestLiteral + numVariables] = watchList;
+        for (int i = 0; i < watchList.length; i++) {
+          watchList[i] = index.get(watchList[i]);
+        }
+      }
+
+      numTotal += watchList.length - 1;
+      for (int clause : watchList) {
+        if ((startHash & hashes[clause]) != 0) {
+          // Fast inclusion testing failed.
           continue;
         }
-        if ((startHash & hashes.get(clause)) != startHash) {
-          // Fast inclusion testing.
+        if (clause == startIndex) {
+          // Ignores identical clause.
           continue;
         }
 
-        boolean good = true;
-        for (int j = start; good; j++) {
+        numTries++;
+        clause = keys[clause];
+
+        boolean isSubsummed = true;
+        for (int j = start; isSubsummed; j++) {
           int literal = clauses.get(j);
-          if (literal == 0) {
-            break;
-          }
           if (literal == REMOVED) {
             continue;
           }
-          good = watchList(literal).contains(clause);
+          if (literal == 0) {
+            break;
+          }
+          isSubsummed = watchList(literal).contains(clause);
         }
 
-        if (good) {
-          ++numRemovedClauses;
-          removeClause(clause);
+        if (isSubsummed) {
+          numGood++;
+          subsummed.add(clause);
         }
+      }
+    }
+
+    int numRemovedClauses = subsummed.size();
+    TIntIterator it = subsummed.iterator();
+    for (int size = subsummed.size(); size > 0; size--) {
+      int clause = it.next();
+      if (!isSatisfied(clause)) {
+        removeClause(clause);
       }
     }
 
@@ -900,6 +937,11 @@ public final class Solver {
         System.err.print("ss" + numRemovedClauses + ".");
       }
     }
+
+    long endTime = System.currentTimeMillis();
+    // logger.info("ss took " + (endTime - startTime) / 1000.);
+    // logger.info("numTotal = " + numTotal + "; numTries = " + numTries + "; numGood = " + numGood);
+    // System.exit(1);
   }
 
   /**
