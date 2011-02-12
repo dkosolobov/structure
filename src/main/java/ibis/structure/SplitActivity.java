@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import gnu.trove.TIntArrayList;
+import gnu.trove.TIntHashSet;
 import gnu.trove.TIntObjectHashMap;
 import gnu.trove.TIntObjectIterator;
 import gnu.trove.TObjectIntHashMap;
@@ -21,7 +22,7 @@ public final class SplitActivity extends Activity {
   /** Number of found units */
   private int numUnits = 0;
   /** Number of subproblems solved */
-  private int numReplies = 0;
+  private int numSubmittedSplits = 0;
   /** True if any components is unsatisfiable */
   private boolean isUnsatisfiable = false;
   /** True if any component is unknown */
@@ -36,7 +37,7 @@ public final class SplitActivity extends Activity {
   }
 
   public void initialize() {
-    if (!Configure.split) {
+    if (!Configure.split || instance.clauses.size() < 256) {
       executor.submit(new BranchActivity(parent, depth, instance));
       finish();
       return;
@@ -99,21 +100,47 @@ public final class SplitActivity extends Activity {
       }
     }
 
-    TIntObjectIterator<Skeleton> it = subInstances.iterator();
-    TIntArrayList sizes = new TIntArrayList();
+    TIntObjectIterator<Skeleton> it;
+    final int backtrackThreshold = 64;
+    
+    int numSolvedSplits = 0;
+    it = subInstances.iterator();
     for (int size = subInstances.size(); size > 0; size--) {
       it.advance();
-      sizes.add(it.value().clauses.size());
-      executor.submit(new BranchActivity(identifier(), depth, it.value()));
+      clauses = it.value().clauses;
+      if (clauses.size() <= backtrackThreshold) {
+        int[] newUnits = backtrack(clauses);
+        if (newUnits == null) {
+          logger.info("backtrack found unsatisfiable subInstance");
+          reply(Solution.unsatisfiable());
+          finish();
+          return;
+        }
+        mergeUnits(newUnits);
+        numSolvedSplits++;
+      }
     }
 
-    logger.info("Split " + instance.clauses.size() + " into " + sizes);
+    TIntArrayList sizes = new TIntArrayList();
+    it = subInstances.iterator();
+    for (int size = subInstances.size(); size > 0; size--) {
+      it.advance();
+      clauses = it.value().clauses;
+      if (clauses.size() > backtrackThreshold) {
+        numSubmittedSplits++;
+        sizes.add(clauses.size());
+        executor.submit(new BranchActivity(identifier(), depth, it.value()));
+      }
+    }
+
+    logger.info("Split " + instance.clauses.size() + " into " + sizes
+        + " and " + numSolvedSplits + " smaller");
     suspend();
   }
 
   public void process(Event e) throws Exception {
     Solution response = (Solution)e.data;
-    numReplies++;
+    numSubmittedSplits--;
 
     if (response.isUnsatisfiable()) {
       executor.send(new Event(identifier(), parent, Solution.unsatisfiable()));
@@ -125,13 +152,10 @@ public final class SplitActivity extends Activity {
     }
 
     if (!isUnsatisfiable && !isUnknown) {
-      ActivityIdentifier source = e.source;
-      int[] newUnits = response.units();
-      System.arraycopy(newUnits, 0, units, numUnits, newUnits.length);
-      numUnits += newUnits.length;
+      mergeUnits(response.units());
     }
 
-    if (numReplies < subInstances.size()) {
+    if (numSubmittedSplits > 0) {
       suspend();
     } else {
       if (isUnsatisfiable) {
@@ -147,6 +171,11 @@ public final class SplitActivity extends Activity {
       }
       finish();
     }
+  }
+
+  private void mergeUnits(int[] newUnits) {
+    System.arraycopy(newUnits, 0, units, numUnits, newUnits.length);
+    numUnits += newUnits.length;
   }
 
   /** Returns the top representant of u */
@@ -179,5 +208,52 @@ public final class SplitActivity extends Activity {
       repr[u] = v;
       height[v]++;
     }
+  }
+
+  /** Finds a solution for a formula using backtracking */
+  private static int[] backtrack(TIntArrayList clauses) {
+    return backtrack(clauses, 0, new TIntHashSet());
+  }
+
+  private static int[] backtrack(TIntArrayList clauses, int start, TIntHashSet assigned) {
+    if (start == clauses.size()) {
+      return assigned.toArray();
+    }
+
+    int end = start;
+    while (clauses.get(end) != 0) {
+      end++;
+    }
+
+    boolean satisfied = false;
+    for (int i = start; i < end; i++) {
+      int u = clauses.get(i);
+      if (assigned.contains(u)) {
+        satisfied = true;
+        break;
+      }
+    }
+
+    // Clause already satisfied, move on.
+    if (satisfied) {
+      return backtrack(clauses, end + 1, assigned);
+    }
+
+    // Clause not satisfied, tries to assigned each literal.
+    for (int i = start; i < end; i++) {
+      int u = clauses.get(i);
+      if (assigned.contains(-u)) {
+        continue;
+      }
+
+      assigned.add(u);
+      int[] result = backtrack(clauses, end + 1, assigned);
+      if (result != null) {
+        return result;
+      }
+      assigned.remove(u);
+    }
+
+    return null;
   }
 }
