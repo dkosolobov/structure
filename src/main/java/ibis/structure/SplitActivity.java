@@ -212,17 +212,32 @@ public final class SplitActivity extends Activity {
 
   /** Finds a solution for a formula using backtracking */
   private static int[] backtrack(TIntArrayList clauses) {
-    return backtrack(clauses, 0, new TIntHashSet());
+    TIntHashSet assigned = new TIntHashSet();
+    if (!backtrack(clauses, 0, assigned)) {
+      return null;
+    }
+
+    // Assigned missing literals
+    for (int i = 0; i < clauses.size(); i++) {
+      int u = clauses.get(i);
+      if (u != 0 && !assigned.contains(-u) && !assigned.contains(u)) {
+        assigned.add(u);
+      }
+    }
+
+    return assigned.toArray();
   }
 
-  private static int[] backtrack(TIntArrayList clauses, int start, TIntHashSet assigned) {
+  private static boolean backtrack(TIntArrayList clauses, int start, TIntHashSet assigned) {
     if (start == clauses.size()) {
-      return assigned.toArray();
+      return true;
     }
 
     int end = start;
-    while (clauses.get(end) != 0) {
-      end++;
+    for (;; end++) {
+      if (clauses.get(end) == 0) {
+        break;
+      }
     }
 
     boolean satisfied = false;
@@ -247,13 +262,12 @@ public final class SplitActivity extends Activity {
       }
 
       assigned.add(u);
-      int[] result = backtrack(clauses, end + 1, assigned);
-      if (result != null) {
-        return result;
+      if (backtrack(clauses, end + 1, assigned)) {
+        return true;
       }
       assigned.remove(u);
     }
 
-    return null;
+    return false;
   }
 }
