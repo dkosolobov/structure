@@ -26,9 +26,9 @@ class Structure {
     logger.info("Number of processors \t" + runtime.availableProcessors());
   }
 
-  private static Executor[] createExecutors(int numExecutors) {
-    Executor[] executors = new Executor[numExecutors];
-    for (int i = 0; i < numExecutors; ++i) {
+  private static Executor[] createExecutors() {
+    Executor[] executors = new Executor[Configure.numExecutors];
+    for (int i = 0; i < Configure.numExecutors; ++i) {
       executors[i] = new SimpleExecutor(
           new UnitWorkerContext("DEFAULT"),
           StealStrategy.SMALLEST, StealStrategy.BIGGEST);
@@ -61,11 +61,14 @@ class Structure {
     }
 
     // Activates Constellation.
-    final Constellation constellation =
-        ConstellationFactory.createConstellation(
-            createExecutors(Configure.numExecutors));
+    Constellation constellation =
+        ConstellationFactory.createConstellation(createExecutors());
     constellation.activate();
 
+    // Creates the thread pool
+    Solver.createThreadPool();
+
+    // Starts the computation
     try {
       displayHeader();
       if (constellation.isMaster()) {

@@ -1,5 +1,7 @@
 package ibis.structure;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
@@ -25,6 +27,9 @@ public final class Solver {
 
   private static final Logger logger = Logger.getLogger(Solver.class);
 
+  /** Pool of executors for parallelization. */
+  private static  ExecutorService pool = null;
+
   /** Number of variables. */
   private int numVariables;
   /** Set of true literals discovered. */
@@ -43,6 +48,11 @@ public final class Solver {
   private TIntArrayList queue = new TIntArrayList();
   /** Queue of units to be propagated. */
   private TIntArrayList unitsQueue = new TIntArrayList();
+
+  /** Creates the pool of executors */
+  public static void createThreadPool() {
+    pool = Executors.newFixedThreadPool(Configure.numExecutors);
+  }
 
   /**
    * Constructor.
@@ -511,14 +521,14 @@ public final class Solver {
   /**
    * Does hyper binary resolution.
    */
-  private class HyperBinaryResolution extends Thread {
+  private class HyperBinaryResolution implements Runnable {
     /** A vector to store generated binaries. */
     TIntArrayList binaries;
     /** An iterator over clauses. */
     TIntIntIterator iterator;
 
-    public HyperBinaryResolution(TIntArrayList binaries,
-                                 TIntIntIterator iterator) {
+    public HyperBinaryResolution(final TIntArrayList binaries,
+                                 final TIntIntIterator iterator) {
       this.binaries = binaries;
       this.iterator = iterator;
     }
@@ -622,21 +632,14 @@ public final class Solver {
     TIntArrayList binaries = new TIntArrayList();
     TIntIntIterator iterator = lengths.iterator();
 
+    // Runs numThreads HyperBinaryResolution simultaneously.
     int numThreads = Math.min(Configure.numExecutors,
                               Math.max(1, lengths.size() / 10000));
-    // Runs numThreads HyperBinaryResolution simultaneously.
-    Thread[] threads = new Thread[numThreads];
-    for (int i = 1; i < threads.length; i++) {
-      threads[i] = new HyperBinaryResolution(binaries, iterator);
-      threads[i].start();
+    for (int i = 1; i < numThreads; i++) {
+      pool.execute(new HyperBinaryResolution(binaries, iterator));
     }
-
-    (new HyperBinaryResolution(binaries, iterator)).run();
-
-    for (int i = 1; i < threads.length; i++) {
-      try { threads[i].join(); }
-      catch (InterruptedException e) { }
-    }
+    HyperBinaryResolution local = new HyperBinaryResolution(binaries, iterator);
+    local.run();
 
     // Filters some duplicate binaries
     int[] last = new int[2 * numVariables + 1];
