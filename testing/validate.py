@@ -53,7 +53,10 @@ def validate(input, output, satisfiable):
     return 'missing_solution'
 
   # checks solution
-  solution = list(map(int, solution))
+  try:
+    solution = list(map(int, solution))
+  except:
+    return 'invalid_values'
   if solution[-1] != 0:
     return 'incomplete_values'
   solution = set(solution[:-1])
@@ -167,7 +170,7 @@ def main():
   except Exception as e:
     # Unexpected error in script itself
     print(e, file=sys.stderr)
-    #traceback.print_exc()
+    traceback.print_exc()
     status = 'error'
   except KeyboardInterrupt as e:
     print('interrupted', file=sys.stderr)
