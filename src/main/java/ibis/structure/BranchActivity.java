@@ -1,5 +1,8 @@
 package ibis.structure;
 
+import java.util.Random;
+import gnu.trove.TIntArrayList;
+import gnu.trove.TIntHashSet;;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
@@ -7,6 +10,7 @@ import org.apache.log4j.Logger;
 
 public final class BranchActivity extends Activity {
   private static final Logger logger = Logger.getLogger(SplitActivity.class);
+  private static final Random random = new Random(1);
 
   private InstanceNormalizer normalizer = new InstanceNormalizer();
   /** Responses from branches */
@@ -23,8 +27,7 @@ public final class BranchActivity extends Activity {
   public void initialize() {
     normalizer.normalize(instance);
     int branch = chooseBranch();
-    assert branch != 0;
-
+    
     executor.submit(
         new SolveActivity(identifier(), depth - 1, instance, branch));
     executor.submit(
@@ -65,8 +68,70 @@ public final class BranchActivity extends Activity {
     finish();
   }
 
+  /** Computes score given number of clauses. */
+  private double score(int[] numClauses) {
+    double score = 0.;
+    double alpha = 1.;
+    for (int i = 0; i < numClauses.length; i++) {
+      score += alpha * numClauses[i];
+      alpha *= 0.618033989;
+    }
+    return score;
+  }
+
+  /** Computes scores for every literal */
+  double[] evaluateLiterals() {
+    final int maxClauseLength = 16;
+    final int numVariables = instance.numVariables;
+    final TIntArrayList clauses = instance.clauses;
+
+    int[][] counts = new int[2 * numVariables + 1][];
+    for (int u = -numVariables; u <= numVariables; u++) {
+      counts[u + numVariables] = new int[maxClauseLength];
+    }
+
+    for (int start = 0, end = 0; end < clauses.size(); end++) {
+      int u = clauses.get(end);
+      if (u == 0) {
+        int length = Math.min(end - start, maxClauseLength - 1);
+        for (int i = start; i < end; i++) {
+          int v = clauses.get(i);
+          counts[v + numVariables][length]++;
+        }
+        start = end + 1;
+      }
+    }
+
+    double[] scores = new double[2 * numVariables + 1];
+    for (int u = -numVariables; u <= numVariables; u++) {
+      scores[u + numVariables] = score(counts[u + numVariables]);
+    }
+
+    return scores;
+  }
+
+  /** Chooses a literal for branching */
   private int chooseBranch() {
-    // TODO: not a very good heuristic.
-    return instance.clauses.get(0);
+    final int numVariables = instance.numVariables;
+    final int tournamentSize = 128;
+
+    int bestBranch = 0;
+    double bestScore = Double.NEGATIVE_INFINITY;
+    double[] scores = evaluateLiterals();
+    
+    for (int i = 0; i < tournamentSize; i++) {
+      int branch = random.nextInt(numVariables) + 1;
+      double p = scores[branch + numVariables];
+      double n = scores[-branch + numVariables];
+      double score = Math.min(p, n);
+
+      if (bestScore < score) {
+        bestScore = score;
+        bestBranch = branch;
+      }
+    }
+
+    assert bestBranch != 0;
+    return bestBranch;
   }
 }
