@@ -15,14 +15,18 @@ public abstract class Activity extends ibis.constellation.Activity {
   protected int depth;
   /** Instance to be solved. */
   protected Skeleton instance;
+  /** Vitality of variables. */
+  protected Vitality vitality;
 
   protected Activity(final ActivityIdentifier parent,
                      final int depth,
-                     final Skeleton instance) {
+                     final Skeleton instance,
+                     final Vitality vitality) {
     super(UnitActivityContext.DEFAULT, true);
     this.parent = parent;
     this.depth = depth;
     this.instance = instance;
+    this.vitality = vitality;
   }
 
   protected void reply(final Solution response) {

@@ -14,8 +14,9 @@ public final class SolveActivity extends Activity {
   public SolveActivity(final ActivityIdentifier parent,
                        final int depth,
                        final Skeleton instance,
+                       final Vitality vitality,
                        final int branch) {
-    super(parent, depth, instance);
+    super(parent, depth, instance, vitality);
     this.branch = branch;
   }
 
@@ -24,6 +25,7 @@ public final class SolveActivity extends Activity {
     Solution solution = null;
 
     try {
+      vitality.before(instance);
       solver = new Solver(instance);
       solution = solver.solve(branch);
     } catch (Exception e) {
@@ -33,7 +35,9 @@ public final class SolveActivity extends Activity {
 
     if (solution.isUnknown() && depth > 0) {
       core = solver.core();
-      executor.submit(new SplitActivity(identifier(), depth, core.instance()));
+      vitality.after(core.instance());
+      executor.submit(new SplitActivity(
+            identifier(), depth, core.instance(), vitality));
       suspend();
     } else {
       reply(solution);

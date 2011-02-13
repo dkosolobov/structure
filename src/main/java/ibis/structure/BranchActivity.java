@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import java.util.Random;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
@@ -7,6 +8,7 @@ import org.apache.log4j.Logger;
 
 public final class BranchActivity extends Activity {
   private static final Logger logger = Logger.getLogger(SplitActivity.class);
+  private static final Random random = new Random(1);
 
   private InstanceNormalizer normalizer = new InstanceNormalizer();
   /** Responses from branches */
@@ -16,19 +18,22 @@ public final class BranchActivity extends Activity {
 
   public BranchActivity(final ActivityIdentifier parent,
                         final int depth,
-                        final Skeleton instance) {
-    super(parent, depth, instance);
+                        final Skeleton instance,
+                        final Vitality vitality) {
+    super(parent, depth, instance, vitality);
   }
 
   public void initialize() {
     normalizer.normalize(instance);
+    vitality.normalize(normalizer.literalMap());
+
     int branch = chooseBranch();
     assert branch != 0;
 
-    executor.submit(
-        new SolveActivity(identifier(), depth - 1, instance, branch));
-    executor.submit(
-        new SolveActivity(identifier(), depth - 1, instance, -branch));
+    executor.submit(new SolveActivity(identifier(), depth - 1, instance,
+                                      new Vitality(vitality), branch));
+    executor.submit(new SolveActivity(identifier(), depth - 1, instance, 
+                                      new Vitality(vitality), -branch));
     suspend();
   }
 
@@ -66,7 +71,20 @@ public final class BranchActivity extends Activity {
   }
 
   private int chooseBranch() {
-    // TODO: not a very good heuristic.
-    return instance.clauses.get(0);
+    final int tournamentSize = 16;
+
+    int bestBranch = 0;
+    double bestValue = Double.NEGATIVE_INFINITY;
+
+    for (int i = 0; i < tournamentSize; i++) {
+      int branch = 1 + random.nextInt(instance.numVariables);
+      double value = vitality.vitality(branch);
+      if (value > bestValue) {
+        bestBranch = branch;
+        bestValue = value;
+      }
+    }
+
+    return bestBranch;
   }
 }

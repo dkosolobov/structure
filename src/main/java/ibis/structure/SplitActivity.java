@@ -32,13 +32,14 @@ public final class SplitActivity extends Activity {
 
   public SplitActivity(final ActivityIdentifier parent,
                        final int depth,
-                       final Skeleton instance) {
-    super(parent, depth, instance);
+                       final Skeleton instance,
+                       final Vitality vitality) {
+    super(parent, depth, instance, vitality);
   }
 
   public void initialize() {
     if (!Configure.split || instance.clauses.size() < 256) {
-      executor.submit(new BranchActivity(parent, depth, instance));
+      executor.submit(new BranchActivity(parent, depth, instance, vitality));
       finish();
       return;
     }
@@ -72,7 +73,7 @@ public final class SplitActivity extends Activity {
       }
     }
     if (!isSplit) {
-      executor.submit(new BranchActivity(parent, depth, instance));
+      executor.submit(new BranchActivity(parent, depth, instance, vitality));
       finish();
       return;
     }
@@ -109,9 +110,9 @@ public final class SplitActivity extends Activity {
       it.advance();
       clauses = it.value().clauses;
       if (clauses.size() <= backtrackThreshold) {
+        // subInstance is very small so it can be solved through backtracking
         int[] newUnits = backtrack(clauses);
         if (newUnits == null) {
-          logger.info("backtrack found unsatisfiable subInstance");
           reply(Solution.unsatisfiable());
           finish();
           return;
@@ -129,12 +130,13 @@ public final class SplitActivity extends Activity {
       if (clauses.size() > backtrackThreshold) {
         numSubmittedSplits++;
         sizes.add(clauses.size());
-        executor.submit(new BranchActivity(identifier(), depth, it.value()));
+        executor.submit(new BranchActivity(
+              identifier(), depth, it.value(), new Vitality(vitality)));
       }
     }
 
-    logger.info("Split " + instance.clauses.size() + " into " + sizes
-        + " and " + numSolvedSplits + " smaller");
+    // logger.info("Split " + instance.clauses.size() + " into " + sizes
+        // + " and " + numSolvedSplits + " smaller");
     suspend();
   }
 
@@ -212,6 +214,8 @@ public final class SplitActivity extends Activity {
 
   /** Finds a solution for a formula using backtracking */
   private static int[] backtrack(TIntArrayList clauses) {
+    // logger.info("backtracking " + clauses);
+
     TIntHashSet assigned = new TIntHashSet();
     if (!backtrack(clauses, 0, assigned)) {
       return null;
