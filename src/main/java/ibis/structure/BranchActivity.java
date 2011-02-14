@@ -72,16 +72,16 @@ public final class BranchActivity extends Activity {
   private double score(int[] numClauses) {
     double score = 0.;
     double alpha = 1.;
-    for (int i = 0; i < numClauses.length; i++) {
-      score += alpha * numClauses[i];
-      alpha *= 0.618033989;
+    for (int i = 2; i < numClauses.length; i++) {
+      alpha *= 2. / 3.;
+      score += Math.max(1e-3, alpha - 1e-3) * numClauses[i];
     }
     return score;
   }
 
   /** Computes scores for every literal */
   double[] evaluateLiterals() {
-    final int maxClauseLength = 16;
+    final int maxClauseLength = 8;
     final int numVariables = instance.numVariables;
     final TIntArrayList clauses = instance.clauses;
 

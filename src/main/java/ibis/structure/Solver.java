@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import gnu.trove.TIntArrayList;
@@ -297,18 +298,11 @@ public final class Solver {
    */
   public Solution solve(final int branch) {
     try {
-      buildWatchLists();
-
-      if (branch == 0) {
-        if (Configure.pureLiterals) {
-          propagate();
-          pureLiterals();
-        }
-      } else {
-        addUnit(branch);
+      if (branch != 0) {
+        unitsQueue.add(branch);
       }
-      simplify();
-      propagate();
+      buildWatchLists();
+      simplify(branch == 0);
     } catch (ContradictionException e) {
       return Solution.unsatisfiable();
     }
@@ -384,16 +378,34 @@ public final class Solver {
    * @param isRoot true if solver is at the root of branching tree
    * @throws ContradictionException if contradiction was found
    */
-  public void simplify() throws ContradictionException {
+  public void simplify(boolean isRoot) throws ContradictionException {
+    propagate();
+
+    if (isRoot) {
+      if (Configure.pureLiterals) {
+        pureLiterals();
+        propagate();
+      }
+    }
+
+    renameEquivalentLiterals();
+    graph.transitiveClosure();
     propagate();
 
     for (int i = 0; i < Configure.numHyperBinaryResolutions; ++i) {
-      if (!hyperBinaryResolution()) break;
+      if (!hyperBinaryResolution()) {
+        break;
+      }
       propagate();
 
-      simplifyImplicationGraph();
+      renameEquivalentLiterals();
+      unitsQueue.add(graph.findContradictions().toNativeArray());
       propagate();
     }
+
+    renameEquivalentLiterals();
+    unitsQueue.add(graph.findAllContradictions().toNativeArray());
+    propagate();
 
     if (Configure.binarySelfSubsumming) {
       binarySelfSubsumming();
@@ -410,9 +422,7 @@ public final class Solver {
       propagate();
     }
 
-    simplifyImplicationGraph();
-    propagate();
-
+    renameEquivalentLiterals();
     missingLiterals();
     verify();
   }
@@ -520,6 +530,7 @@ public final class Solver {
       graph.transitiveClosure();
       propagated = graph.findContradictions();
     } else {
+      // propagated = graph.findContradictions();
       propagated = graph.findAllContradictions();
     }
 
@@ -530,13 +541,17 @@ public final class Solver {
    * Does hyper binary resolution.
    */
   private class HyperBinaryResolution implements Runnable {
+    /** A semaphore to signal end of computation */
+    private Semaphore semaphore;
     /** A vector to store generated binaries. */
-    TIntArrayList binaries;
+    private TIntArrayList binaries;
     /** An iterator over clauses. */
-    TIntIntIterator iterator;
+    private TIntIntIterator iterator;
 
-    public HyperBinaryResolution(final TIntArrayList binaries,
+    public HyperBinaryResolution(final Semaphore semaphore,
+                                 final TIntArrayList binaries,
                                  final TIntIntIterator iterator) {
+      this.semaphore = semaphore;
       this.binaries = binaries;
       this.iterator = iterator;
     }
@@ -551,6 +566,7 @@ public final class Solver {
       // Cache is used to filter many duplicate binaries.
       final int cacheSize = 1 << 10;
       int[] cache = new int[cacheSize * 2];
+      int limit = (int) Math.pow(numVariables, 1.5);
 
       while (true) {
         int start;
@@ -615,6 +631,9 @@ public final class Solver {
                 synchronized (binaries) {
                   binaries.add(-literal);
                   binaries.add(missing);
+                  if (binaries.size() > limit) {
+                    break;
+                  }
                 }
               }
             }
@@ -624,6 +643,8 @@ public final class Solver {
           sums[touch] = 0;
         }
       }
+
+      semaphore.release(1);
     }
   }
 
@@ -637,6 +658,7 @@ public final class Solver {
    * @throws ContradictionException if contradiction was found
    */
   public boolean hyperBinaryResolution() throws ContradictionException {
+    Semaphore semaphore = new Semaphore(0);
     TIntArrayList binaries = new TIntArrayList();
     TIntIntIterator iterator = lengths.iterator();
 
@@ -644,10 +666,15 @@ public final class Solver {
     int numThreads = Math.min(Configure.numExecutors,
                               Math.max(1, lengths.size() / 10000));
     for (int i = 1; i < numThreads; i++) {
-      pool.execute(new HyperBinaryResolution(binaries, iterator));
+      pool.execute(new HyperBinaryResolution(semaphore, binaries, iterator));
     }
-    HyperBinaryResolution local = new HyperBinaryResolution(binaries, iterator);
+    HyperBinaryResolution local = new HyperBinaryResolution(semaphore, binaries, iterator);
     local.run();
+    try {
+      semaphore.acquire(numThreads);
+    } catch (InterruptedException e) {
+      // ignored
+    }
 
     // Filters some duplicate binaries
     int[] last = new int[2 * numVariables + 1];
@@ -735,6 +762,7 @@ public final class Solver {
    */
   public boolean binarySelfSubsumming() {
     int numSatisfiedClauses = 0, numRemovedLiterals = 0;
+    TouchSet touched = new TouchSet(numVariables);
 
     for (int start : lengths.keys()) {
       // Finds the end of the clause
@@ -749,21 +777,26 @@ public final class Solver {
         }
 
         TIntArrayList edges = graph.edges(-first);
+        touched.reset();
+        for (int j = 0; j < edges.size(); j++) {
+          touched.add(edges.get(j));
+        }
+
         for (int j = start; j < end; ++j) {
           int second = clauses.get(j);
           if (i == j || second == REMOVED) {
             continue;
           }
 
-          if (edges.contains(-second)) {
+          if (touched.contains(-second)) {
             // If a + b + c + ... and -a => -b
             // then a + c + ...
-            removeLiteral(start, second);
+            removeLiteral(start, second, j);
             ++numRemovedLiterals;
             continue;
           }
 
-          if (edges.contains(second)) {
+          if (touched.contains(second)) {
             // If a + b + c + ... and -a => b
             // then clause is tautology
             removeClause(start);
@@ -997,21 +1030,21 @@ public final class Solver {
     }
   }
 
-  /**
-   * Removes literal u from clause.
-   *
-   * @param clause start of clause
-   * @param u literal to remove
-   */
-  private void removeLiteral(final int clause, final int u) {
+  /** Removes literal u from clause. */
+  private void removeLiteral(final int clause, final int u, final int position) {
     assert u != 0 : "Cannot remove literal 0 from clause";
-    watchList(u).remove(clause);
-    clauses.set(findLiteral(clause, u), REMOVED);
     assert lengths.contains(clause);
-    int newLength = lengths.adjustOrPutValue(clause, -1, 0xA3A3A3A3);
-    if (newLength <= 2) {
+
+    watchList(u).remove(clause);
+    clauses.set(position, REMOVED);
+    if (lengths.adjustOrPutValue(clause, -1, 0) <= 2) {
       queue.add(clause);
     }
+  }
+
+  /** Removes literal u from clause. */
+  private void removeLiteral(final int clause, final int u) {
+    removeLiteral(clause, u, findLiteral(clause, u));
   }
 
   /**

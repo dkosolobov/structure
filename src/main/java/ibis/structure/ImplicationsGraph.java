@@ -183,7 +183,8 @@ public class ImplicationsGraph {
 
     while (stackTop > 0) {
       u = stack[--stackTop];
-      for (int i = 0; i < edges(u).size(); i++) {
+      final int size = edges(u).size();
+      for (int i = 0; i < size; i++) {
         int v = edges(u).getQuick(i);
         if (!visit(v)) {
           if (v == stop) {
@@ -382,7 +383,6 @@ public class ImplicationsGraph {
       }
     }
 
-
     // Renames literals and remove duplicates.
     for (int u = -numVariables; u <= numVariables; u++) {
       if (get(colapsed, u) != u) {
@@ -513,7 +513,7 @@ public class ImplicationsGraph {
   /** Returns the graph as a SAT instance */
   public Skeleton skeleton() {
     Skeleton skeleton = new Skeleton();
-    findStronglyConnectedComponents();
+    TIntArrayList clauses = skeleton.clauses;
 
     for (int u = -numVariables; u <= numVariables; u++) {
       int u_ = get(colapsed, u);
@@ -543,7 +543,9 @@ public class ImplicationsGraph {
         }
 
         if (good) {
-          skeleton.add(-u, v);
+          clauses.add(-u);
+          clauses.add(v);
+          clauses.add(0);
         }
       }
     }
