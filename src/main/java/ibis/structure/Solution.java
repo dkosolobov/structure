@@ -88,6 +88,7 @@ public final class Solution {
       }
       out.println(" 0");
     }
+    out.flush();
   }
 
 
