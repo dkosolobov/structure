@@ -284,7 +284,6 @@ public final class Solver {
       if (branch != 0) {
         unitsQueue.add(branch);
       }
-      buildWatchLists();
       simplify(branch == 0);
     } catch (ContradictionException e) {
       return Solution.unsatisfiable();
@@ -362,6 +361,12 @@ public final class Solver {
    * @throws ContradictionException if contradiction was found
    */
   public void simplify(boolean isRoot) throws ContradictionException {
+    if (isRoot) {
+      new DependentVariableRemoval(numVariables, clauses);
+      System.exit(1);
+    }
+
+    buildWatchLists();
     propagate();
 
     if (isRoot) {
