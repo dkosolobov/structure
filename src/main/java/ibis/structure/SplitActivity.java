@@ -111,7 +111,6 @@ public final class SplitActivity extends Activity {
       if (clauses.size() <= backtrackThreshold) {
         int[] newUnits = backtrack(clauses);
         if (newUnits == null) {
-          logger.info("backtrack found unsatisfiable subInstance");
           reply(Solution.unsatisfiable());
           finish();
           return;
@@ -133,8 +132,10 @@ public final class SplitActivity extends Activity {
       }
     }
 
+    /*
     logger.info("Split " + instance.clauses.size() + " into " + sizes
         + " and " + numSolvedSplits + " smaller");
+        */
     suspend();
   }
 
