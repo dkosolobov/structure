@@ -174,7 +174,8 @@ public final class Solver {
           int start = it.next();
           assert lengths.containsKey(start)
               : "Watch list of " + u + " contains satisfied clause";
-          findLiteral(start, u);  // NOTE: uses findLiteral's internal check
+          assert clauses.indexOf(start, u) != -1;
+          assert clauses.indexOf(start, u) < clauses.indexOf(start, 0);
         }
       }
     }
@@ -468,6 +469,45 @@ public final class Solver {
   }
 
   /**
+   * Propagates all units in unit queue.
+   *
+   * Usually this is faster than calling addUnit for each unit.
+   */
+  private void propagateUnitsQueue() throws ContradictionException {
+    TIntArrayList propagated = graph.propagate(unitsQueue);
+    unitsQueue.reset();
+ 
+    // Removed falsified literals.
+    for (int i = 0; i < propagated.size(); i++) {
+      int u = propagated.get(i);
+      TIntIterator it = watchList(-u).iterator();
+      for (int size = watchList(-u).size(); size > 0; size--) {
+        int clause = it.next();
+        clauses.set(clauses.indexOf(clause, -u), REMOVED);
+        if (lengths.adjustOrPutValue(clause, -1, 0) <= 2) {
+          queue.add(clause);
+        }
+      }
+    }
+
+    // Removes satisfied clauses.
+    for (int i = 0; i < propagated.size(); i++) {
+      int u = propagated.get(i);
+      for (int clause : watchList(u).toArray()) {
+        removeClause(clause);
+      }
+    }
+
+    // Adds propagated to units and clears watchlists.
+    for (int i = 0; i < propagated.size(); i++) {
+      int u = propagated.get(i);
+      units.add(u);
+      watchLists[u + numVariables] = EMPTY;
+      watchLists[-u + numVariables] = EMPTY;
+    }
+  }
+
+  /**
    * Propagates all clauses in queue.
    *
    * @return true if any any clause was propagated.
@@ -533,24 +573,6 @@ public final class Solver {
     return graph.edges(-u).size();
   }
 
-  /**
-   * Given the start of a clause return position of literal u.
-   *
-   * @param clause position of first literal in clause
-   * @param u literal in clause to be found
-   * @return position of u (always &ge; clause)
-   */
-  private int findLiteral(final int clause, final int u) {
-    for (int c = clause;; c++) {
-      int literal = clauses.get(c);
-      assert u == 0 || literal != 0
-          : "Literal " + u + " is missing from clause";
-      if (u == literal) {
-        return c;
-      }
-    }
-  }
-
   /** Removes literal u from clause. */
   public void removeLiteral(final int clause, final int u, final int position) {
     assert u != 0 : "Cannot remove literal 0 from clause";
@@ -565,43 +587,20 @@ public final class Solver {
 
   /** Removes literal u from clause. */
   private void removeLiteral(final int clause, final int u) {
-    removeLiteral(clause, u, findLiteral(clause, u));
+    removeLiteral(clause, u, clauses.indexOf(clause, u));
   }
 
-  /**
-   * Removes one clause updating the watchlists.
-   *
-   * @param clause start of clause
-   */
+  /** Removes one clause updating the watchlists. */
   public void removeClause(final int clause) {
     lengths.remove(clause);
-    assert isClauseSatisfied(clause);
     for (int c = clause;; c++) {
       int literal = clauses.getSet(c, REMOVED);
-      if (literal == REMOVED) {
-        continue;
-      }
       if (literal == 0) {
         break;
       }
-      watchList(literal).remove(clause);
-    }
-  }
-
-
-  /**
-   * Propagates all units in unit queue.
-   *
-   * Usually this is faster than calling addUnit for each unit.
-   */
-  private void propagateUnitsQueue() throws ContradictionException {
-    TIntArrayList propagated = graph.propagate(unitsQueue);
-    unitsQueue.reset();
-
-    for (int i = 0; i < propagated.size(); i++) {
-      int v = propagated.get(i);
-      propagateUnit(v);
-      units.add(v);
+      if (literal != REMOVED) {
+        watchList(literal).remove(clause);
+      }
     }
   }
 
@@ -621,7 +620,7 @@ public final class Solver {
         removeClause(clause);
       } else {
         // renames literal in clause
-        int position = findLiteral(clause, u);
+        int position = clauses.indexOf(clause, u);
         clauses.set(position, v);
         watchList(v).add(clause);
       }
