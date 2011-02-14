@@ -64,7 +64,6 @@ public final class Solver {
     proxies = new int[numVariables + 1];
     graph = new ImplicationsGraph(numVariables);
     clauses = (TIntArrayList) instance.clauses.clone();
-    watchLists = new TIntHashSet[2 * numVariables + 1];
 
     for (int u = 1; u <= numVariables; ++u) {
       proxies[u] = u;
@@ -82,9 +81,9 @@ public final class Solver {
    * Watch list for a literal u contains the start position of clauses containing u.
    */
   private void buildWatchLists() throws ContradictionException {
-    for (int u = 1; u <= numVariables; ++u) {
-      watchLists[mapZtoN(u)] = new TIntHashSet();
-      watchLists[mapZtoN(-u)] = new TIntHashSet();
+    watchLists = new TIntHashSet[2 * numVariables + 1];
+    for (int u = -numVariables; u <= numVariables; ++u) {
+      watchLists[u + numVariables] = new TIntHashSet();
     }
 
     for (int start = 0; start < clauses.size();) {
@@ -107,7 +106,6 @@ public final class Solver {
         continue;
       }
 
-
       for (int end = start; ; end++) {
         int u = clauses.get(end);
         if (u == 0) {
@@ -122,6 +120,16 @@ public final class Solver {
         watchList(u).add(start);
       }
     }
+  }
+
+  /**
+   * Returns the watch list for a literal u.
+   *
+   * @param u a literal
+   * @return watch list of u
+   */
+  private TIntHashSet watchList(final int u) {
+    return watchLists[u + numVariables];
   }
 
   /**
@@ -943,15 +951,6 @@ public final class Solver {
     // System.exit(1);
   }
 
-  /**
-   * Returns the watch list for a literal u.
-   *
-   * @param u a literal
-   * @return watch list of u
-   */
-  private TIntHashSet watchList(final int u) {
-    return watchLists[mapZtoN(u)];
-  }
 
   /** Returns true if literal u is already assigned. */
   private boolean isLiteralAssigned(final int u) {
@@ -1068,15 +1067,12 @@ public final class Solver {
     }
   }
 
-  /**
-   * Adds implication -u &rarr; v.
-   */
+  /** Adds implication -u &rarr; v.  */
   private void addBinary(final int u, final int v) {
     assert !isLiteralAssigned(u) : "First literal " + u + " is assigned";
     assert !isLiteralAssigned(v) : "Second literal " + v + " is assigned";
     graph.add(-u, v);
   }
-
 
   /**
    * Merges watchlist of u into v.
@@ -1099,7 +1095,7 @@ public final class Solver {
         watchList(v).add(clause);
       }
     }
-    watchLists[mapZtoN(u)] = EMPTY;
+    watchLists[u + numVariables] = EMPTY;
   }
 
   /**
