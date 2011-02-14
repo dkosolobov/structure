@@ -127,30 +127,13 @@ public final class Solver {
     unitsQueue.add(unit);
   }
 
-  /**
-   * Returns a string representation of clause
-   * starting at start.
-   *
-   * @param start position of first literal in clause
-   * @return a string representing the clause
-   */
-  private String clauseToString(final int start) {
-    StringBuffer string = new StringBuffer();
-    string.append("{");
-    for (int i = start;; i++) {
-      int literal = clauses.get(i);
-      if (literal == 0) {
-        break;
-      }
-      if (literal == REMOVED) {
-        continue;
-      }
-      string.append(literal);
-      string.append(", ");
-    }
-    string.append("}");
-    return string.toString();
+  /** Adds implication -u &rarr; v.  */
+  public void addBinary(final int u, final int v) {
+    assert !isLiteralAssigned(u) : "First literal " + u + " is assigned";
+    assert !isLiteralAssigned(v) : "Second literal " + v + " is assigned";
+    graph.add(-u, v);
   }
+
 
   /**
    * Verifies consistency of lengths array.
@@ -445,8 +428,7 @@ public final class Solver {
         while ((u = clauses.get(position)) == REMOVED) {
           position++;
         }
-        addUnit(u);
-        assert isClauseSatisfied(start);
+        queueUnit(u);
         break;
 
       case 2:  // binary
@@ -492,12 +474,12 @@ public final class Solver {
    * @throws ContradictionException if a clause of length 0 was found
    */
   private boolean propagate() throws ContradictionException {
-    propagateUnitsQueue();
-
-    // NOTE: any new clause is appended.
-    for (int i = 0; i < queue.size(); ++i) {
-      propagateClause(queue.get(i));
-    }
+    do {
+      propagateUnitsQueue();
+      for (int i = 0; i < queue.size(); ++i) {
+        propagateClause(queue.get(i));
+      }
+    } while (!unitsQueue.isEmpty());
 
     boolean simplified = !queue.isEmpty();
     queue.clear();
@@ -624,29 +606,6 @@ public final class Solver {
   }
 
   /**
-   * Adds a new unit.
-   *
-   * @param u unit to add.
-   */
-  private void addUnit(final int u) throws ContradictionException {
-    assert !isLiteralAssigned(u) : "Unit " + u + " already assigned";
-
-    TIntArrayList propagated = graph.propagate(u);
-    for (int i = 0; i < propagated.size(); i++) {
-      int v = propagated.get(i);
-      propagateUnit(v);
-      units.add(v);
-    }
-  }
-
-  /** Adds implication -u &rarr; v.  */
-  public void addBinary(final int u, final int v) {
-    assert !isLiteralAssigned(u) : "First literal " + u + " is assigned";
-    assert !isLiteralAssigned(v) : "Second literal " + v + " is assigned";
-    graph.add(-u, v);
-  }
-
-  /**
    * Merges watchlist of u into v.
    *
    * @param u source literal
@@ -681,9 +640,7 @@ public final class Solver {
    * @param v new literal name
    */
   private void renameLiteral(final int u, final int v) {
-    assert !isLiteralAssigned(u);
-    assert !isLiteralAssigned(v);
-
+    assert !isLiteralAssigned(u) && !isLiteralAssigned(v);
     mergeWatchLists(u, v);
     mergeWatchLists(-u, -v);
 
@@ -711,5 +668,30 @@ public final class Solver {
       return proxies[u];
     }
     return u;
+  }
+
+  /**
+   * Returns a string representation of clause
+   * starting at start.
+   *
+   * @param start position of first literal in clause
+   * @return a string representing the clause
+   */
+  private String clauseToString(final int start) {
+    StringBuffer string = new StringBuffer();
+    string.append("{");
+    for (int i = start;; i++) {
+      int literal = clauses.get(i);
+      if (literal == 0) {
+        break;
+      }
+      if (literal == REMOVED) {
+        continue;
+      }
+      string.append(literal);
+      string.append(", ");
+    }
+    string.append("}");
+    return string.toString();
   }
 }
