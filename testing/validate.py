@@ -57,8 +57,8 @@ def validate(input, output, satisfiable):
     solution = list(map(int, solution))
   except:
     return 'invalid_values'
-  if solution[-1] != 0:
-    return 'incomplete_values'
+  if not solution or solution[-1] != 0:
+    return 'missing_values'
   solution = set(solution[:-1])
   for literal in solution:
     if -literal in solution:
@@ -182,7 +182,7 @@ def main():
       ci = 1.96 * std / (len(elapsed) ** 0.5)
       print(instance, returncode, status, avg, ci)
     else:
-      print(instance, returncode, status, None, None)
+      print(instance, None, status, None, None)
 
     sys.stdout.flush()
     exit(int(status not in ['interrupted'] + VALID_SOLUTIONS))
