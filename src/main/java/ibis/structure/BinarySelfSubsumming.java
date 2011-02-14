@@ -9,7 +9,7 @@ public class BinarySelfSubsumming {
     int numSatisfiedClauses = 0, numRemovedLiterals = 0;
     TouchSet touched = new TouchSet(solver.numVariables);
 
-    for (int start : solver.lengths.keys()) {
+    for (int start : solver.lengths().keys()) {
       // Finds the end of the clause
       int end = start - 1;
       while (solver.clauses.get(++end) != 0) {

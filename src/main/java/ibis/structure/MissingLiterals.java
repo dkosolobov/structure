@@ -14,7 +14,7 @@ public class MissingLiterals {
         if (solver.numBinaries(-u) != 0 || solver.watchList(-u).size() != 0) {
           continue;
         }
-        solver.units.add(u);
+        solver.queueUnit(u);
         numUnits++;
       }
     }

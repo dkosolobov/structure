@@ -13,7 +13,7 @@ import gnu.trove.TIntIterator;
 public final class Subsumming {
   /** @return true if any clause was removed. */
   public static boolean run(Solver solver) throws ContradictionException {
-    int[] keys = solver.lengths.keys();
+    int[] keys = solver.lengths().keys();
     long[] hashes = new long[keys.length];
     TIntIntHashMap index = new TIntIntHashMap();
 

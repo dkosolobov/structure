@@ -26,10 +26,10 @@ public class HyperBinaryResolution {
     Semaphore semaphore = new Semaphore(0);
     TIntArrayList units = new TIntArrayList();
     TIntArrayList binaries = new TIntArrayList();
-    TIntIntIterator iterator = solver.lengths.iterator();
+    TIntIntIterator iterator = solver.lengths().iterator();
 
     // Runs numThreads HyperBinaryResolution simultaneously.
-    int numThreads = solver.lengths.size() / 10000;
+    int numThreads = solver.lengths().size() / 10000;
     numThreads = Math.max(numThreads, 1);
     numThreads = Math.min(numThreads, Configure.numExecutors);
     for (int i = 1; i < numThreads; i++) {

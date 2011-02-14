@@ -27,7 +27,7 @@ public final class Solver {
   /** Number of variables. */
   public int numVariables;
   /** Set of true literals discovered. */
-  public BitSet units = new BitSet();
+  private BitSet units = new BitSet();
   /** Equalities between literals. */
   private int[] proxies;
   /** The implication graph. */
@@ -37,7 +37,7 @@ public final class Solver {
   /** Watchlists. */
   private TIntHashSet[] watchLists;
   /** Maps start of clause to # unsatisfied literals. */
-  public TIntIntHashMap lengths = new TIntIntHashMap();
+  private TIntIntHashMap lengths = new TIntIntHashMap();
   /** Queue of clauses with at most 2 unsatisfied literals. */
   private TIntArrayList queue = new TIntArrayList();
   /** Queue of units to be propagated. */
@@ -120,6 +120,11 @@ public final class Solver {
    */
   public TIntHashSet watchList(final int u) {
     return watchLists[u + numVariables];
+  }
+
+  /** Getter for lengths */
+  public TIntIntHashMap lengths() {
+    return lengths;
   }
 
   /** Queues a new assigned unit. */
@@ -402,6 +407,7 @@ public final class Solver {
 
     renameEquivalentLiterals();
     MissingLiterals.run(this);
+    propagateUnitsQueue();
     verify();
   }
 
