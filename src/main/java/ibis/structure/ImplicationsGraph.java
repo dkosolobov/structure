@@ -334,38 +334,6 @@ public class ImplicationsGraph {
         set(colapsed, u, best);
       }
     }
- 
-    /*
-    // Verifies components
-    if (Configure.enableExpensiveChecks) {
-      for (int u = -numVariables; u <= numVariables; u++) {
-        for (int v = -numVariables; v <= numVariables; v++) {
-          boolean same = true;
-
-          currentColor++;
-          dfs(u, v);
-          same = same && isVisited(v);
-
-          currentColor++;
-          dfs(v, u);
-          same = same && isVisited(u);
-
-          assert !same || get(colapsed, u) == get(colapsed, v);
-        }
-      }
-
-
-      for (int u = -numVariables; u <= numVariables; u++) {
-        currentColor++;
-        dfs(u, 0);
-        assert isVisited(get(colapsed, u));
-
-        currentColor++;
-        dfs(get(colapsed, u), 0);
-        assert isVisited(u);
-      }
-    }
-    */
   }
 
   /**
