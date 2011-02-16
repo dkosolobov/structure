@@ -6,6 +6,9 @@ import java.util.concurrent.ExecutorService;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TIntIntIterator;
 
+import static ibis.structure.Misc.*;
+
+
 /**
  * Performes hyper-binary resolution.
  *
@@ -26,10 +29,10 @@ public class HyperBinaryResolution {
     Semaphore semaphore = new Semaphore(0);
     TIntArrayList units = new TIntArrayList();
     TIntArrayList binaries = new TIntArrayList();
-    TIntIntIterator iterator = solver.lengths().iterator();
+    ClauseIterator iterator = new ClauseIterator(solver.watchLists.formula);
 
     // Runs numThreads HyperBinaryResolution simultaneously.
-    int numThreads = solver.lengths().size() / 10000;
+    int numThreads = solver.watchLists.formula().size() / 50000;
     numThreads = Math.max(numThreads, 1);
     numThreads = Math.min(numThreads, Configure.numExecutors);
     for (int i = 1; i < numThreads; i++) {
@@ -80,6 +83,8 @@ public class HyperBinaryResolution {
  * Does hyper binary resolution.
  */
 class HyperBinaryResolutionRunnable implements Runnable {
+  private static final int CACHE_SIZE = 1 << 10;
+
   /** Solver on which algorithms is applied */
   private Solver solver;
   /** A semaphore to signal end of computation */
@@ -89,70 +94,66 @@ class HyperBinaryResolutionRunnable implements Runnable {
   /** A vector to store generated binaries. */
   private TIntArrayList binaries;
   /** An iterator over clauses. */
-  private TIntIntIterator iterator;
+  private ClauseIterator iterator;
+  /** Space for cache */
+  private int[] cache;
 
   public HyperBinaryResolutionRunnable(final Solver solver,
                                        final TIntArrayList units,
                                        final TIntArrayList binaries,
-                                       final TIntIntIterator iterator,
+                                       final ClauseIterator iterator,
                                        final Semaphore semaphore) {
     this.solver = solver;
     this.units = units;
     this.binaries = binaries;
     this.iterator = iterator;
     this.semaphore = semaphore;
+    this.cache = new int[CACHE_SIZE * 2];
   }
 
   public void run() {
     int[] counts = new int[2 * solver.numVariables + 1];
     int[] sums = new int[2 * solver.numVariables + 1];
     int[] touched = new int[2 * solver.numVariables + 1];
-    int[] twice = new int[2 * solver.numVariables + 1];
-    int twiceColor = 0;
+    TouchSet twice = new TouchSet(solver.numVariables);
+    TIntArrayList formula = solver.watchLists.formula();
 
     // Cache is used to filter many duplicate binaries.
     final int limit = (int) Math.pow(solver.numVariables, 1.5);
-    final int cacheSize = 1 << 10;
-    int[] cache = new int[cacheSize * 2];
 
     while (true) {
-      int start;
+      int clause;
       synchronized (iterator) {
-        if (!iterator.hasNext()) break;
-        iterator.advance();
-        start = iterator.key();
+        if (!iterator.hasNext()) {
+          break;
+        }
+        clause = iterator.next();
+      }
+      if (type(formula, clause) != OR) {
+        continue;
       }
       
+      int length = length(formula, clause);
       int numLiterals = 0;
       int clauseSum = 0;
       int numTouched = 0;
-      int end = start;
 
-      for (; end < solver.clauses.size(); end++) {
-        int literal = solver.clauses.get(end);
-        if (literal == solver.REMOVED) {
-          continue;
-        }
-        if (literal == 0) {
-          break;
-        }
+      for (int i = clause; i < clause + length; i++) {
+        int literal = formula.get(i);
 
-        twiceColor++;
+        twice.reset();
         numLiterals++;
         clauseSum += literal;
         TIntArrayList edges = solver.graph.edges(literal);
-        for (int i = 0; i < edges.size(); i++) {
-          int node = -edges.get(i) + solver.numVariables;
-          if (twice[node] != twiceColor) {
-            twice[node] = twiceColor;
-            if (counts[node] == 0) touched[numTouched++] = node;
-            counts[node] += 1;
-            sums[node] += literal;
+        for (int j = 0; j < edges.size(); j++) {
+          int u = -edges.get(j), u_ = u + solver.numVariables;
+          if (!twice.containsOrAdd(u)) {
+            if (counts[u_] == 0) touched[numTouched++] = u_;
+            counts[u_] += 1;
+            sums[u_] += literal;
           }
         }
       }
-
-      start = end + 1;
 
       for (int i = 0; i < numTouched; ++i) {
         int touch = touched[i];
@@ -167,20 +168,15 @@ class HyperBinaryResolutionRunnable implements Runnable {
           // There is an edge from literal to all literals in clause except one.
           // New implication: literal -> missing
           int missing = clauseSum - sums[touch];
-          assert !solver.isLiteralAssigned(missing);
+          assert !solver.isLiteralAssigned(missing)
+              : "Missing literal " + missing + " is assigned";
 
-          if (literal != missing) {
-            int hash = Hash.hash(missing) ^ literal;
-            hash = 2 * (hash & (cacheSize - 1));
-            if (cache[hash] != -literal || cache[hash + 1] != missing) {
-              cache[hash] = -literal;
-              cache[hash + 1] = missing;
-              synchronized (binaries) {
-                binaries.add(-literal);
-                binaries.add(missing);
-                if (binaries.size() > limit) {
-                  break;
-                }
+          if (literal != missing && !cacheTest(-literal, missing)) {
+            synchronized (binaries) {
+              binaries.add(-literal);
+              binaries.add(missing);
+              if (binaries.size() > limit) {
+                break;
               }
             }
           }
@@ -192,5 +188,16 @@ class HyperBinaryResolutionRunnable implements Runnable {
     }
 
     semaphore.release(1);
+  }
+
+  private boolean cacheTest(final int u, final int v) {
+    int hash = Hash.hash(v) ^ u;
+    hash = 2 * (hash & (CACHE_SIZE - 1));
+    if (cache[hash] != u || cache[hash + 1] != v) {
+      cache[hash] = u;
+      cache[hash + 1] = v;
+      return false;
+    }
+    return true;
   }
 }

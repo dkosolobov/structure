@@ -7,14 +7,14 @@ import gnu.trove.TIntArrayList;
 
 public final class Core {
   /** Units. */
-  private BitSet units = new BitSet();
+  public BitSet units = new BitSet();
   /** Proxies for equivalent literals */
-  private int[] proxies = null;
+  public int[] proxies = null;
   /** Core instance without units and equivalent literals */
   private Skeleton instance = null;
 
   public Core(final int[] units, final int[] proxies, final Skeleton instance) {
-    assert !instance.clauses.isEmpty();
+    assert !instance.formula.isEmpty();
     this.units.addAll(units);
     this.proxies = proxies;
     this.instance = instance;

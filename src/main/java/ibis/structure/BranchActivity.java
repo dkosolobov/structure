@@ -10,7 +10,7 @@ import org.apache.log4j.Logger;
 
 public final class BranchActivity extends Activity {
   private static final Logger logger = Logger.getLogger(SplitActivity.class);
-  private static final Random random = new Random(1);
+  private final Random random = new Random(1);
 
   private InstanceNormalizer normalizer = new InstanceNormalizer();
   /** Responses from branches */
@@ -22,6 +22,7 @@ public final class BranchActivity extends Activity {
                         final int depth,
                         final Skeleton instance) {
     super(parent, depth, instance);
+    assert !instance.formula.isEmpty();
   }
 
   public void initialize() {
@@ -32,6 +33,10 @@ public final class BranchActivity extends Activity {
         new SolveActivity(identifier(), depth - 1, instance, branch));
     executor.submit(
         new SolveActivity(identifier(), depth - 1, instance, -branch));
+
+    if (!Configure.enableExpensiveChecks) {
+      instance = null;  // Helps GC
+    }
     suspend();
   }
 
@@ -68,6 +73,23 @@ public final class BranchActivity extends Activity {
     finish();
   }
 
+  /** For each literal counts clauses of certain length. */
+  private void countClauses(final TIntArrayList formula,
+                            final int numVariables,
+                            final int[][] counts) {
+    for (int start = 0, end = 0; end < formula.size(); end++) {
+      int u = formula.get(end);
+      if (u == 0) {
+        for (int i = start; i < end; i++) {
+          int v = formula.get(i);
+          int length = Math.min(end - start, counts[v + numVariables].length - 1);
+          counts[v + numVariables][length]++;
+        }
+        start = end + 1;
+      }
+    }
+  }
+
   /** Computes score given number of clauses. */
   private double score(int[] numClauses) {
     double score = 0.;
@@ -83,24 +105,13 @@ public final class BranchActivity extends Activity {
   double[] evaluateLiterals() {
     final int maxClauseLength = 8;
     final int numVariables = instance.numVariables;
-    final TIntArrayList clauses = instance.clauses;
 
     int[][] counts = new int[2 * numVariables + 1][];
     for (int u = -numVariables; u <= numVariables; u++) {
       counts[u + numVariables] = new int[maxClauseLength];
     }
 
-    for (int start = 0, end = 0; end < clauses.size(); end++) {
-      int u = clauses.get(end);
-      if (u == 0) {
-        int length = Math.min(end - start, maxClauseLength - 1);
-        for (int i = start; i < end; i++) {
-          int v = clauses.get(i);
-          counts[v + numVariables][length]++;
-        }
-        start = end + 1;
-      }
-    }
+    countClauses(instance.formula, numVariables, counts);
 
     double[] scores = new double[2 * numVariables + 1];
     for (int u = -numVariables; u <= numVariables; u++) {

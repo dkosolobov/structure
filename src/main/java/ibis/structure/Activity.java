@@ -6,6 +6,9 @@ import ibis.constellation.context.UnitActivityContext;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
 
+import static ibis.structure.Misc.*;
+
+
 public abstract class Activity extends ibis.constellation.Activity {
   private static final Logger logger = Logger.getLogger(Activity.class);
 
@@ -30,23 +33,28 @@ public abstract class Activity extends ibis.constellation.Activity {
   }
 
   protected void verify(final Solution response) {
+    verify(response, 0);
+  }
+
+  protected void verify(final Solution response, int branch) {
     if (Configure.enableExpensiveChecks) {
       if (response.isSatisfiable()) {
         try {
-          verifyInternal(response.units());
+          verifyUnits(response.units());
+          verifySatisfied(response.units());
         } catch (Exception e) {
           logger.error("Verification failed", e);
           logger.error("Units are " + (new TIntArrayList(response.units())));
-          logger.error("Instance is " + instance);
-          System.exit(1);  // TODO: exit gracefully
+          logger.error("Branch is " + branch);
+          logger.error("Formula is " + instance);
+          // System.exit(1);  // TODO: exit gracefully
         }
       }
     }
   }
 
-  /** Verify correctness of solution. */
-  private void verifyInternal(final int[] units) throws Exception {
-    // Checks units don't contain a contradiction
+  /** Checks units don't contain a contradiction */
+  private void verifyUnits(final int[] units) throws Exception {
     BitSet unitsSet = new BitSet();
     for (int unit : units) {
       unitsSet.add(unit);
@@ -54,22 +62,47 @@ public abstract class Activity extends ibis.constellation.Activity {
         throw new Exception("Contradiction unit " + unit);
       }
     }
+  }
 
-    // Checks all clauses are satisfied
-    boolean satisfied = false;
-    int lastStart = 0;
-    for (int i = 0; i < instance.clauses.size(); ++i) {
-      int literal = instance.clauses.get(i);
-      if (literal == 0) {
-        if (!satisfied) {
-          TIntArrayList clause = instance.clauses.subList(lastStart, i);
-          throw new Exception("Unsatisfied clause " + clause);
+  /** Checks all CNF clauses are satisfied */
+  private void verifySatisfied(final int[] units) throws Exception {
+    TIntArrayList formula = instance.formula;
+    BitSet unitsSet = new BitSet();
+    unitsSet.addAll(units);
+
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+      int type = type(formula, clause);
+
+      if (type == OR) {
+        boolean satisfied = false;
+        for (int i = clause; i < clause + length; i++) {
+          if (unitsSet.contains(formula.get(i))) {
+            satisfied = true;
+            break;
+          }
         }
-        lastStart = i + 1;
-        satisfied = false;
-      }
-      if (unitsSet.contains(literal)) {
-        satisfied = true;
+        if (!satisfied) {
+          throw new Exception(
+              "Unsatisfied clause " + clauseToString(formula, clause));
+        }
+      } else {
+        int numAssigned = 0;
+        for (int i = clause; i < clause + length; i++) {
+          if (unitsSet.contains(formula.get(i))) {
+            numAssigned++;
+          }
+        }
+        if (type == XOR && (numAssigned & 1) == 0) {
+          throw new Exception(
+              "Unsatisfied clause " + clauseToString(formula, clause));
+        }
+        if (type == NXOR && (numAssigned & 1) == 1) {
+          throw new Exception(
+              "Unsatisfied clause " + clauseToString(formula, clause));
+        }
       }
     }
   }

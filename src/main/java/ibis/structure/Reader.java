@@ -1,6 +1,5 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -10,6 +9,8 @@ import java.util.zip.GZIPInputStream;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import org.apache.log4j.Logger;
+
+import static ibis.structure.Misc.*;
 
 
 /**
@@ -95,25 +96,27 @@ public final class Reader {
     logger.debug("p cnf " + numVariables + " " + numClauses);
 
     // Reads clauses
-    Skeleton skeleton = new Skeleton();
-    skeleton.numVariables = numVariables;
+    Skeleton skeleton = new Skeleton(numVariables);
+    int pos = skeleton.formula.size();
+    skeleton.formula.add(0);
+
     try {
-      TIntArrayList clause = new TIntArrayList();
       while (numClauses > 0) {
         int literal = scanner.nextInt();
         if (literal == 0) {
-          skeleton.add(clause.toNativeArray());
-          clause.clear();
-          --numClauses;
-        } else {
-          clause.add(literal);
+          int length = skeleton.formula.size() - pos - 1;
+          skeleton.formula.set(pos, encode(length, OR));
+          pos = skeleton.formula.size();
+          numClauses--;
         }
+        skeleton.formula.add(literal);
       }
     } catch (NoSuchElementException e) {
       throw new ParseException(
           "Incomplete problem: " + numClauses + " clauses are missing");
     }
 
+    skeleton.formula.remove(skeleton.formula.size() - 1);
     return skeleton;
   }
 }

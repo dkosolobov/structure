@@ -1,8 +1,13 @@
 package ibis.structure;
 
 import gnu.trove.TIntHashSet;
-import gnu.trove.TIntIntHashMap;
+import gnu.trove.TIntLongHashMap;
 import gnu.trove.TIntIterator;
+import gnu.trove.TIntArrayList;
+import gnu.trove.TLongArrayList;
+
+import static ibis.structure.Misc.*;
+
 
 /**
  * Performs clause subsumming.
@@ -13,30 +18,28 @@ import gnu.trove.TIntIterator;
 public final class Subsumming {
   /** @return true if any clause was removed. */
   public static boolean run(Solver solver) throws ContradictionException {
-    int[] keys = solver.lengths().keys();
-    long[] hashes = new long[keys.length];
-    TIntIntHashMap index = new TIntIntHashMap();
+    final TIntArrayList formula = solver.watchLists.formula;
+
+    TIntLongHashMap hashes = new TIntLongHashMap();
+    ClauseIterator it;
 
     // Computes clauses' hashes
-    for (int i = 0; i < keys.length; ++i) {
-      int start = keys[i];
-      index.put(start, i);
+    it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      if (type(formula, clause) != OR) {
+        continue;
+      }
 
       long hash = 0;
-      int end = start;
-      for (;; end++) {
-        int u = solver.clauses.get(end);
-        if (u == solver.REMOVED) {
-          continue;
-        }
-        if (u == 0) {
-          break;
-        }
-        hash |= 1L << (Hash.hash(u) >>> 26);
+      int length = length(formula, clause);
+      for (int i = clause; i < clause + length; i++) {
+        hash |= 1L << (Hash.hash(formula.get(i)) >>> 26);
       }
+
       // To fast check that A is not included in B
       // ~hashes[A] & hashes[B] != 0
-      hashes[i] = ~hash;
+      hashes.put(clause, ~hash);
     }
 
     // List of subsummed clauses to be removed.
@@ -45,39 +48,34 @@ public final class Subsumming {
     int[][] watchLists = new int[2 * solver.numVariables + 1][];
 
     // For each clause finds which other clause includes it.
-    int numTotal = 0, numTries = 0, numGood = 0;
-    for (int start : keys) {
-      if (subsummed.contains(start)) {
+    it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      if (type(formula, clause) != OR || subsummed.contains(clause)) {
         continue;
       }
 
-      int startIndex = index.get(start);
-      final long startHash = ~hashes[startIndex];
+      int length = length(formula, clause);
+      long clauseHash = ~hashes.get(clause);
+
+      if (length > 16) {
+        // Ignores very long clauses to improve perfomance.
+        continue;
+      }
 
       // Finds literal included in minimum number of clauses
       int bestLiteral = 0;
       int minNumClauses = Integer.MAX_VALUE;
-      int end = start;
-      for (;; end++) {
-        int literal = solver.clauses.get(end);
-        if (literal == solver.REMOVED) {
-          continue;
-        }
-        if (literal == 0) {
-          break;
-        }
-        int numClauses = solver.watchList(literal).size();
+      for (int i = clause; i < clause + length; i++) {
+        int literal = formula.get(i);
+        int numClauses = solver.watchLists.get(literal).size();
         if (numClauses < minNumClauses) {
           bestLiteral = literal;
           minNumClauses = numClauses;
         }
       }
 
-      if (end - start > 16) {
-        // Ignores very long clauses to improve perfomance.
-        continue;
-      }
-      if (solver.watchList(bestLiteral).size() <= 1) {
+      if (solver.watchLists.get(bestLiteral).size() <= 1) {
         // Can't include any other clause.
         continue;
       }
@@ -85,60 +83,52 @@ public final class Subsumming {
       // Lazy initializes the watchList
       int[] watchList = watchLists[bestLiteral + solver.numVariables];
       if (watchList == null) {
-        watchList = solver.watchList(bestLiteral).toArray();
+        watchList = solver.watchLists.get(bestLiteral).toArray();
         watchLists[bestLiteral + solver.numVariables] = watchList;
-        for (int i = 0; i < watchList.length; i++) {
-          watchList[i] = index.get(watchList[i]);
-        }
       }
 
-      numTotal += watchList.length - 1;
-      for (int clause : watchList) {
-        if ((startHash & hashes[clause]) != 0) {
+      for (int other : watchList) {
+        if ((clauseHash & hashes.get(other)) != 0) {
           // Fast inclusion testing failed.
           continue;
         }
-        if (clause == startIndex) {
-          // Ignores identical clause.
+        if (other == clause || type(formula, other) != OR) {
+          // other doesn't point to a different OR clause
           continue;
         }
 
-        numTries++;
-        clause = keys[clause];
-
         boolean isSubsummed = true;
-        for (int j = start; isSubsummed; j++) {
-          int literal = solver.clauses.get(j);
-          if (literal == solver.REMOVED) {
-            continue;
-          }
-          if (literal == 0) {
-            break;
-          }
-          isSubsummed = solver.watchList(literal).contains(clause);
+        for (int j = clause; isSubsummed && j < clause + length; j++) {
+          int literal = formula.get(j);
+          isSubsummed = solver.watchLists.get(literal).contains(other);
         }
 
         if (isSubsummed) {
-          numGood++;
-          subsummed.add(clause);
+          subsummed.add(other);
         }
       }
     }
 
-    int numRemovedClauses = subsummed.size();
-    TIntIterator it = subsummed.iterator();
-    for (int size = subsummed.size(); size > 0; size--) {
-      int clause = it.next();
-      if (!solver.isClauseSatisfied(clause)) {
-        solver.removeClause(clause);
-      }
-    }
+    removeSubsummed(solver, subsummed);
 
+    int numRemovedClauses = subsummed.size();
     if (Configure.verbose) {
       if (numRemovedClauses > 0) {
         System.err.print("ss" + numRemovedClauses + ".");
       }
     }
     return !subsummed.isEmpty();
+  }
+
+  private static void removeSubsummed(final Solver solver,
+                                      final TIntHashSet subsummed) {
+    TIntArrayList formula = solver.watchLists.formula();
+    TIntIterator it = subsummed.iterator();
+    for (int size = subsummed.size(); size > 0; size--) {
+      int clause = it.next();
+      if (!isClauseRemoved(formula, clause)) {
+        solver.watchLists.removeClause(clause);
+      }
+    }
   }
 }

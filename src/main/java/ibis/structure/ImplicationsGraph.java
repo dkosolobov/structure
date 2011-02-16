@@ -1,7 +1,9 @@
 package ibis.structure;
 
 import gnu.trove.TIntArrayList;
-import gnu.trove.TIntStack;
+import gnu.trove.TIntHashSet;
+
+import static ibis.structure.Misc.*;
 
 
 public class ImplicationsGraph {
@@ -9,9 +11,8 @@ public class ImplicationsGraph {
 
   private int numVariables;
   private TIntArrayList[] edges = null;
+  private TouchSet visited;
   private int[] topologicalSort;
-  private int[] colors;
-  private int currentColor;
   private int[] colapsed;
   private int[] stack;
 
@@ -24,8 +25,7 @@ public class ImplicationsGraph {
     }
 
     topologicalSort = create();
-    colors = create();
-    currentColor = 0;
+    visited = new TouchSet(numVariables);
     colapsed = create();
     stack = create();
   }
@@ -65,7 +65,7 @@ public class ImplicationsGraph {
    * @throws ContradictionException if a literal and its negation are propagated.
    */
   public TIntArrayList propagate(TIntArrayList literals) throws ContradictionException {
-    currentColor++;
+    visited.reset();
 
     TIntArrayList visited = new TIntArrayList();
     for (int i = 0; i < literals.size(); i++) {
@@ -75,7 +75,7 @@ public class ImplicationsGraph {
 
     for (int i = 0; i < visited.size(); i++) {
       int v = visited.get(i);
-      if (isVisited(-v)) {
+      if (visited.contains(-v)) {
         throw new ContradictionException();
       }
     }
@@ -96,27 +96,27 @@ public class ImplicationsGraph {
    */
   private void remove(TIntArrayList literals) {
     // Finds all nodes that have dirty edges.
-    currentColor++;
+    visited.reset();
     int stackTop = 0;
     for (int i = 0; i < literals.size(); i++) {
       int u = literals.get(i);
       for (int j = 0; j < edges(-u).size(); j++) {
         int v = -edges(-u).get(j);
-        if (!visit(v)) stack[stackTop++] = v;
+        if (!visited.containsOrAdd(v)) stack[stackTop++] = v;
       }
       for (int j = 0; j < edges(u).size(); j++) {
         int v = -edges(u).get(j);
-        if (!visit(v)) stack[stackTop++] = v;
+        if (!visited.containsOrAdd(v)) stack[stackTop++] = v;
       }
     }
 
     // Marks all literals to be removed.
-    currentColor++;
+    visited.reset();
     for (int i = 0; i < literals.size(); i++) {
       int u = literals.get(i);
-      assert !isVisited(u);
-      visit(u);
-      visit(-u);
+      assert !visited.contains(u);
+      visited.add(u);
+      visited.add(-u);
 
       assert EMPTY.isEmpty();
       edges[u + numVariables] = EMPTY;
@@ -130,7 +130,7 @@ public class ImplicationsGraph {
       int p = 0;
       for (int j = 0; j < edges(u).size(); j++) {
         int v = edges(u).get(j);
-        if (!isVisited(v)) {
+        if (!visited.contains(v)) {
           edges(u).set(p++, v);
         }
       }
@@ -150,14 +150,14 @@ public class ImplicationsGraph {
   public TIntArrayList findAllContradictions() {
     TIntArrayList units = new TIntArrayList();
     for (int u = -numVariables; u <= numVariables; u++) {
-      currentColor++;
+      visited.reset();
       dfs(u, -u);
-      if (isVisited(-u)) {
+      if (visited.contains(-u)) {
         units.add(-u);
       }
     }
 
-    currentColor++;
+    visited.reset();
     TIntArrayList visited = new TIntArrayList();
     for (int i = 0; i < units.size(); i++) {
       int unit = units.get(i);
@@ -174,7 +174,7 @@ public class ImplicationsGraph {
    * Depth first search start at u and stoping at when stop is found.
    */
   private void dfs(int u, int stop) {
-    if (visit(u)) {
+    if (visited.containsOrAdd(u)) {
       return;
     }
 
@@ -186,7 +186,7 @@ public class ImplicationsGraph {
       final int size = edges(u).size();
       for (int i = 0; i < size; i++) {
         int v = edges(u).getQuick(i);
-        if (!visit(v)) {
+        if (!visited.containsOrAdd(v)) {
           if (v == stop) {
             break;
           }
@@ -207,16 +207,31 @@ public class ImplicationsGraph {
    * If the graph is transitive closed this is similar to findAllContradictions().
    */
   public TIntArrayList findContradictions() {
-    currentColor++;
-    TIntArrayList visited = new TIntArrayList();
+    visited.reset();
+
+    TIntArrayList units = new TIntArrayList();
     for (int u = -numVariables; u <= numVariables; u++) {
-      if (!isVisited(-u) && contains(u, -u)) {
-        dfs(-u, visited);
+      visited.reset();
+      visited.add(u);
+      for (int i = 0; i < edges(u).size(); i++) {
+        int v = edges(u).get(i);
+        if (visited.contains(-v)) {
+          // If u -> v and u -> -v then -u
+          units.add(-u);
+          break;
+        }
+        visited.add(v);
       }
     }
 
-    remove(visited);
-    return visited;
+    visited.reset();
+    TIntArrayList allUnits = new TIntArrayList();
+    for (int i = 0; i < units.size(); i++) {
+      dfs(units.get(i), allUnits);
+    }
+
+    remove(allUnits);
+    return allUnits;
   }
 
   /** Returns a score of density of the graph. */
@@ -246,19 +261,19 @@ public class ImplicationsGraph {
         continue;
       }
 
-      currentColor++;
-      visit(u);
+      visited.reset();
+      visited.add(u);
       TIntArrayList all = new TIntArrayList();
       for (int j = 0; j < edges(u).size(); j++) {
         int v = edges(u).get(j);
-        if (visit(v)) {
+        if (visited.containsOrAdd(v)) {
           continue;
         }
         all.add(v);
 
         for (int k = 0; k < edges(v).size(); k++) {
           int w = edges(v).get(k);
-          if (!visit(w)) {
+          if (!visited.containsOrAdd(w)) {
             all.add(w);
           }
         }
@@ -272,30 +287,44 @@ public class ImplicationsGraph {
    *
    * Requires all strongly connected components removed.
    */
-  public TIntArrayList solve(final TIntArrayList assigned)
+  public int[] solve(final TIntArrayList assigned)
       throws ContradictionException {
-    currentColor++;
+    topologicalSort();
+
+    visited.reset();
     for (int i = 0; i < assigned.size(); i++) {
       int u = assigned.get(i);
       assert edges(u).isEmpty() && edges(-u).isEmpty();
-      visit(u);
+      visited.add(u);
+      visited.add(-u);
     }
 
-    TIntArrayList visited = new TIntArrayList();
-    for (int i = topologicalSort.length; i-- > 0;) {
+    TIntHashSet units = new TIntHashSet();
+    for (int i = topologicalSort.length - 1; i >= 0; i--) {
       int u = topologicalSort[i];
-      if (u != 0 && !isVisited(u) && !isVisited(-u)) {
-        dfs(u, visited);
+      if (u == 0 || visited.contains(u)) {
+        continue;
       }
+
+      for (int j = 0; j < edges(-u).size(); j++) {
+        // v is the parent of u
+        int v = -edges(-u).get(j);
+        if (units.contains(v)) {
+          units.add(u);
+          break;
+        }
+      }
+
+      // u was not forced by any parent so it should be false
+      if (!units.contains(u)) {
+        units.add(-u);
+      }
+
+      visited.add(u);
+      visited.add(-u);
     }
 
-    for (int u = 1; u <= numVariables; u++) {
-      if (isVisited(u) && isVisited(-u)) {
-        throw new ContradictionException();
-      }
-    }
-
-    return visited;
+    return units.toArray();
   }
 
   /**
@@ -310,7 +339,7 @@ public class ImplicationsGraph {
       set(colapsed, u, u);
     }
 
-    currentColor++;
+    visited.reset();
     TIntArrayList component = new TIntArrayList();
     for (int i = 0; i < topologicalSort.length; i++) {
       component.reset();
@@ -367,12 +396,12 @@ public class ImplicationsGraph {
         continue;
       }
 
-      currentColor++;
-      visit(u);
+      visited.reset();
+      visited.add(u);
       int pos = 0;
       for (int j = 0; j < edges(u).size(); j++) {
         int v = get(colapsed, edges(u).getQuick(j));
-        if (!visit(v)) {
+        if (!visited.containsOrAdd(v)) {
           edges(u).set(pos++, v);
         }
       }
@@ -387,22 +416,22 @@ public class ImplicationsGraph {
   }
 
   /** Performs a depth first search keeping track of visited nodes. */
-  private void dfs(int u, TIntArrayList visited) {
-    if (visit(u)) {
+  private void dfs(int u, TIntArrayList seen) {
+    if (visited.containsOrAdd(u)) {
       return;
     }
 
     int stackTop = 0;
     stack[stackTop++] = u;
-    visited.add(u);
+    seen.add(u);
 
     while (stackTop > 0) {
       u = stack[--stackTop];
       for (int i = 0; i < edges(u).size(); i++) {
         int v = edges(u).getQuick(i);
-        if (!visit(v)) {
+        if (!visited.containsOrAdd(v)) {
           stack[stackTop++] = v;
-          visited.add(v);
+          seen.add(v);
         }
       }
     }
@@ -410,7 +439,7 @@ public class ImplicationsGraph {
 
   /** Does a topological sort and stores it in topologicalSort array. */
   public void topologicalSort() {
-    currentColor++;
+    visited.reset();
     for (int time = 0, u = -numVariables; u <= numVariables; u++) {
       time = topologicalSort(u, time);
     }
@@ -424,7 +453,7 @@ public class ImplicationsGraph {
 
   /** Orders nodes by exit times in reversed graph. */
   private int topologicalSort(int u, int time) {
-    if (visit(u)) {
+    if (visited.containsOrAdd(u)) {
       return time;
     }
 
@@ -441,11 +470,6 @@ public class ImplicationsGraph {
   public void verify() {
     if (!Configure.enableExpensiveChecks) {
       return;
-    }
-
-    for (int u = -numVariables; u <= numVariables; u++) {
-      assert get(colors, u) <= currentColor:
-          "Wrong color for literal " + u;
     }
 
     for (int u = -numVariables; u <= numVariables; u++) {
@@ -479,59 +503,27 @@ public class ImplicationsGraph {
   }
 
   /** Returns the graph as a SAT instance */
-  public Skeleton skeleton() {
-    Skeleton skeleton = new Skeleton();
-    TIntArrayList clauses = skeleton.clauses;
-
+  public void serialize(final TIntArrayList formula) {
     for (int u = -numVariables; u <= numVariables; u++) {
       int u_ = get(colapsed, u);
       for (int i = 0; i < edges(u).size(); i++) {
         int v = edges(u).get(i);
         int v_ = get(colapsed, v);
 
-        if (-u > v) {
+        if (-u < v) {
           continue;
         }
 
-        boolean good = true;
-        for (int j = Math.min(i - 1, 9); good && j >= 0; j--) {
-          int w = edges(u).get(j);
-          int w_ = get(colapsed, w);
-          good = w_ == u_ || w_ == v_ || !contains(w, v);
-        }
-        for (int j = Math.max(i - 5, 0); good && j < i; j++) {
-          int w = edges(u).get(j);
-          int w_ = get(colapsed, w);
-          good = w_ == u_ || w_ == v_ || !contains(w, v);
-        }
-        for (int j = Math.min(i + 5, edges(u).size() - 1); good && j > i; j--) {
-          int w = edges(u).get(j);
-          int w_ = get(colapsed, w);
-          good = w_ == u_ || w_ == v_ || !contains(w, v);
-        }
-
-        if (good) {
-          clauses.add(-u);
-          clauses.add(v);
-          clauses.add(0);
+        if (-u == v) {
+          formula.add(encode(1, OR));
+          formula.add(-u);
+        } else {
+          formula.add(encode(2, OR));
+          formula.add(-u);
+          formula.add(v);
         }
       }
     }
-    return skeleton;
-  }
-
-  /** Returns true if node is painted with current color otherwise paint it. */
-  private boolean visit(int u) {
-    assert get(colors, u) <= currentColor;
-    if (get(colors, u) == currentColor) {
-      return true;
-    }
-    set(colors, u, currentColor);
-    return false;
-  }
-
-  private boolean isVisited(int u) {
-    return get(colors, u) == currentColor;
   }
 
   private int[] create() {

@@ -9,8 +9,11 @@ import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
 
+import static ibis.structure.Misc.*;
+
 
 public final class SplitActivity extends Activity {
+  private static final int BACKTRACK_THRESHOLD = 64;
   private static final Logger logger = Logger.getLogger(SplitActivity.class);
 
   /** Representants in disjoint set  */
@@ -37,7 +40,7 @@ public final class SplitActivity extends Activity {
   }
 
   public void initialize() {
-    if (!Configure.split || instance.clauses.size() < 256) {
+    if (!Configure.split) {
       executor.submit(new BranchActivity(parent, depth, instance));
       finish();
       return;
@@ -48,94 +51,25 @@ public final class SplitActivity extends Activity {
     height = new int[numVariables + 1];
     units = new int[numVariables];
 
-    // Literals in the same clause belong to the same set.
-    TIntArrayList clauses = instance.clauses;
-    for (int start = 0; start < clauses.size(); start++) {
-      int u = clauses.get(start);
-      for (int end = start; ; end++) {
-        int v = clauses.get(end);
-        if (v == 0) {
-          start = end;
-          break;
-        }
-        join(u, v);
-      }
-    }
+    joinVariablesInClauses(instance.formula);
 
-    // Checks if there are at least two components.
-    boolean isSplit = false;
-    int aSet = find(clauses.get(0));
-    for (int u = 1; u <= numVariables; ++u) {
-      if (repr[u] != 0 && find(u) != aSet) {
-        isSplit = true;
-        break;
-      }
-    }
-    if (!isSplit) {
+    if (!isSplit()) {
       executor.submit(new BranchActivity(parent, depth, instance));
       finish();
       return;
     }
 
-    // Splits instance into at least two sub-problems.
-    subInstances = new TIntObjectHashMap<Skeleton>();
-    for (int start = 0; start < clauses.size(); start++) {
-      int u = clauses.get(start);
-      int uSet = find(u);
+    split();
+    instance = null;  // Helps GC
 
-      Skeleton subInstance = subInstances.get(uSet);
-      if (subInstance == null) {
-        subInstance = new Skeleton();
-        subInstances.put(uSet, subInstance);
-      }
-
-      for (int end = start; ; end++) {
-        int v = clauses.get(end);
-        assert v == 0 || uSet == find(v);
-        subInstance.clauses.add(v);
-        if (v == 0) {
-          start = end;
-          break;
-        }
-      }
-    }
-
-    TIntObjectIterator<Skeleton> it;
-    final int backtrackThreshold = 64;
-    
-    int numSolvedSplits = 0;
-    it = subInstances.iterator();
+    // Submits subInstance to solve
+    numSubmittedSplits = subInstances.size();
+    TIntObjectIterator<Skeleton> it = subInstances.iterator();
     for (int size = subInstances.size(); size > 0; size--) {
       it.advance();
-      clauses = it.value().clauses;
-      if (clauses.size() <= backtrackThreshold) {
-        int[] newUnits = backtrack(clauses);
-        if (newUnits == null) {
-          reply(Solution.unsatisfiable());
-          finish();
-          return;
-        }
-        mergeUnits(newUnits);
-        numSolvedSplits++;
-      }
+      executor.submit(new BranchActivity(identifier(), depth, it.value()));
     }
 
-    TIntArrayList sizes = new TIntArrayList();
-    it = subInstances.iterator();
-    for (int size = subInstances.size(); size > 0; size--) {
-      it.advance();
-      clauses = it.value().clauses;
-      if (clauses.size() > backtrackThreshold) {
-        numSubmittedSplits++;
-        sizes.add(clauses.size());
-        executor.submit(new BranchActivity(identifier(), depth, it.value()));
-      }
-    }
-
-    /*
-    logger.info("Split " + instance.clauses.size() + " into " + sizes
-        + " and " + numSolvedSplits + " smaller");
-        */
     suspend();
   }
 
@@ -153,7 +87,7 @@ public final class SplitActivity extends Activity {
     }
 
     if (!isUnsatisfiable && !isUnknown) {
-      mergeUnits(response.units());
+      mergeNewUnits(response.units());
     }
 
     if (numSubmittedSplits > 0) {
@@ -165,7 +99,6 @@ public final class SplitActivity extends Activity {
         reply(Solution.unknown());
       } else {
         units = java.util.Arrays.copyOf(units, numUnits);
-        assert numUnits == units.length: " " + instance.clauses.size();
         Solution solution = Solution.satisfiable(units);
         verify(solution);
         reply(solution);
@@ -174,7 +107,63 @@ public final class SplitActivity extends Activity {
     }
   }
 
-  private void mergeUnits(int[] newUnits) {
+  /** Puts variables in each clause in the same set */
+  private void joinVariablesInClauses(TIntArrayList formula) {
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+
+      int u = formula.get(clause);
+      for (int i = clause; i < clause + length; i++) {
+        join(u, formula.get(i));
+      }
+    }
+  }
+
+  /** Returns true if this instance can be split. */
+  private boolean isSplit() {
+    for (int u = 0, v = 1; v < instance.numVariables; v++) {
+      if (repr[v] != 0) {
+        if (u == 0) {
+          u = find(v);
+        } else if (u != find(v)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /** Splits the instance in sub instances. */
+  private void split() {
+    subInstances = new TIntObjectHashMap<Skeleton>();
+    TIntArrayList formula = instance.formula;
+
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+      int type = type(formula, clause);
+      
+      int u = formula.get(clause);
+      Skeleton subInstance = subInstances.get(find(u));
+      if (subInstance == null) {
+        subInstance = new Skeleton(instance.numVariables);
+        subInstances.put(find(u), subInstance);
+      }
+
+      TIntArrayList subFormula = subInstance.formula;
+      subFormula.add(encode(length, type));
+      for (int i = clause; i < clause + length; i++) {
+        subFormula.add(formula.get(i));
+      }
+    }
+  }
+
+  /** Adds new units from a sub instance */
+  private void mergeNewUnits(int[] newUnits) {
     System.arraycopy(newUnits, 0, units, numUnits, newUnits.length);
     numUnits += newUnits.length;
   }
@@ -209,66 +198,5 @@ public final class SplitActivity extends Activity {
       repr[u] = v;
       height[v]++;
     }
-  }
-
-  /** Finds a solution for a formula using backtracking */
-  private static int[] backtrack(TIntArrayList clauses) {
-    TIntHashSet assigned = new TIntHashSet();
-    if (!backtrack(clauses, 0, assigned)) {
-      return null;
-    }
-
-    // Assigned missing literals
-    for (int i = 0; i < clauses.size(); i++) {
-      int u = clauses.get(i);
-      if (u != 0 && !assigned.contains(-u) && !assigned.contains(u)) {
-        assigned.add(u);
-      }
-    }
-
-    return assigned.toArray();
-  }
-
-  private static boolean backtrack(TIntArrayList clauses, int start, TIntHashSet assigned) {
-    if (start == clauses.size()) {
-      return true;
-    }
-
-    int end = start;
-    for (;; end++) {
-      if (clauses.get(end) == 0) {
-        break;
-      }
-    }
-
-    boolean satisfied = false;
-    for (int i = start; i < end; i++) {
-      int u = clauses.get(i);
-      if (assigned.contains(u)) {
-        satisfied = true;
-        break;
-      }
-    }
-
-    // Clause already satisfied, move on.
-    if (satisfied) {
-      return backtrack(clauses, end + 1, assigned);
-    }
-
-    // Clause not satisfied, tries to assigned each literal.
-    for (int i = start; i < end; i++) {
-      int u = clauses.get(i);
-      if (assigned.contains(-u)) {
-        continue;
-      }
-
-      assigned.add(u);
-      if (backtrack(clauses, end + 1, assigned)) {
-        return true;
-      }
-      assigned.remove(u);
-    }
-
-    return false;
   }
 }

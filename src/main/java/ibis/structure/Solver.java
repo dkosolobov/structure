@@ -4,224 +4,99 @@ import gnu.trove.TIntArrayList;
 import gnu.trove.TIntHashSet;
 import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntLongHashMap;
-import gnu.trove.TIntIntIterator;
 import gnu.trove.TIntIterator;
 import org.apache.log4j.Logger;
 
-import static ibis.structure.BitSet.mapZtoN;
-import static ibis.structure.BitSet.mapNtoZ;;
+import static ibis.structure.Misc.*;
 
 
-/**
- * The core algorithms for sat solving.
- *
- * TODO:
- * 1) Blocked clause elimination
- */
+/** The core algorithms for sat solving. */
 public final class Solver {
-  /** Marks a removed literal */
-  public static final int REMOVED = Integer.MAX_VALUE;
-  private static final TIntHashSet EMPTY = new TIntHashSet();
   private static final Logger logger = Logger.getLogger(Solver.class);
 
   /** Number of variables. */
   public int numVariables;
   /** Set of true literals discovered. */
-  private BitSet units = new BitSet();
+  public TouchSet units;
   /** Equalities between literals. */
-  private int[] proxies;
+  public int[] proxies;
   /** The implication graph. */
   public ImplicationsGraph graph;
-  /** List of clauses separated by 0. */
-  public TIntArrayList clauses;
   /** Watchlists. */
-  private TIntHashSet[] watchLists;
-  /** Maps start of clause to # unsatisfied literals. */
-  private TIntIntHashMap lengths = new TIntIntHashMap();
-  /** Queue of clauses with at most 2 unsatisfied literals. */
-  private TIntArrayList queue = new TIntArrayList();
-  /** Queue of units to be propagated. */
-  private TIntArrayList unitsQueue = new TIntArrayList();
+  public WatchLists watchLists;
+  /** Units queue. */
+  private TIntArrayList unitsQueue;
 
-
-  /**
-   * Constructor.
-   *
-   * @param instance instance to solve
-   */
+  /** Constructor. */
   public Solver(final Skeleton instance) {
     numVariables = instance.numVariables;
-    proxies = new int[numVariables + 1];
+    units = new TouchSet(numVariables);
     graph = new ImplicationsGraph(numVariables);
-    clauses = (TIntArrayList) instance.clauses.clone();
+    watchLists = new WatchLists(numVariables, instance.formula);
+    unitsQueue = new TIntArrayList();
 
-    for (int u = 1; u <= numVariables; ++u) {
-      proxies[u] = u;
+    proxies = new int[2 * numVariables + 1];
+    for (int u = -numVariables; u <= numVariables; ++u) {
+      proxies[u + numVariables] = u;
     }
 
     if (Configure.verbose) {
       System.err.print(".");
       System.err.flush();
     }
+    // logger.info("******************* SOLVING *****************************************");
+    // logger.info("I am " + instance);
+  }
+
+  /** Returns true if literal u is already assigned. */
+  public boolean isLiteralAssigned(final int u) {
+    assert u != 0 && -numVariables <= u && u <= numVariables;
+    return proxy(u) != u || units.contains(u) || units.contains(-u);
+  }
+
+  /** Returns true if variable u is missing. */
+  public boolean isVariableMissing(final int u) {
+    assert var(u) == u;
+    return proxy(u) == u
+        && !units.contains(u) && !units.contains(-u)
+        && graph.edges(u).isEmpty() && graph.edges(-u).isEmpty()
+        && watchLists.get(u).isEmpty() && watchLists.get(-u).isEmpty();
   }
 
   /**
-   * Builds watch lists.
-   *
-   * Watch list for a literal u contains the start position of clauses containing u.
+   * Recursively finds the proxy of u.
+   * The returned literal doesn't have any proxy.
    */
-  private void buildWatchLists() throws ContradictionException {
-    watchLists = new TIntHashSet[2 * numVariables + 1];
-    for (int u = -numVariables; u <= numVariables; ++u) {
-      watchLists[u + numVariables] = new TIntHashSet();
+  private int proxy(final int u) {
+    assert u != 0 : "0 is not a valid literal";
+    int u_ = u + numVariables;
+    if (u != proxies[u_]) {
+      proxies[u_] = proxy(proxies[u_]);
+      return proxies[u_];
     }
-
-    for (int start = 0; start < clauses.size();) {
-      if (clauses.get(start + 0) == 0) {  // empty clause
-        throw new ContradictionException();
-      }
-
-      if (clauses.get(start + 1) == 0) {  // unit
-        unitsQueue.add(clauses.getSet(start, REMOVED));
-        clauses.set(start + 1, REMOVED);
-        start += 2;
-        continue;
-      }
-
-      if (clauses.get(start + 2) == 0) {  // binary
-        addBinary(clauses.getSet(start, REMOVED),
-                  clauses.getSet(start + 1, REMOVED));
-        clauses.set(start + 2, REMOVED);
-        start += 3;
-        continue;
-      }
-
-      for (int end = start; ; end++) {
-        int u = clauses.get(end);
-        if (u == 0) {
-          assert end - start >= 3;
-          lengths.put(start, end - start);
-          start = end + 1;
-          break;
-        }
-
-        assert !watchList(u).contains(start): "Found duplicate literal";
-        assert !watchList(-u).contains(start): "Found satisfied clause";
-        watchList(u).add(start);
-      }
-    }
+    return u;
   }
 
-  /**
-   * Returns the watch list for a literal u.
-   *
-   * @param u a literal
-   * @return watch list of u
-   */
-  public TIntHashSet watchList(final int u) {
-    return watchLists[u + numVariables];
+  /** Returns a string representation of stored instance. */
+  /*
+  public String toString() {
+    return skeleton().toString();
   }
-
-  /** Getter for lengths */
-  public TIntIntHashMap lengths() {
-    return lengths;
-  }
+  */
 
   /** Queues a new assigned unit. */
-  public void queueUnit(int unit) {
-    unitsQueue.add(unit);
+  public void queueUnit(final int u) {
+    unitsQueue.add(u);
   }
 
-  /** Adds implication -u &rarr; v.  */
+  /** Adds implication -u &rarr; v. */
   public void addBinary(final int u, final int v) {
-    assert !isLiteralAssigned(u) : "First literal " + u + " is assigned";
-    assert !isLiteralAssigned(v) : "Second literal " + v + " is assigned";
+    // logger.info("new binary " + u + " " + v);
+    // logger.info("new binary " + proxies[u + numVariables] + " " + proxies[v + numVariables]);
+    // logger.info("units " + units.contains(u) + " " + units.contains(v));
+    assert !isLiteralAssigned(u) : "First literal " + u + " is assinged";
+    assert !isLiteralAssigned(v) : "Second literal " + v + " is assinged";
     graph.add(-u, v);
-  }
-
-
-  /**
-   * Verifies consistency of lengths array.
-   */
-  private void verifyLengths() {
-    TIntIntIterator it = lengths.iterator();
-    for (int size = lengths.size(); size > 0; size--) {
-      it.advance();
-      int start = it.key();
-      int length = 0;
-
-      for (int end = start;; end++) {
-        int literal = clauses.get(end);
-        if (literal == 0) {
-          break;
-        }
-        if (literal == REMOVED) {
-          continue;
-        }
-
-        length++;
-        assert !isLiteralAssigned(literal)
-            : "Literal " + literal + " is assigned but clause not satisfied";
-        assert watchList(literal).contains(start)
-            : "Clause " + start + " not in watch list of " + literal;
-      }
-      assert it.value() == length
-          : "Clause " + start + " has wrong length";
-    }
-  }
-
-  /** Verifies watch lists. */
-  private void verifyWatchLists() {
-    for (int u = -numVariables; u <= numVariables; ++u) {
-      if (u != 0) {
-        TIntIterator it = watchList(u).iterator();
-        for (int size = watchList(u).size(); size > 0; size--) {
-          int start = it.next();
-          assert lengths.containsKey(start)
-              : "Watch list of " + u + " contains satisfied clause";
-          assert clauses.indexOf(start, u) != -1;
-          assert clauses.indexOf(start, u) < clauses.indexOf(start, 0);
-        }
-      }
-    }
-  }
-
-  /** Verifies that assigned instances are removed.  */
-  private void verifyAssigned() {
-    for (int u = -numVariables; u <= numVariables; ++u) {
-      if (u != 0 && isLiteralAssigned(u)) {
-        assert watchList(u).isEmpty()
-            : "Assigned literal " + u + " has non empty watch list";
-        // assert dag.neighbours(u) == null
-            // : "Assigned literal " + u + " is in dag";
-      }
-    }
-  }
-
-  /** Checks solver for consistency.  */
-  private void verify() {
-    if (Configure.enableExpensiveChecks) {
-      graph.verify();
-      verifyLengths();
-      verifyWatchLists();
-      verifyAssigned();
-    }
-  }
-
-  /**
-   * Adhoc function to remove REMOVED from clauses.
-   *
-   * @return clauses with REMOVED elements removed
-   */
-  public TIntArrayList compact() {
-    TIntArrayList clean = new TIntArrayList();
-    for (int i = 0; i < clauses.size(); i++) {
-      int literal = clauses.get(i);
-      if (literal != REMOVED) {
-        clean.add(literal);
-      }
-    }
-    return clean;
   }
 
   /**
@@ -231,47 +106,36 @@ public final class Solver {
    *
    * @return a skeleton with the instance.
    */
+  /*
   public Skeleton skeleton() {
-    Skeleton skeleton = new Skeleton();
+    Skeleton instance = new Skeleton(numVariables);
+
 
     // Appends the implications graph and clauses
-    skeleton.append(graph.skeleton());
-    skeleton.append(compact());
+    instance.formula = compact(watchLists.formula());
+    instance.formula.add(graph.skeleton().formula.toNativeArray());
 
     // Appends units and equivalent relations
     for (int literal = -numVariables; literal <= numVariables; ++literal) {
       if (literal != 0) {
-        int proxy = getRecursiveProxy(literal);
+        int proxy = proxy(literal);
         if (units.contains(proxy)) {
-          skeleton.add(literal);
+          instance.formula.add(encode(1, OR));
+          instance.formula.add(literal);
         } else if (literal != proxy && !units.contains(-proxy)) {
           // literal and proxy are equivalent,
           // but proxy is not assigned
-          skeleton.add(literal, -proxy);
+          instance.formula.add(encode(2, OR));
+          instance.formula.add(literal);
+          instance.formula.add(-proxy);
         }
       }
     }
 
-    return skeleton;
+    return instance;
   }
+    */
 
-  /**
-   * Returns the current DAG.
-   *
-   * @return current stored directed acyclic graph of literals.
-   */
-  public ImplicationsGraph graph() {
-    return graph;
-  }
-
-  /**
-   * Returns string representation of stored instance.
-   *
-   * @return a string representing the instance.
-   */
-  public String toString() {
-    return skeleton().toString();
-  }
 
   /**
    * Returns a literal to branch on.
@@ -282,77 +146,79 @@ public final class Solver {
   public Solution solve(final int branch) {
     try {
       if (branch != 0) {
-        unitsQueue.add(branch);
+        queueUnit(branch);
       }
-      buildWatchLists();
+
+      watchLists.build();
       simplify(branch == 0);
     } catch (ContradictionException e) {
+      // logger.info("Contradiction at ", e);
       return Solution.unsatisfiable();
     }
 
-    // Checks if all clauses were satisfied.
-    boolean satisfied = true;
-    for (int u = -numVariables; u <= numVariables; u++) {
-      if (u != 0) {
-        if (!watchList(u).isEmpty()) {
-          satisfied = false;
-          break;
-        }
-      }
-    }
-
-    if (satisfied) {
+    // Checks if all clauses were removed.
+    boolean empty = !(new ClauseIterator(watchLists.formula())).hasNext();
+    if (empty) {
       // Solves the remaining 2SAT encoded in the implication graph
       try {
         // Collapses strongly connected components and removes contradictions.
         // No new binary clause is created because there are no clauses
         // of longer length.
-        simplifyImplicationGraph();
+
+        renameEquivalentLiterals();
         propagate();
 
-        TIntArrayList assigned = new TIntArrayList(units.elements());
+        TIntArrayList assigned = new TIntArrayList();
         for (int u = 1; u <= numVariables; ++u) {
-          if (proxies[u] != u) {
+          if (isLiteralAssigned(u)) {
             assigned.add(u);
           }
         }
 
-        TIntArrayList newUnits = graph.solve(assigned);
-        units.addAll(newUnits.toNativeArray());
+        units.add(graph.solve(assigned));
       } catch (ContradictionException e) {
+        // logger.info("Contradiction at ", e);
         return Solution.unsatisfiable();
       }
     }
 
-    // Satisfies literals with satisfied proxies.
-    for (int literal = 1; literal <= numVariables; ++literal) {
-      int proxy = getRecursiveProxy(literal);
-      if (literal != proxy) {
-        if (units.contains(proxy)) {
-          units.add(literal);
-          proxies[literal] = literal;
-        } else if (units.contains(-proxy)) {
-          units.add(-literal);
-          proxies[literal] = literal;
-        }
+    // Assigns literals with assigned proxies.
+    for (int literal = -numVariables; literal <= numVariables; ++literal) {
+      if (literal == 0) {
+        continue;
+      }
+      int proxy = proxy(literal);
+      if (literal == proxy) {
+        continue;
+      }
+
+      if (units.contains(proxy)) {
+        units.add(literal);
+        proxies[literal + numVariables] = literal;
+        proxies[-literal + numVariables] = -literal;
       }
     }
 
-    if (satisfied) {
-      return Solution.satisfiable(units.elements());
-    }
-
-    return Solution.unknown();
+    return empty ? Solution.satisfiable(units.toArray()) : Solution.unknown();
   }
 
   public Core core() {
-    Skeleton core = new Skeleton();
-    core.numVariables = numVariables;
-    core.append(graph.skeleton());
-    // logger.info("core size is " + core.clauses.size());
-    // System.exit(1);
-    core.append(compact());
-    return new Core(units.elements(), proxies, core);
+    assert unitsQueue.isEmpty();
+
+    TIntArrayList formula = watchLists.formula();
+    watchLists = null;
+    compact(formula);
+
+    Skeleton core = new Skeleton(numVariables);
+    core.formula = formula;
+    graph.serialize(formula);
+
+    // logger.info("core = " + core.formula);
+
+    return new Core(
+        units.toArray(),
+        java.util.Arrays.copyOfRange(proxies, numVariables, 2 * numVariables + 1),
+        core);
   }
 
   /**
@@ -365,30 +231,17 @@ public final class Solver {
     propagate();
 
     if (isRoot) {
-      if (Configure.pureLiterals) {
-        PureLiterals.run(this);
-        propagate();
-      }
+      renameEquivalentLiterals();
+      graph.transitiveClosure();
+      propagate();
     }
 
-    renameEquivalentLiterals();
-    graph.transitiveClosure();
-    propagate();
-
-    for (int i = 0; i < Configure.numHyperBinaryResolutions; ++i) {
+    for (int i = 0; i < Configure.numHyperBinaryResolutions; i++) {
       if (!HyperBinaryResolution.run(this)) {
         break;
       }
       propagate();
-
-      renameEquivalentLiterals();
-      unitsQueue.add(graph.findContradictions().toNativeArray());
-      propagate();
     }
-
-    renameEquivalentLiterals();
-    unitsQueue.add(graph.findAllContradictions().toNativeArray());
-    propagate();
 
     if (Configure.binarySelfSubsumming) {
       BinarySelfSubsumming.run(this);
@@ -406,111 +259,13 @@ public final class Solver {
     }
 
     renameEquivalentLiterals();
+    queueContradictions();
+    propagateAll();
+
+    propagateContradiction();
     MissingLiterals.run(this);
     propagateUnitsQueue();
-    verify();
-  }
-
-  /**
-   * Propagates one clause.
-   *
-   * @param start position of first literal in the clause to be propagated
-   * @throws ContradictionException if clause has length 0
-   */
-  private void propagateClause(final int start) throws ContradictionException {
-    if (isClauseSatisfied(start)) {
-      return;
-    }
-    int length = lengths.get(start);
-    assert 0 <= length && length < 3
-        : "Invalid clause of length " + length + " in queue";
-
-    int position = start;
-    int u, v;
-    switch (length) {
-      case 0:
-        throw new ContradictionException();
-
-      case 1:  // unit
-        while ((u = clauses.get(position)) == REMOVED) {
-          position++;
-        }
-        queueUnit(u);
-        break;
-
-      case 2:  // binary
-        while ((u = clauses.get(position)) == REMOVED) {
-          position++;
-        }
-        position++;
-        while ((v = clauses.get(position)) == REMOVED) {
-          position++;
-        }
-        addBinary(u, v);
-        removeClause(start);
-        break;
-
-      default:
-        assert false : "Clause must have 0, 1 or 2 literals, not " + length;
-    }
-  }
-
-  /**
-   * Propagates one unit assignment.
-   *
-   * @param u unit to propagate
-   */
-  private void propagateUnit(final int u) {
-    // Removes clauses satisfied by u.
-    for (int clause : watchList(u).toArray()) {
-      removeClause(clause);
-    }
-    assert watchList(u).isEmpty();
-
-    // Removes -u.
-    for (int clause : watchList(-u).toArray()) {
-      removeLiteral(clause, -u);
-    }
-    assert watchList(-u).isEmpty();
-  }
-
-  /**
-   * Propagates all units in unit queue.
-   *
-   * Usually this is faster than calling addUnit for each unit.
-   */
-  private void propagateUnitsQueue() throws ContradictionException {
-    TIntArrayList propagated = graph.propagate(unitsQueue);
-    unitsQueue.reset();
- 
-    // Removed falsified literals.
-    for (int i = 0; i < propagated.size(); i++) {
-      int u = propagated.get(i);
-      TIntIterator it = watchList(-u).iterator();
-      for (int size = watchList(-u).size(); size > 0; size--) {
-        int clause = it.next();
-        clauses.set(clauses.indexOf(clause, -u), REMOVED);
-        if (lengths.adjustOrPutValue(clause, -1, 0) <= 2) {
-          queue.add(clause);
-        }
-      }
-    }
-
-    // Removes satisfied clauses.
-    for (int i = 0; i < propagated.size(); i++) {
-      int u = propagated.get(i);
-      for (int clause : watchList(u).toArray()) {
-        removeClause(clause);
-      }
-    }
-
-    // Adds propagated to units and clears watchlists.
-    for (int i = 0; i < propagated.size(); i++) {
-      int u = propagated.get(i);
-      units.add(u);
-      watchLists[u + numVariables] = EMPTY;
-      watchLists[-u + numVariables] = EMPTY;
-    }
+    verifyIntegrity();
   }
 
   /**
@@ -520,183 +275,161 @@ public final class Solver {
    * @throws ContradictionException if a clause of length 0 was found
    */
   private boolean propagate() throws ContradictionException {
-    do {
-      propagateUnitsQueue();
-      for (int i = 0; i < queue.size(); ++i) {
-        propagateClause(queue.get(i));
-      }
-    } while (!unitsQueue.isEmpty());
-
-    boolean simplified = !queue.isEmpty();
-    queue.clear();
+    boolean simplified = false;
+    simplified = propagateShortClauses() || simplified;
+    simplified = propagateUnitsQueue() || simplified;
     return simplified;
   }
 
+  /** Runs propagation until fixed point */
+  private boolean propagateAll() throws ContradictionException {
+    boolean simplified = false;
+    while (propagate()) {
+      simplified = true;
+    }
+    return simplified;
+  }
+
+  public void propagateContradiction() throws ContradictionException {
+    final TIntArrayList formula = watchLists.formula();
+    final TIntArrayList clauses = watchLists.shortClauses();
+
+    for (int i = 0; i < clauses.size(); i++) {
+      int clause = clauses.get(i);
+      if (!isClauseRemoved(formula, clause)) {
+        int length = length(formula, clause);
+        if (length == 0) {
+          throw new ContradictionException();
+        }
+      }
+    }
+  }
+
+  /** Propagates a list of short clauses */
+  public boolean propagateShortClauses() throws ContradictionException {
+    final TIntArrayList formula = watchLists.formula();
+    final TIntArrayList clauses = watchLists.shortClauses();
+
+    for (int i = 0; i < clauses.size(); i++) {
+      int clause = clauses.get(i);
+      if (isClauseRemoved(formula, clause)) {
+        continue;
+      }
+
+      int length = length(formula, clause);
+      int type = type(formula, clause);
+
+      // logger.info("length = " + length);
+      assert 0 <= length && length < 3;
+      assert type == OR || type == XOR || type == NXOR;
+
+      if (length == 0) {
+        if (type != NXOR) {
+          throw new ContradictionException();
+        }
+      } else if (length == 1) {
+        if (type == NXOR) {
+          queueUnit(-formula.get(clause));
+        } else {
+          queueUnit(formula.get(clause));
+        }
+      } else if (length == 2) {
+        if (type == OR) {
+          addBinary(formula.get(clause), formula.get(clause + 1));
+        } else if (type == XOR) {
+          addBinary(formula.get(clause), formula.get(clause + 1));
+          addBinary(-formula.get(clause), -formula.get(clause + 1));
+        } else {
+          assert type == NXOR;
+          addBinary(formula.get(clause), -formula.get(clause + 1));
+          addBinary(-formula.get(clause), formula.get(clause + 1));
+        }
+      }
+
+      watchLists.removeClause(clause);
+      // watchLists.verifyIntegrity();
+    }
+
+    boolean simplified = !clauses.isEmpty();
+    clauses.reset();
+    return simplified;
+  }
+
+  /** Propagates all units */
+  public boolean propagateUnitsQueue() throws ContradictionException {
+    if (unitsQueue.isEmpty()) {
+      return false;
+    }
+
+    // logger.info("before " + this);
+    TIntArrayList propagated = graph.propagate(unitsQueue);
+    // logger.info("propagating " + unitsQueue + " -> " + propagated);
+    unitsQueue.reset();
+    for (int i = 0; i < propagated.size(); i++) {
+      int unit = propagated.get(i);
+      assert !isLiteralAssigned(unit)
+          : "Literal " + unit + " is already assigned";
+      watchLists.assign(unit);
+      units.add(unit);
+    }
+    // logger.info("after " + this);
+    assert unitsQueue.isEmpty();
+    return !propagated.isEmpty();
+  }
+
+  /** Finds equivalent literals and renames them */
   public void renameEquivalentLiterals() throws ContradictionException {
+    // logger.info("units queue is " + unitsQueue);
     int[] collapsed = graph.removeStronglyConnectedComponents();
     for (int u = 1; u <= numVariables; ++u) {
       int proxy = collapsed[u];
       if (proxy != u) {
-        assert proxies[u] == u : "Variable already renamed";
-        assert proxy != 0 : "Colapsed to 0";
         renameLiteral(u, proxy);
       }
     }
+    // logger.info("graph is " + graph);
+    // logger.info("units queue is " + unitsQueue);
   }
 
-  public void simplifyImplicationGraph() throws ContradictionException {
-    renameEquivalentLiterals();
-
-    TIntArrayList propagated;
-    if (graph.density() < Configure.ttc) {
-      graph.transitiveClosure();
-      propagated = graph.findContradictions();
-    } else {
-      // propagated = graph.findContradictions();
-      propagated = graph.findAllContradictions();
-    }
-
-    unitsQueue.add(propagated.toNativeArray());
+  /** Queues contradictions in the implication graph */
+  public void queueContradictions() {
+    unitsQueue.add(graph.findContradictions().toNativeArray());
   }
 
-
-  /** Returns true if literal u is already assigned. */
-  public boolean isLiteralAssigned(final int u) {
-    assert u != 0;
-    return getRecursiveProxy(u) != u || units.get(u) || units.get(-u);
-  }
-
-  /**
-   * Returns true if clause was satisfied.
-   * NOTE: satisfied clauses are removed from lengths.
-   */
-  public boolean isClauseSatisfied(final int clause) {
-    return !lengths.contains(clause);
-  }
-
-  /** Returns number of binaries (in the implication graph ) containing literal u. */
+  /** Returns number of binaries in implication graph containing u. */
   public int numBinaries(final int u) {
     return graph.edges(-u).size();
   }
 
-  /** Removes literal u from clause. */
-  public void removeLiteral(final int clause, final int u, final int position) {
-    assert u != 0 : "Cannot remove literal 0 from clause";
-    assert lengths.contains(clause);
+  /** Renames from into to */
+  private void renameLiteral(final int from, final int to) {
+    // logger.info("Renaming " + from + " to " + to);
+    watchLists.merge(from, to);
+    watchLists.merge(-from, -to);
 
-    watchList(u).remove(clause);
-    clauses.set(position, REMOVED);
-    if (lengths.adjustOrPutValue(clause, -1, 0) <= 2) {
-      queue.add(clause);
+    proxies[from + numVariables] = to;
+    proxies[-from + numVariables] = -to;
+  }
+
+  /** Checks solver for consistency.  */
+  private void verifyIntegrity() {
+    if (Configure.enableExpensiveChecks) {
+      graph.verify();
+      watchLists.verifyIntegrity();
+      verifyAssignedLiterals();
     }
   }
 
-  /** Removes literal u from clause. */
-  private void removeLiteral(final int clause, final int u) {
-    removeLiteral(clause, u, clauses.indexOf(clause, u));
-  }
-
-  /** Removes one clause updating the watchlists. */
-  public void removeClause(final int clause) {
-    lengths.remove(clause);
-    for (int c = clause;; c++) {
-      int literal = clauses.getSet(c, REMOVED);
-      if (literal == 0) {
-        break;
-      }
-      if (literal != REMOVED) {
-        watchList(literal).remove(clause);
-      }
-    }
-  }
-
-  /**
-   * Merges watchlist of u into v.
-   *
-   * @param u source literal
-   * @param v destination literal
-   */
-  private void mergeWatchLists(final int u, final int v) {
-    for (int clause : watchList(u).toArray()) {
-      if (watchList(v).contains(clause)) {
-        // renaming creates duplicate
-        removeLiteral(clause, u);
-      } else if (watchList(-v).contains(clause)) {
-        // renaming creates a tautology
-        removeClause(clause);
-      } else {
-        // renames literal in clause
-        int position = clauses.indexOf(clause, u);
-        clauses.set(position, v);
-        watchList(v).add(clause);
+  /** Verifies that assigned instances are removed.  */
+  private void verifyAssignedLiterals() {
+    for (int u = -numVariables; u <= numVariables; ++u) {
+      if (u != 0 && isLiteralAssigned(u)) {
+        assert watchLists.get(u).isEmpty()
+            : "Assigned literal " + u + " has non empty watch list";
+        assert graph.edges(u).isEmpty()
+            : "Assigned literal " + u + " has neighbours in the implication graph";
       }
     }
-    watchLists[u + numVariables] = EMPTY;
   }
 
-  /**
-   * Renames literal u to v.
-   *
-   * After call:
-   *   - always: getRecursiveProxy(u) == getRecursiveProxy(v)
-   *   - immediate: proxies[u] == v
-   *
-   * @param u old literal name
-   * @param v new literal name
-   */
-  private void renameLiteral(final int u, final int v) {
-    assert !isLiteralAssigned(u) && !isLiteralAssigned(v);
-    mergeWatchLists(u, v);
-    mergeWatchLists(-u, -v);
-
-    if (u < 0) {
-      proxies[-u] = -v;
-    } else {
-      proxies[u] = v;
-    }
-  }
-
-  /**
-   * Recursively finds the proxy of u.
-   * The returned value doesn't have any proxy.
-   *
-   * @param u literal
-   * @return real name of u
-   */
-  private int getRecursiveProxy(final int u) {
-    assert u != 0: "0 is not a valid literal";
-    if (u < 0) {
-      return -getRecursiveProxy(proxies[-u]);
-    }
-    if (u != proxies[u]) {
-      proxies[u] = getRecursiveProxy(proxies[u]);
-      return proxies[u];
-    }
-    return u;
-  }
-
-  /**
-   * Returns a string representation of clause
-   * starting at start.
-   *
-   * @param start position of first literal in clause
-   * @return a string representing the clause
-   */
-  private String clauseToString(final int start) {
-    StringBuffer string = new StringBuffer();
-    string.append("{");
-    for (int i = start;; i++) {
-      int literal = clauses.get(i);
-      if (literal == 0) {
-        break;
-      }
-      if (literal == REMOVED) {
-        continue;
-      }
-      string.append(literal);
-      string.append(", ");
-    }
-    string.append("}");
-    return string.toString();
-  }
 }

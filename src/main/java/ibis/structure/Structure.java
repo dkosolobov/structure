@@ -65,12 +65,18 @@ class Structure {
         ConstellationFactory.createConstellation(createExecutors());
     constellation.activate();
 
+    if (Configure.xor) {
+      XOR.extractXORClauses(instance);
+    }
+
     // Creates the thread pool
     HyperBinaryResolution.createThreadPool();
 
     // Starts the computation
     try {
-      displayHeader();
+      if (Configure.verbose) {
+        displayHeader();
+      }
       if (constellation.isMaster()) {
         Solution solution = solve(constellation, instance);
 

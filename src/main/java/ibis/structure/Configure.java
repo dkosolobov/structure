@@ -31,6 +31,8 @@ public class Configure {
   public static boolean subsumming = true;
   /** True to split instances when possible. */
   public static boolean split = true;
+  /** True to extract xor gates. */
+  public static boolean xor = true;
   /** Number of hyper binary resolutions to perform. 0 to disable. */
   public static int numHyperBinaryResolutions = 3;
   /** Threshold for transitive closure. */
@@ -48,6 +50,7 @@ public class Configure {
     options.addOption("nopl", false, "disable pure literals");
     options.addOption("noss", false, "disable subsumming");
     options.addOption("nosplit", false, "disable splitting");
+    options.addOption("noxor", false, "disable xor gates extraction");
     options.addOption("hbr", true, "# of hyper binary resolutions (0 to disable)");
     options.addOption("ttc", true, "threshold for transitive closure");
 
@@ -96,6 +99,9 @@ public class Configure {
     }
     if (cl.hasOption("nosplit")) {
       split = false;
+    }
+    if (cl.hasOption("noxor")) {
+      xor = false;
     }
     if (cl.hasOption("hbr")) {
       numHyperBinaryResolutions = Integer.parseInt(cl.getOptionValue("hbr"));

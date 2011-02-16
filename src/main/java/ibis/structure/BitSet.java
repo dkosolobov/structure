@@ -77,6 +77,13 @@ public final class BitSet {
 
   /**
    * Bijective function mapping Z to N.
+   *
+   *  0 to 0
+   * -1 to 1
+   *  1 to 2
+   * -2 to 3
+   *  2 to 4
+   * etc.
    */
   public static int mapZtoN(final int a) {
     return a < 0 ? (-1 - a - a) : a + a;
