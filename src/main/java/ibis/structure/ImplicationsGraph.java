@@ -70,7 +70,7 @@ public class ImplicationsGraph {
     TIntArrayList visited = new TIntArrayList();
     for (int i = 0; i < literals.size(); i++) {
       int u = literals.get(i);
-      dfs(u, visited);
+      internalDFS(u, visited);
     }
 
     for (int i = 0; i < visited.size(); i++) {
@@ -151,7 +151,7 @@ public class ImplicationsGraph {
     TIntArrayList units = new TIntArrayList();
     for (int u = -numVariables; u <= numVariables; u++) {
       visited.reset();
-      dfs(u, -u);
+      internalDFS(u, -u);
       if (visited.contains(-u)) {
         units.add(-u);
       }
@@ -162,7 +162,7 @@ public class ImplicationsGraph {
     for (int i = 0; i < units.size(); i++) {
       int unit = units.get(i);
       if (unit != 0) {
-        dfs(unit, visited);
+        internalDFS(unit, visited);
       }
     }
 
@@ -170,31 +170,6 @@ public class ImplicationsGraph {
     return visited;
   }
 
-  /**
-   * Depth first search start at u and stoping at when stop is found.
-   */
-  private void dfs(int u, int stop) {
-    if (visited.containsOrAdd(u)) {
-      return;
-    }
-
-    int stackTop = 0;
-    stack[stackTop++] = u;
-
-    while (stackTop > 0) {
-      u = stack[--stackTop];
-      final int size = edges(u).size();
-      for (int i = 0; i < size; i++) {
-        int v = edges(u).getQuick(i);
-        if (!visited.containsOrAdd(v)) {
-          if (v == stop) {
-            break;
-          }
-          stack[stackTop++] = v;
-        }
-      }
-    }
-  }
 
   /**
    * Finds contradictions and returns a list of assigned literals.
@@ -227,7 +202,7 @@ public class ImplicationsGraph {
     visited.reset();
     TIntArrayList allUnits = new TIntArrayList();
     for (int i = 0; i < units.size(); i++) {
-      dfs(units.get(i), allUnits);
+      internalDFS(units.get(i), allUnits);
     }
 
     remove(allUnits);
@@ -343,7 +318,7 @@ public class ImplicationsGraph {
     TIntArrayList component = new TIntArrayList();
     for (int i = 0; i < topologicalSort.length; i++) {
       component.reset();
-      dfs(topologicalSort[i], component);
+      internalDFS(topologicalSort[i], component);
       if (component.size() <= 1) {
         continue;
       }
@@ -416,7 +391,7 @@ public class ImplicationsGraph {
   }
 
   /** Performs a depth first search keeping track of visited nodes. */
-  private void dfs(int u, TIntArrayList seen) {
+  private void internalDFS(int u, TIntArrayList seen) {
     if (visited.containsOrAdd(u)) {
       return;
     }
@@ -432,6 +407,50 @@ public class ImplicationsGraph {
         if (!visited.containsOrAdd(v)) {
           stack[stackTop++] = v;
           seen.add(v);
+        }
+      }
+    }
+  }
+
+  /** Performs a depth first search keeping track of visited nodes. */
+  public void dfs(final int start, final TouchSet seen) {
+    if (seen.containsOrAdd(start)) {
+      return;
+    }
+
+    int stackTop = 0;
+    stack[stackTop++] = start;
+
+    while (stackTop > 0) {
+      int u = stack[--stackTop];
+      for (int i = 0; i < edges(u).size(); i++) {
+        int v = edges(u).getQuick(i);
+        if (!seen.containsOrAdd(v)) {
+          stack[stackTop++] = v;
+        }
+      }
+    }
+  }
+
+  /** DFS from u until stop is found.  */
+  private void internalDFS(int u, int stop) {
+    if (visited.containsOrAdd(u)) {
+      return;
+    }
+
+    int stackTop = 0;
+    stack[stackTop++] = u;
+
+    while (stackTop > 0) {
+      u = stack[--stackTop];
+      final int size = edges(u).size();
+      for (int i = 0; i < size; i++) {
+        int v = edges(u).getQuick(i);
+        if (!visited.containsOrAdd(v)) {
+          if (v == stop) {
+            break;
+          }
+          stack[stackTop++] = v;
         }
       }
     }
