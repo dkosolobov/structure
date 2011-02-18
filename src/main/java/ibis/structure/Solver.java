@@ -163,12 +163,10 @@ public final class Solver {
     TIntArrayList formula = watchLists.formula();
     watchLists = null;
     compact(formula);
+    graph.serialize(formula);
 
     Skeleton core = new Skeleton(numVariables);
     core.formula = formula;
-    graph.serialize(formula);
-
-    // logger.info("core = " + core.formula);
 
     return new Core(
         units.toArray(),
@@ -280,20 +278,20 @@ public final class Solver {
         throw new ContradictionException();
       }
 
-      int clause = clauses.get(clauses.size() - 1);
-      clauses.remove(clauses.size() - 1, 1);
-      if (isClauseRemoved(watchLists.formula(), clause)) {
-        continue;
-      }
-
-      int type = type(watchLists.formula(), clause);
-      int unit = watchLists.formula.get(clause);
-      if (type == NXOR) {
-        unit = neg(unit);
-      }
-
       literals.reset();
-      literals.add(unit);
+      for (int i = 0; i < clauses.size(); i++) {
+        int clause = clauses.getQuick(i);
+        if (!isClauseRemoved(watchLists.formula(), clause)) {
+          int type = type(watchLists.formula(), clause);
+          int unit = watchLists.formula.get(clause);
+          if (type == NXOR) {
+            unit = neg(unit);
+          }
+          literals.add(unit);
+        }
+      }
+
+      clauses.reset();
       simplified = propagateLiterals(literals) || simplified;
     }
 
