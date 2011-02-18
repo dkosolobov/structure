@@ -16,18 +16,24 @@ public final class WatchLists {
   protected static final TIntHashSet EMPTY = new TIntHashSet();
 
   /** Number of variables. */
-  protected int numVariables;
+  protected final int numVariables;
   /** List of clauses separated by 0. */
-  protected TIntArrayList formula;
+  protected final TIntArrayList formula;
+
   /** Watch lists */
-  protected TIntHashSet[] watchLists;
-  /** Short clauses */
-  protected TIntArrayList shortClauses;
+  protected final TIntHashSet[] watchLists;
+  /** Short clauses discovered */
+  public boolean contradiction;
+  public final TIntArrayList units, binaries;
 
   /** Constructor */
   public WatchLists(final int numVariables, final TIntArrayList formula) {
     this.numVariables = numVariables;
     this.formula = (TIntArrayList) formula.clone();
+
+    watchLists = new TIntHashSet[2 * numVariables + 1];
+    units = new TIntArrayList();
+    binaries = new TIntArrayList();
   }
 
   /** Returns formula */
@@ -35,18 +41,11 @@ public final class WatchLists {
     return formula;
   }
 
-  /** Returns list of short clauses */
-  public TIntArrayList shortClauses() {
-    return shortClauses;
-  }
-
   /** Builds the watch lists */
   public void build() throws ContradictionException {
-    watchLists = new TIntHashSet[2 * numVariables + 1];
     for (int u = -numVariables; u <= numVariables; ++u) {
       watchLists[u + numVariables] = new TIntHashSet();
     }
-    shortClauses = new TIntArrayList();
 
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
@@ -136,6 +135,7 @@ public final class WatchLists {
                               final int index) {
     get(formula.get(index)).remove(clause);
     Misc.removeLiteralAt(formula, clause, index);
+    clauseLengthChanged(clause);
   }
 
   /** Removes clause and updates the watch lists */
@@ -147,9 +147,10 @@ public final class WatchLists {
     Misc.removeClause(formula, clause);
   }
 
+  /** Assigns u to true, -u to false and removes the literals from clauses. */
   public void assign(final int u) {
-    // logger.info("assiging " + u);
-    // logger.info("to " + compact(formula) + " " + clauseToString(formula, 1));
+    // logger.info("assigning unit " + u);
+    // logger.info("formula is " + formulaToString(formula));
 
     for (int clause : get(u).toArray()) {
       if (type(formula, clause) == OR) {
@@ -162,8 +163,8 @@ public final class WatchLists {
       }
     }
 
-    TIntIterator it = get(-u).iterator();
-    for (int size = get(-u).size(); size > 0; size--) {
+    TIntIterator it = get(neg(u)).iterator();
+    for (int size = get(neg(u)).size(); size > 0; size--) {
       int clause = it.next();
       if (type(formula, clause) == OR) {
         removeLiteral(formula, clause, -u);
@@ -174,7 +175,6 @@ public final class WatchLists {
       }
     }
 
-    // logger.info("after " + compact(formula) + " " + clauseToString(formula, 1));
     watchLists[u + numVariables] = EMPTY;
     watchLists[-u + numVariables] = EMPTY;
   }
@@ -182,8 +182,16 @@ public final class WatchLists {
   /** Enqueues short clauses. */
   private void clauseLengthChanged(final int clause) {
     int length = length(formula, clause);
-    if (length <= 2) {
-      shortClauses.add(clause);
+    if (length == 0) {
+      if (type(formula, clause) != NXOR) {
+        contradiction = true;
+      } else {
+        Misc.removeClause(formula, clause);
+      }
+    } else if (length == 1) {
+      units.add(clause);
+    } else if (length == 2) {
+      binaries.add(clause);
     }
   }
 
@@ -202,7 +210,9 @@ public final class WatchLists {
       }
     }
 
-    ClauseIterator it = new ClauseIterator(formula);
+    ClauseIterator it;
+    
+    it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
@@ -213,6 +223,22 @@ public final class WatchLists {
             : "Missing clause " + clause + " from literal " + u;
         assert type == OR || u > 0
             : clauseToString(formula, clause) + " contains negative literal " + u + " xxx " + clause;
+      }
+    }
+
+    TouchSet visited = new TouchSet(numVariables);
+    it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+      visited.reset();
+      for (int i = clause; i < clause + length; i++) {
+        int literal = formula.get(i);
+        assert !visited.contains(literal)
+            : "Duplicate literal in " + clauseToString(formula, clause);
+        assert !visited.contains(-literal)
+            : "Duplicate variable in " + clauseToString(formula, clause);
+        visited.add(literal);
       }
     }
   }

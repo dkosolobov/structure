@@ -45,7 +45,7 @@ public final class Solver {
       System.err.flush();
     }
     // logger.info("******************* SOLVING *****************************************");
-    // logger.info("I am " + instance);
+    // logger.info("instance\n" + instance);
   }
 
   /** Returns true if literal u is already assigned. */
@@ -77,13 +77,6 @@ public final class Solver {
     return u;
   }
 
-  /** Returns a string representation of stored instance. */
-  /*
-  public String toString() {
-    return skeleton().toString();
-  }
-  */
-
   /** Queues a new assigned unit. */
   public void queueUnit(final int u) {
     unitsQueue.add(u);
@@ -91,51 +84,14 @@ public final class Solver {
 
   /** Adds implication -u &rarr; v. */
   public void addBinary(final int u, final int v) {
-    // logger.info("new binary " + u + " " + v);
-    // logger.info("new binary " + proxies[u + numVariables] + " " + proxies[v + numVariables]);
-    // logger.info("units " + units.contains(u) + " " + units.contains(v));
-    assert !isLiteralAssigned(u) : "First literal " + u + " is assinged";
-    assert !isLiteralAssigned(v) : "Second literal " + v + " is assinged";
+    // logger.info("u = " + u + " v = " + v);
+    // logger.info("u = " + units.contains(u) + " v = " + units.contains(v));
+    // logger.info("u = " + units.contains(-u) + " v = " + units.contains(-v));
+    // logger.info("u = " + proxy(u) + " v = " + proxy(v));
+    assert !isLiteralAssigned(u) && !isLiteralAssigned(v);
+    assert u != v;
     graph.add(-u, v);
   }
-
-  /**
-   * Returns current (simplified) instance.
-   *
-   * Includes units and equivalent literals.
-   *
-   * @return a skeleton with the instance.
-   */
-  /*
-  public Skeleton skeleton() {
-    Skeleton instance = new Skeleton(numVariables);
-
-
-    // Appends the implications graph and clauses
-    instance.formula = compact(watchLists.formula());
-    instance.formula.add(graph.skeleton().formula.toNativeArray());
-
-    // Appends units and equivalent relations
-    for (int literal = -numVariables; literal <= numVariables; ++literal) {
-      if (literal != 0) {
-        int proxy = proxy(literal);
-        if (units.contains(proxy)) {
-          instance.formula.add(encode(1, OR));
-          instance.formula.add(literal);
-        } else if (literal != proxy && !units.contains(-proxy)) {
-          // literal and proxy are equivalent,
-          // but proxy is not assigned
-          instance.formula.add(encode(2, OR));
-          instance.formula.add(literal);
-          instance.formula.add(-proxy);
-        }
-      }
-    }
-
-    return instance;
-  }
-    */
-
 
   /**
    * Returns a literal to branch on.
@@ -152,7 +108,7 @@ public final class Solver {
       watchLists.build();
       simplify(branch == 0);
     } catch (ContradictionException e) {
-      // logger.info("Contradiction at ", e);
+      // logger.info("found contradiction", e);
       return Solution.unsatisfiable();
     }
 
@@ -164,7 +120,6 @@ public final class Solver {
         // Collapses strongly connected components and removes contradictions.
         // No new binary clause is created because there are no clauses
         // of longer length.
-
         renameEquivalentLiterals();
         propagate();
 
@@ -232,7 +187,7 @@ public final class Solver {
 
     if (isRoot) {
       renameEquivalentLiterals();
-      graph.transitiveClosure();
+      // graph.transitiveClosure();
       propagate();
     }
 
@@ -249,7 +204,7 @@ public final class Solver {
     }
 
     if (Configure.subsumming) {
-      Subsumming.run(this);
+      (new Subsumming(this)).run();
       propagate();
     }
 
@@ -260,140 +215,130 @@ public final class Solver {
 
     renameEquivalentLiterals();
     queueContradictions();
-    propagateAll();
+    propagate();
 
-    propagateContradiction();
-    MissingLiterals.run(this);
-    propagateUnitsQueue();
-    verifyIntegrity();
-  }
-
-  /**
-   * Propagates all clauses in queue.
-   *
-   * @return true if any any clause was propagated.
-   * @throws ContradictionException if a clause of length 0 was found
-   */
-  private boolean propagate() throws ContradictionException {
-    boolean simplified = false;
-    simplified = propagateShortClauses() || simplified;
-    simplified = propagateUnitsQueue() || simplified;
-    return simplified;
-  }
-
-  /** Runs propagation until fixed point */
-  private boolean propagateAll() throws ContradictionException {
-    boolean simplified = false;
-    while (propagate()) {
-      simplified = true;
-    }
-    return simplified;
-  }
-
-  public void propagateContradiction() throws ContradictionException {
-    final TIntArrayList formula = watchLists.formula();
-    final TIntArrayList clauses = watchLists.shortClauses();
-
-    for (int i = 0; i < clauses.size(); i++) {
-      int clause = clauses.get(i);
-      if (!isClauseRemoved(formula, clause)) {
-        int length = length(formula, clause);
-        if (length == 0) {
-          throw new ContradictionException();
+    for (int u = 1; u <= numVariables; ++u) {
+      if (watchLists.get(u).size() == 1) {
+        if (type(watchLists.formula(), watchLists.get(u).toArray()[0]) != OR) {
+          logger.info("dependent " + u);
         }
       }
     }
+
+    MissingLiterals.run(this);
+    propagateUnits();
+    verifyIntegrity();
   }
 
-  /** Propagates a list of short clauses */
-  public boolean propagateShortClauses() throws ContradictionException {
-    final TIntArrayList formula = watchLists.formula();
-    final TIntArrayList clauses = watchLists.shortClauses();
+  /** Propagates units and binaries */
+  public boolean propagate() throws ContradictionException {
+    TIntArrayList formula = watchLists.formula();
+    TIntArrayList clauses = watchLists.binaries;
+    boolean simplified = propagateUnits() || !clauses.isEmpty();
 
     for (int i = 0; i < clauses.size(); i++) {
-      int clause = clauses.get(i);
+      int clause = clauses.getQuick(i);
       if (isClauseRemoved(formula, clause)) {
         continue;
       }
 
       int length = length(formula, clause);
       int type = type(formula, clause);
+      assert length == 2: "Length should be 2 not " + length;
 
-      // logger.info("length = " + length);
-      assert 0 <= length && length < 3;
-      assert type == OR || type == XOR || type == NXOR;
-
-      if (length == 0) {
-        if (type != NXOR) {
-          throw new ContradictionException();
-        }
-      } else if (length == 1) {
-        if (type == NXOR) {
-          queueUnit(-formula.get(clause));
-        } else {
-          queueUnit(formula.get(clause));
-        }
-      } else if (length == 2) {
-        if (type == OR) {
-          addBinary(formula.get(clause), formula.get(clause + 1));
-        } else if (type == XOR) {
-          addBinary(formula.get(clause), formula.get(clause + 1));
-          addBinary(-formula.get(clause), -formula.get(clause + 1));
-        } else {
-          assert type == NXOR;
-          addBinary(formula.get(clause), -formula.get(clause + 1));
-          addBinary(-formula.get(clause), formula.get(clause + 1));
-        }
+      if (type == OR) {
+        addBinary(formula.get(clause), formula.get(clause + 1));
+      } else if (type == XOR) {
+        addBinary(formula.get(clause), formula.get(clause + 1));
+        addBinary(-formula.get(clause), -formula.get(clause + 1));
+      } else {
+        assert type == NXOR;
+        addBinary(formula.get(clause), -formula.get(clause + 1));
+        addBinary(-formula.get(clause), formula.get(clause + 1));
       }
 
       watchLists.removeClause(clause);
-      // watchLists.verifyIntegrity();
     }
 
-    boolean simplified = !clauses.isEmpty();
     clauses.reset();
     return simplified;
   }
 
-  /** Propagates all units */
-  public boolean propagateUnitsQueue() throws ContradictionException {
-    if (unitsQueue.isEmpty()) {
-      return false;
+  /** Propagates all discovered units. */
+  private boolean propagateUnits() throws ContradictionException {
+    // logger.info("from unitsQueue");
+    boolean simplified = propagateLiterals(unitsQueue);
+    unitsQueue.reset();
+
+    TIntArrayList clauses = watchLists.units;
+    TIntArrayList literals = new TIntArrayList(1);
+
+    // TODO: all available units can be propagated simulatneously
+    // logger.info("from watchLists");
+    while (!clauses.isEmpty()) {
+      if (watchLists.contradiction) {
+        throw new ContradictionException();
+      }
+
+      int clause = clauses.get(clauses.size() - 1);
+      clauses.remove(clauses.size() - 1, 1);
+      if (isClauseRemoved(watchLists.formula(), clause)) {
+        continue;
+      }
+
+      int type = type(watchLists.formula(), clause);
+      int unit = watchLists.formula.get(clause);
+      if (type == NXOR) {
+        unit = neg(unit);
+      }
+
+      literals.reset();
+      literals.add(unit);
+      simplified = propagateLiterals(literals) || simplified;
     }
 
-    // logger.info("before " + this);
-    TIntArrayList propagated = graph.propagate(unitsQueue);
-    // logger.info("propagating " + unitsQueue + " -> " + propagated);
-    unitsQueue.reset();
+    return simplified;
+  }
+
+  /** Propagates all units */
+  private boolean propagateLiterals(final TIntArrayList literals) 
+      throws ContradictionException {
+    boolean simplified = false;
+    TIntArrayList propagated = graph.propagate(literals);
+    // logger.info("propagating " + literals + " -> " + propagated);
     for (int i = 0; i < propagated.size(); i++) {
-      int unit = propagated.get(i);
-      assert !isLiteralAssigned(unit)
-          : "Literal " + unit + " is already assigned";
+      int unit = propagated.getQuick(i);
+      assert proxy(unit) == unit;
+
+      if (units.contains(unit)) {
+        continue;
+      }
+      if (units.contains(neg(unit))) {
+        throw new ContradictionException();
+      }
+
       watchLists.assign(unit);
       units.add(unit);
+      simplified = true;
     }
-    // logger.info("after " + this);
-    assert unitsQueue.isEmpty();
-    return !propagated.isEmpty();
+
+    return simplified;
   }
 
   /** Finds equivalent literals and renames them */
   public void renameEquivalentLiterals() throws ContradictionException {
-    // logger.info("units queue is " + unitsQueue);
     int[] collapsed = graph.removeStronglyConnectedComponents();
     for (int u = 1; u <= numVariables; ++u) {
-      int proxy = collapsed[u];
-      if (proxy != u) {
-        renameLiteral(u, proxy);
+      if (collapsed[u] != u) {
+        renameLiteral(u, collapsed[u]);
       }
     }
-    // logger.info("graph is " + graph);
-    // logger.info("units queue is " + unitsQueue);
   }
 
   /** Queues contradictions in the implication graph */
+  @Deprecated
   public void queueContradictions() {
-    unitsQueue.add(graph.findContradictions().toNativeArray());
+    graph.findContradictions(unitsQueue);
   }
 
   /** Returns number of binaries in implication graph containing u. */
