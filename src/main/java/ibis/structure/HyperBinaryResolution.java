@@ -15,7 +15,7 @@ import static ibis.structure.Misc.*;
  * If (a1 + ... ak + b) and (l &ge; -a1) ... (l &ge; -ak)
  * then l &ge; b, otherwise if l then clause is contradiction
  */
-public class HyperBinaryResolution {
+public final class HyperBinaryResolution {
   /** Pool of executors for parallelization. */
   private static  ExecutorService pool = null;
 
@@ -118,9 +118,6 @@ class HyperBinaryResolutionRunnable implements Runnable {
     TouchSet twice = new TouchSet(solver.numVariables);
     TIntArrayList formula = solver.watchLists.formula();
 
-    // Cache is used to filter many duplicate binaries.
-    final int limit = (int) Math.pow(solver.numVariables, 1.5);
-
     while (true) {
       int clause;
       synchronized (iterator) {
@@ -172,11 +169,14 @@ class HyperBinaryResolutionRunnable implements Runnable {
               : "Missing literal " + missing + " is assigned";
 
           if (literal != missing && !cacheTest(-literal, missing)) {
-            synchronized (binaries) {
-              binaries.add(-literal);
-              binaries.add(missing);
-              if (binaries.size() > limit) {
-                break;
+            if (-literal == missing) {
+              synchronized (units) {
+                units.add(-literal);
+              }
+            } else {
+              synchronized (binaries) {
+                binaries.add(-literal);
+                binaries.add(missing);
               }
             }
           }

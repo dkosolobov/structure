@@ -84,8 +84,8 @@ public class ImplicationsGraph {
     return visited;
   }
 
-  public TIntArrayList propagate(int... u) throws ContradictionException {
-    return propagate(new TIntArrayList(u));
+  public TIntArrayList propagate(int... literals) throws ContradictionException {
+    return propagate(new TIntArrayList(literals));
   }
 
   /**
@@ -94,7 +94,7 @@ public class ImplicationsGraph {
    * u and -u cannot be both in literals.
    *
    */
-  private void remove(TIntArrayList literals) {
+  private void remove(final TIntArrayList literals) {
     // Finds all nodes that have dirty edges.
     visited.reset();
     int stackTop = 0;
@@ -181,9 +181,7 @@ public class ImplicationsGraph {
    *
    * If the graph is transitive closed this is similar to findAllContradictions().
    */
-  public TIntArrayList findContradictions() {
-    visited.reset();
-
+  public void findContradictions(final TIntArrayList contradictions) {
     TIntArrayList units = new TIntArrayList();
     for (int u = -numVariables; u <= numVariables; u++) {
       visited.reset();
@@ -200,24 +198,18 @@ public class ImplicationsGraph {
     }
 
     visited.reset();
-    TIntArrayList allUnits = new TIntArrayList();
+    assert contradictions.isEmpty();
     for (int i = 0; i < units.size(); i++) {
-      internalDFS(units.get(i), allUnits);
+      internalDFS(units.get(i), contradictions);
     }
 
-    remove(allUnits);
-    return allUnits;
+    remove(contradictions);
   }
 
-  /** Returns a score of density of the graph. */
-  public double density() {
-    int n = 0, m = 0;
-    for (int u = -numVariables; u <= numVariables; u++) {
-      if (edges(u) == EMPTY) continue;
-      n += 1;
-      m += edges(u).size();
-    }
-    return Math.log(m) / Math.log(n);
+  public TIntArrayList findContradictions() {
+    TIntArrayList contradictions = new TIntArrayList();
+    findContradictions(contradictions);
+    return contradictions;
   }
 
   /**
@@ -523,6 +515,8 @@ public class ImplicationsGraph {
 
   /** Returns the graph as a SAT instance */
   public void serialize(final TIntArrayList formula) {
+    int bins = 0;
+
     for (int u = -numVariables; u <= numVariables; u++) {
       int u_ = get(colapsed, u);
       for (int i = 0; i < edges(u).size(); i++) {
@@ -540,6 +534,7 @@ public class ImplicationsGraph {
           formula.add(encode(2, OR));
           formula.add(-u);
           formula.add(v);
+          bins++;
         }
       }
     }
