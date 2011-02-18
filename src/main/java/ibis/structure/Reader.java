@@ -98,18 +98,27 @@ public final class Reader {
     // Reads clauses
     Skeleton skeleton = new Skeleton(numVariables);
     int pos = skeleton.formula.size();
+    TouchSet seen = new TouchSet(numVariables);
+    int length = 0;
     skeleton.formula.add(0);
 
     try {
       while (numClauses > 0) {
         int literal = scanner.nextInt();
         if (literal == 0) {
-          int length = skeleton.formula.size() - pos - 1;
+          numClauses--;
+
           skeleton.formula.set(pos, encode(length, OR));
           pos = skeleton.formula.size();
-          numClauses--;
+          seen.reset();
+          length = 0;
+          skeleton.formula.add(0);
+        } else {
+          if (!seen.containsOrAdd(literal)) {
+            skeleton.formula.add(literal);
+            length++;
+          }
         }
-        skeleton.formula.add(literal);
       }
     } catch (NoSuchElementException e) {
       throw new ParseException(
