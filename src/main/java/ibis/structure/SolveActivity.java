@@ -28,7 +28,9 @@ public final class SolveActivity extends Activity {
       // logger.info("before = " + instance);
       solver = new Solver(instance);
       solution = solver.solve(branch);
-      instance = null;  // Helps GC
+      if (!Configure.enableExpensiveChecks) {
+        instance = null;  // Helps GC
+      }
     } catch (Throwable e) {
       logger.error("Failed to solve instance", e);
       logger.error("Branch is " + branch);
