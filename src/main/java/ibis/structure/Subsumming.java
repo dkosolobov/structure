@@ -98,8 +98,8 @@ public final class Subsumming {
 
 
   private void findSubsummed(final int clause, final long hash,
-                             final TIntArrayList clauses,
-                             final TLongArrayList hashes) {
+                             final TIntArrayList uClauses,
+                             final TLongArrayList uHashes) {
     int length = length(formula, clause);
     int type = type(formula, clause);
 
@@ -108,9 +108,9 @@ public final class Subsumming {
       visited.add(formula.getQuick(j));
     }
 
-    for (int i = 0; i < clauses.size(); i++) {
-      int other = clauses.getQuick(i);
-      long otherHash = hashes.getQuick(i);
+    for (int i = 0; i < uClauses.size(); i++) {
+      int other = uClauses.getQuick(i);
+      long otherHash = uHashes.getQuick(i);
 
       if ((hash & ~otherHash) != 0) {
         continue;
@@ -141,15 +141,24 @@ public final class Subsumming {
         numRemovedClauses++;
         watchLists.removeClause(other);
       } else if (type != OR && otherType != OR) {
+        System.err.println("mergegin " +
+            clauseToString(formula, clause) + " into " +
+            clauseToString(formula, other));
+
+        if (type == XOR) {
+          switchXOR(formula, other);
+        }
+
         // TODO: this is can be somehow faster
         for (int j = clause; j < clause + length; j++) {
           int literal = formula.getQuick(j);
           watchLists.removeLiteral(other, literal);
         }
 
-        if (type == XOR) {
-          switchXOR(formula, other);
-        }
+        // recomputes other's hash
+        otherHash = clauseHash(clause, otherLength - length);
+        hashes.put(other, otherHash);
+        uHashes.set(i, otherHash);
       }
     }
   }
