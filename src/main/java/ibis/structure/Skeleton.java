@@ -31,11 +31,12 @@ public final class Skeleton implements Serializable {
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
+      numClauses++;
 
       result.append(clauseToString(formula, clause));
       result.append("\n");
     }
 
-    return result.toString();
+    return "p cnf " + numVariables + " " + numClauses + "\n" + result;
   }
 }

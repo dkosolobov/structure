@@ -49,18 +49,18 @@ public final class Misc {
 
   /** Returns the length of the clause. */
   public static int length(final TIntArrayList formula, final int clause) {
-    assert !isClauseRemoved(formula, clause);
+    assert !isClauseRemoved(formula, clause) : "Clause " + clause + " was removed";
     return formula.get(clause - 1) >> TYPE_BITS;
   }
 
   /** Returns the type of the clause. */
   public static int type(final TIntArrayList formula, final int clause) {
-    assert !isClauseRemoved(formula, clause);
+    assert !isClauseRemoved(formula, clause) : "Clause " + clause + " was removed";
     return formula.get(clause - 1) & TYPE_MASK;
   }
 
   public static void switchXOR(final TIntArrayList formula, final int clause) {
-    assert !isClauseRemoved(formula, clause);
+    assert !isClauseRemoved(formula, clause) : "Clause " + clause + " was removed";
     formula.set(clause - 1, formula.get(clause - 1) ^ 1);
   }
 
@@ -68,9 +68,31 @@ public final class Misc {
   public static String clauseToString(final TIntArrayList formula, final int clause) {
     int type = type(formula, clause);
     int length = length(formula, clause);
-    // System.err.println("length = " + length);
-    TIntArrayList sub = formula.subList(clause, clause + length);
-    return TYPES[type] + " " + sub.toString();
+
+    StringBuffer result = new StringBuffer();
+    if (type != OR) {
+      result.append("x ");
+    }
+    for (int i = clause; i < clause + length; i++) {
+      int literal = formula.getQuick(i);
+      if (i == clause && type == NXOR) {
+        literal = neg(literal);
+      }
+      result.append(literal + " ");
+    }
+    result.append("0");
+
+    return result.toString();
+  }
+
+  public static String formulaToString(final TIntArrayList formula) {
+    StringBuffer result = new StringBuffer();
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      result.append(clauseToString(formula, it.next()));
+      result.append("\n");
+    }
+    return result.toString();
   }
 
   /** Removes literal at index from clause. */
