@@ -65,10 +65,6 @@ class Structure {
         ConstellationFactory.createConstellation(createExecutors());
     constellation.activate();
 
-    if (Configure.xor) {
-      XOR.extractXORClauses(instance);
-    }
-
     // Creates the thread pool
     HyperBinaryResolution.createThreadPool();
 
@@ -94,6 +90,14 @@ class Structure {
   }
 
   private static Solution solve(Constellation constellation, Skeleton instance) {
+    if (Configure.xor) {
+      try {
+        XOR.extractXORClauses(instance);
+      } catch (ContradictionException e) {
+        return Solution.unsatisfiable();
+      }
+    }
+
     SingleEventCollector root = new SingleEventCollector();
     constellation.submit(root);
     constellation.submit(new SolveActivity(root.identifier(), instance.numVariables, instance, 0));
