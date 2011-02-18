@@ -3,11 +3,10 @@ package ibis.structure;
 import gnu.trove.TIntArrayList;
 
 public final class Misc {
-  public static final int XOR = 0;
-  public static final int NXOR = 1;
+  public static final int NXOR = 0;
+  public static final int XOR = 1;
   public static final int OR = 2;
 
-  private static final String TYPES[] = { "XOR", "NXOR", "OR" };
   private static final int TYPE_BITS = 2;
   private static final int TYPE_MASK = (1 << TYPE_BITS) - 1;
   private static final int REMOVED = Integer.MAX_VALUE;

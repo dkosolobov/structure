@@ -90,7 +90,7 @@ public final class WatchLists {
   private boolean mergeOR(final int clause, final int from, final int to) {
     if (get(to).contains(clause)) {
       // to or to = to
-      removeLiteral(formula, clause, from);
+      Misc.removeLiteral(formula, clause, from);
       clauseLengthChanged(clause);
       return false;
     } else if (get(-to).contains(clause)) {
@@ -110,14 +110,14 @@ public final class WatchLists {
 
     if (get(to).contains(clause)) {
       // to xor to = 0
-      removeLiteral(formula, clause, from);
-      removeLiteral(formula, clause, to);
+      Misc.removeLiteral(formula, clause, from);
+      Misc.removeLiteral(formula, clause, to);
       get(to).remove(clause);
       clauseLengthChanged(clause);
     } else if (get(-to).contains(clause)) {
       // to xor -to = 1
-      removeLiteral(formula, clause, from);
-      removeLiteral(formula, clause, -to);
+      Misc.removeLiteral(formula, clause, from);
+      Misc.removeLiteral(formula, clause, -to);
       get(-to).remove(clause);
       switchXOR(formula, clause);
       clauseLengthChanged(clause);
@@ -138,6 +138,13 @@ public final class WatchLists {
     clauseLengthChanged(clause);
   }
 
+  /** Removes literal at index from clause. */
+  public void removeLiteral(final int clause,
+                            final int literal) {
+    int index = formula.indexOf(clause, literal);
+    removeLiteralAt(clause, index);
+  }
+
   /** Removes clause and updates the watch lists */
   public void removeClause(final int clause) {
     int length = length(formula, clause);
@@ -156,7 +163,7 @@ public final class WatchLists {
       if (type(formula, clause) == OR) {
         removeClause(clause);
       } else {
-        removeLiteral(formula, clause, u);
+        Misc.removeLiteral(formula, clause, u);
         get(u).remove(clause);
         switchXOR(formula, clause);
         clauseLengthChanged(clause);
@@ -167,10 +174,10 @@ public final class WatchLists {
     for (int size = get(neg(u)).size(); size > 0; size--) {
       int clause = it.next();
       if (type(formula, clause) == OR) {
-        removeLiteral(formula, clause, -u);
+        Misc.removeLiteral(formula, clause, -u);
         clauseLengthChanged(clause);
       } else {
-        removeLiteral(formula, clause, -u);
+        Misc.removeLiteral(formula, clause, -u);
         clauseLengthChanged(clause);
       }
     }

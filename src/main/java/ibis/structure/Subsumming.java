@@ -137,14 +137,19 @@ public final class Subsumming {
         continue;
       }
 
-
       if (type == OR && otherType == OR) {
         numRemovedClauses++;
         watchLists.removeClause(other);
       } else if (type != OR && otherType != OR) {
-        System.err.println(
-            clauseToString(formula, clause) + " into " +
-            clauseToString(formula, other));
+        // TODO: this is can be somehow faster
+        for (int j = clause; j < clause + length; j++) {
+          int literal = formula.getQuick(j);
+          watchLists.removeLiteral(other, literal);
+        }
+
+        if (type == XOR) {
+          switchXOR(formula, other);
+        }
       }
     }
   }
