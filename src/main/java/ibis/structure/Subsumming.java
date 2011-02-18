@@ -5,6 +5,7 @@ import gnu.trove.TIntLongHashMap;
 import gnu.trove.TIntIterator;
 import gnu.trove.TIntArrayList;
 import gnu.trove.TLongArrayList;
+import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
 
@@ -16,119 +17,169 @@ import static ibis.structure.Misc.*;
  * This is the algorithm implemented in SatELite.
  */
 public final class Subsumming {
+  private static final Logger logger = Logger.getLogger(Subsumming.class);
+
+  /** Number of variables */
+  private final int numVariables;
+  /** Watch lists */
+  private final WatchLists watchLists;
+  /** Formula */
+  private final TIntArrayList formula;
+  /** Maps clauses to their hash */
+  private final TIntLongHashMap hashes = new TIntLongHashMap();
+  /** Used to check if a clause is included in another clause */
+  private final TouchSet visited;
+  /** Number of removed clauses */
+  private int numRemovedClauses = 0;
+
+  /** Constructor */
+  public Subsumming(final Solver solver) {
+    numVariables = solver.numVariables;
+    watchLists = solver.watchLists;
+    formula = watchLists.formula();
+    visited = new TouchSet(numVariables);
+  }
+
   /** @return true if any clause was removed. */
-  public static boolean run(Solver solver) throws ContradictionException {
-    final TIntArrayList formula = solver.watchLists.formula;
+  public boolean run() throws ContradictionException {
+    TIntArrayList prevIndex = new TIntArrayList();
+    int[] last = new int[2 * numVariables + 1];
+    java.util.Arrays.fill(last, -1);
+    TIntArrayList clauses = new TIntArrayList();
 
-    TIntLongHashMap hashes = new TIntLongHashMap();
+    // Computes clauses' hashes and bestLiterals.
     ClauseIterator it;
-
-    // Computes clauses' hashes
     it = new ClauseIterator(formula);
-    while (it.hasNext()) {
+    for (int i = 0; it.hasNext(); i++) {
       int clause = it.next();
-      if (type(formula, clause) != OR) {
-        continue;
-      }
-
-      long hash = 0;
       int length = length(formula, clause);
-      for (int i = clause; i < clause + length; i++) {
-        hash |= 1L << (Hash.hash(formula.get(i)) >>> 26);
-      }
 
-      // To fast check that A is not included in B
-      // ~hashes[A] & hashes[B] != 0
-      hashes.put(clause, ~hash);
+      clauses.add(clause);
+      hashes.put(clause, clauseHash(clause, length));
+
+      int bestLiteral = bestLiteral(clause, length);
+      prevIndex.add(last[bestLiteral + numVariables]);
+      last[bestLiteral + numVariables] = i;
     }
 
-    // List of subsummed clauses to be removed.
-    TIntHashSet subsummed = new TIntHashSet();
-    // Same as watchList() but as an array for faster access.
-    int[][] watchLists = new int[2 * solver.numVariables + 1][];
+    // For each literal the list of clauses where it is the
+    // best literal is encoded in last, prevIndex
+    TIntArrayList uClauses = new TIntArrayList();
+    TLongArrayList uHashes = new TLongArrayList();
+    for (int u = -numVariables; u <= numVariables; ++u) {
+      uClauses.reset();
+      uHashes.reset();
 
-    // For each clause finds which other clause includes it.
-    it = new ClauseIterator(formula);
-    while (it.hasNext()) {
-      int clause = it.next();
-      if (type(formula, clause) != OR || subsummed.contains(clause)) {
-        continue;
+      TIntIterator it1 = watchLists.get(u).iterator();
+      for (int size =  watchLists.get(u).size(); size > 0; size--) {
+        int clause = it1.next();
+        uClauses.add(clause);
+        uHashes.add(hashes.get(clause));
       }
 
-      int length = length(formula, clause);
-      long clauseHash = ~hashes.get(clause);
-
-      if (length > 16) {
-        // Ignores very long clauses to improve perfomance.
-        continue;
-      }
-
-      // Finds literal included in minimum number of clauses
-      int bestLiteral = 0;
-      int minNumClauses = Integer.MAX_VALUE;
-      for (int i = clause; i < clause + length; i++) {
-        int literal = formula.get(i);
-        int numClauses = solver.watchLists.get(literal).size();
-        if (numClauses < minNumClauses) {
-          bestLiteral = literal;
-          minNumClauses = numClauses;
+      int index = last[u + numVariables];
+      while (index != -1) {
+        int clause = clauses.get(index);
+        if (!isClauseRemoved(formula, clause)) {
+          findSubsummed(clause, hashes.get(clause), uClauses, uHashes);
         }
-      }
-
-      if (solver.watchLists.get(bestLiteral).size() <= 1) {
-        // Can't include any other clause.
-        continue;
-      }
-
-      // Lazy initializes the watchList
-      int[] watchList = watchLists[bestLiteral + solver.numVariables];
-      if (watchList == null) {
-        watchList = solver.watchLists.get(bestLiteral).toArray();
-        watchLists[bestLiteral + solver.numVariables] = watchList;
-      }
-
-      for (int other : watchList) {
-        if ((clauseHash & hashes.get(other)) != 0) {
-          // Fast inclusion testing failed.
-          continue;
-        }
-        if (other == clause || type(formula, other) != OR) {
-          // other doesn't point to a different OR clause
-          continue;
-        }
-
-        boolean isSubsummed = true;
-        for (int j = clause; isSubsummed && j < clause + length; j++) {
-          int literal = formula.get(j);
-          isSubsummed = solver.watchLists.get(literal).contains(other);
-        }
-
-        if (isSubsummed) {
-          subsummed.add(other);
-        }
+        index = prevIndex.get(index);
       }
     }
 
-    removeSubsummed(solver, subsummed);
 
-    int numRemovedClauses = subsummed.size();
     if (Configure.verbose) {
       if (numRemovedClauses > 0) {
         System.err.print("ss" + numRemovedClauses + ".");
       }
     }
-    return !subsummed.isEmpty();
+    return numRemovedClauses > 0;
   }
 
-  private static void removeSubsummed(final Solver solver,
-                                      final TIntHashSet subsummed) {
-    TIntArrayList formula = solver.watchLists.formula();
-    TIntIterator it = subsummed.iterator();
-    for (int size = subsummed.size(); size > 0; size--) {
-      int clause = it.next();
-      if (!isClauseRemoved(formula, clause)) {
-        solver.watchLists.removeClause(clause);
+
+  private void findSubsummed(final int clause, final long hash,
+                             final TIntArrayList clauses,
+                             final TLongArrayList hashes) {
+    int length = length(formula, clause);
+    int type = type(formula, clause);
+
+    visited.reset();
+    for (int j = clause; j < clause + length; j++) {
+      visited.add(formula.getQuick(j));
+    }
+
+    for (int i = 0; i < clauses.size(); i++) {
+      int other = clauses.getQuick(i);
+      long otherHash = hashes.getQuick(i);
+
+      if ((hash & ~otherHash) != 0) {
+        continue;
+      }
+      if (isClauseRemoved(formula, other)) {
+        continue;
+      }
+      if (other == clause) {
+        continue;
+      }
+
+      int otherLength = length(formula, other);
+      int otherType = type(formula, other);
+
+      int included = 0;
+      for (int j = other; j < other + otherLength; j++) {
+        if (visited.contains(formula.get(j))) {
+          included++;
+        }
+      }
+
+      if (included != length) {
+        // Not all literals in clause are in other
+        continue;
+      }
+
+
+      if (type == OR && otherType == OR) {
+        numRemovedClauses++;
+        watchLists.removeClause(other);
+      } else if (type != OR && otherType != OR) {
+        System.err.println(
+            clauseToString(formula, clause) + " into " +
+            clauseToString(formula, other));
       }
     }
+  }
+
+  /**
+   * To fast check that A is not included in B
+   * hashes[A] &amp; ~hashes[B] != 0
+   */
+  private long clauseHash(final int clause, final int length) {
+    long hash = 0;
+    for (int i = clause; i < clause + length; i++) {
+      int h = Hash.hash(formula.getQuick(i));
+      hash |= 1L << ((h >>> 26) & 63);
+    }
+    return hash;
+  }
+
+  /**
+   * Returns the literal in clause that appears the least
+   * in other clauses.
+   */
+  private int bestLiteral(final int clause, final int length) {
+    int bestLiteral = 0;
+    int minNumClauses = Integer.MAX_VALUE;
+
+    for (int i = clause; i < clause + length; i++) {
+      int literal = formula.get(i);
+      int numClauses = watchLists.get(literal).size();
+
+      if (numClauses < minNumClauses) {
+        bestLiteral = literal;
+        minNumClauses = numClauses;
+      }
+    }
+
+    return bestLiteral;
   }
 }
