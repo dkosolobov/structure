@@ -7,6 +7,8 @@ import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
 
+import static ibis.structure.Misc.*;
+
 
 public final class BranchActivity extends Activity {
   private static final Logger logger = Logger.getLogger(SplitActivity.class);
@@ -73,49 +75,23 @@ public final class BranchActivity extends Activity {
     finish();
   }
 
-  /** For each literal counts clauses of certain length. */
-  private void countClauses(final TIntArrayList formula,
-                            final int numVariables,
-                            final int[][] counts) {
-    for (int start = 0, end = 0; end < formula.size(); end++) {
-      int u = formula.get(end);
-      if (u == 0) {
-        for (int i = start; i < end; i++) {
-          int v = formula.get(i);
-          int length = Math.min(end - start, counts[v + numVariables].length - 1);
-          counts[v + numVariables][length]++;
-        }
-        start = end + 1;
-      }
-    }
-  }
-
-  /** Computes score given number of clauses. */
-  private double score(int[] numClauses) {
-    double score = 0.;
-    double alpha = 1.;
-    for (int i = 2; i < numClauses.length; i++) {
-      alpha *= 2. / 3.;
-      score += Math.max(1e-3, alpha - 1e-3) * numClauses[i];
-    }
-    return score;
-  }
-
   /** Computes scores for every literal */
   double[] evaluateLiterals() {
-    final int maxClauseLength = 8;
-    final int numVariables = instance.numVariables;
-
-    int[][] counts = new int[2 * numVariables + 1][];
-    for (int u = -numVariables; u <= numVariables; u++) {
-      counts[u + numVariables] = new int[maxClauseLength];
-    }
-
-    countClauses(instance.formula, numVariables, counts);
-
+    int numVariables = instance.numVariables;
+    TIntArrayList formula = instance.formula;
     double[] scores = new double[2 * numVariables + 1];
-    for (int u = -numVariables; u <= numVariables; u++) {
-      scores[u + numVariables] = score(counts[u + numVariables]);
+
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+
+      if (length >= 2) {
+        double delta = Math.pow(Configure.ttc, length - 2);
+        for (int i = clause; i < clause + length; i++) {
+          scores[formula.get(i) + numVariables] += delta;
+        }
+      }
     }
 
     return scores;
