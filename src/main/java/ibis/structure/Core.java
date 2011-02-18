@@ -4,17 +4,22 @@ import gnu.trove.TIntIntHashMap;
 import gnu.trove.TIntIntIterator;
 import gnu.trove.TIntArrayList;
 
+import static ibis.structure.Misc.*;
+
 
 public final class Core {
+  private int numVariables;
   /** Units. */
-  public BitSet units = new BitSet();
+  private BitSet units = new BitSet();
   /** Proxies for equivalent literals */
-  public int[] proxies = null;
+  private int[] proxies = null;
   /** Core instance without units and equivalent literals */
   private Skeleton instance = null;
 
-  public Core(final int[] units, final int[] proxies, final Skeleton instance) {
+  public Core(final int numVariables, final int[] units,
+              final int[] proxies, final Skeleton instance) {
     assert !instance.formula.isEmpty();
+    this.numVariables = numVariables;
     this.units.addAll(units);
     this.proxies = proxies;
     this.instance = instance;
@@ -33,11 +38,11 @@ public final class Core {
     units.addAll(solution.units());
 
     // Adds equivalent literals
-    for (int literal = 1; literal < proxies.length; ++literal) {
-      if (literal != proxies[literal]) {
-        if (units.contains(proxies[literal])) {
+    for (int literal = 1; literal <= numVariables; ++literal) {
+      if (literal != proxies[literal + numVariables]) {
+        if (units.contains(proxies[literal + numVariables])) {
           units.add(literal);
-        } else if (units.contains(-proxies[literal])) {
+        } else if (units.contains(proxies[-literal + numVariables])) {
           units.add(-literal);
         }
       }

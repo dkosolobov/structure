@@ -84,10 +84,6 @@ public final class Solver {
 
   /** Adds implication -u &rarr; v. */
   public void addBinary(final int u, final int v) {
-    // logger.info("u = " + u + " v = " + v);
-    // logger.info("u = " + units.contains(u) + " v = " + units.contains(v));
-    // logger.info("u = " + units.contains(-u) + " v = " + units.contains(-v));
-    // logger.info("u = " + proxy(u) + " v = " + proxy(v));
     assert !isLiteralAssigned(u) && !isLiteralAssigned(v);
     assert u != v;
     graph.add(-u, v);
@@ -168,10 +164,7 @@ public final class Solver {
     Skeleton core = new Skeleton(numVariables);
     core.formula = formula;
 
-    return new Core(
-        units.toArray(),
-        java.util.Arrays.copyOfRange(proxies, numVariables, 2 * numVariables + 1),
-        core);
+    return new Core(numVariables, units.toArray(), proxies, core);
   }
 
   /**
@@ -215,13 +208,16 @@ public final class Solver {
     queueContradictions();
     propagate();
 
+    /*
     for (int u = 1; u <= numVariables; ++u) {
       if (watchLists.get(u).size() == 1) {
-        if (type(watchLists.formula(), watchLists.get(u).toArray()[0]) != OR) {
-          logger.info("dependent " + u);
+        int clause = watchLists.get(u).toArray()[0];
+        if (type(watchLists.formula(), clause) != OR) {
+          logger.info("dependent " + u + " in " + length(watchLists.formula(), clause));
         }
       }
     }
+    */
 
     MissingLiterals.run(this);
     propagateUnits();
@@ -283,7 +279,7 @@ public final class Solver {
         int clause = clauses.getQuick(i);
         if (!isClauseRemoved(watchLists.formula(), clause)) {
           int type = type(watchLists.formula(), clause);
-          int unit = watchLists.formula.get(clause);
+          int unit = watchLists.formula().get(clause);
           if (type == NXOR) {
             unit = neg(unit);
           }
