@@ -11,7 +11,7 @@ import signal
 import optparse
 
 
-VALID_SOLUTIONS = ['SATISFIABLE', 'UNSATISFIABLE', 'UNKNOWN']
+VALID_SOLUTIONS = ['SATISFIABLE', 'UNSATISFIABLE']
 
 
 class Alarm(Exception):
