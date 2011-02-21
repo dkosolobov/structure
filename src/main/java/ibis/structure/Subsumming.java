@@ -141,9 +141,11 @@ public final class Subsumming {
         numRemovedClauses++;
         watchLists.removeClause(other);
       } else if (type != OR && otherType != OR) {
+        /*
         System.err.println("mergegin " +
             clauseToString(formula, clause) + " into " +
             clauseToString(formula, other));
+            */
 
         if (type == XOR) {
           switchXOR(formula, other);
