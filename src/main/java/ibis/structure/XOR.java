@@ -108,7 +108,7 @@ public class XOR {
             xors.add(var(formula.get(j)));
           }
 
-          // logger.info("xor is " + clauseToString(xors, xors.size() - length));
+          // logger.info("Found xor gate " + clauseToString(xors, xors.size() - length));
 
           // Removes the cnf clauses
           for (int j = start; j < end; j++) {
@@ -163,11 +163,14 @@ public class XOR {
                                  final int end) throws ContradictionException {
     int clause = clauses.get(start);
     int length = length(formula, clause);
+    if (length < 3 || length > 24) {
+      // Too small or too big for a xor clause.
+      return 0;
+    }
 
     int size = end - start;
     int requiredSize = 1 << length - 1;
-
-    if (length > 24 || size < requiredSize) {
+    if (size < requiredSize) {
       // Not enough XOR clauses
       return 0;
     }
