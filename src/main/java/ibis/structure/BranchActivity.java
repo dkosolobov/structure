@@ -85,9 +85,10 @@ public final class BranchActivity extends Activity {
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
+      int type = type(formula, clause);
 
-      if (length >= 2) {
-        double delta = Math.pow(Configure.ttc, length - 2);
+      if (length >= 2 && type == OR) {
+        double delta = Math.pow(0.22, length - 2);
         for (int i = clause; i < clause + length; i++) {
           scores[formula.get(i) + numVariables] += delta;
         }
