@@ -404,26 +404,6 @@ public class ImplicationsGraph {
     }
   }
 
-  /** Performs a depth first search keeping track of visited nodes. */
-  public void dfs(final int start, final TouchSet seen) {
-    if (seen.containsOrAdd(start)) {
-      return;
-    }
-
-    int stackTop = 0;
-    stack[stackTop++] = start;
-
-    while (stackTop > 0) {
-      int u = stack[--stackTop];
-      for (int i = 0; i < edges(u).size(); i++) {
-        int v = edges(u).getQuick(i);
-        if (!seen.containsOrAdd(v)) {
-          stack[stackTop++] = v;
-        }
-      }
-    }
-  }
-
   /** DFS from u until stop is found.  */
   private void internalDFS(int u, int stop) {
     if (visited.containsOrAdd(u)) {
@@ -447,6 +427,36 @@ public class ImplicationsGraph {
       }
     }
   }
+
+  public void dfs(final int start, final TIntArrayList seen) {
+    visited.reset();
+    for (int i = 0; i < seen.size(); i++) {
+      visited.add(seen.getQuick(i));
+    }
+
+    internalDFS(start, seen);
+  }
+
+  /** Performs a depth first search keeping track of visited nodes. */
+  public void dfs(final int start, final TouchSet seen) {
+    if (seen.containsOrAdd(start)) {
+      return;
+    }
+
+    int stackTop = 0;
+    stack[stackTop++] = start;
+
+    while (stackTop > 0) {
+      int u = stack[--stackTop];
+      for (int i = 0; i < edges(u).size(); i++) {
+        int v = edges(u).getQuick(i);
+        if (!seen.containsOrAdd(v)) {
+          stack[stackTop++] = v;
+        }
+      }
+    }
+  }
+
 
   /** Does a topological sort and stores it in topologicalSort array. */
   public void topologicalSort() {
@@ -515,13 +525,9 @@ public class ImplicationsGraph {
 
   /** Returns the graph as a SAT instance */
   public void serialize(final TIntArrayList formula) {
-    int bins = 0;
-
     for (int u = -numVariables; u <= numVariables; u++) {
-      int u_ = get(colapsed, u);
       for (int i = 0; i < edges(u).size(); i++) {
-        int v = edges(u).get(i);
-        int v_ = get(colapsed, v);
+        int v = edges(u).getQuick(i);
 
         if (-u < v) {
           continue;
@@ -534,7 +540,6 @@ public class ImplicationsGraph {
           formula.add(encode(2, OR));
           formula.add(-u);
           formula.add(v);
-          bins++;
         }
       }
     }

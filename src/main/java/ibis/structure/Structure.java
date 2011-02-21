@@ -66,7 +66,7 @@ class Structure {
     constellation.activate();
 
     // Creates the thread pool
-    HyperBinaryResolution.createThreadPool();
+    // HyperBinaryResolution.createThreadPool();
 
     // Starts the computation
     try {
