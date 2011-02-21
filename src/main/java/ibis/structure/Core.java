@@ -12,16 +12,19 @@ public final class Core {
   /** Units. */
   private BitSet units = new BitSet();
   /** Proxies for equivalent literals */
-  private int[] proxies = null;
+  private int[] proxies;
+  private TIntArrayList dvClauses;
   /** Core instance without units and equivalent literals */
-  private Skeleton instance = null;
+  private Skeleton instance;
 
   public Core(final int numVariables, final int[] units,
-              final int[] proxies, final Skeleton instance) {
+              final int[] proxies, final TIntArrayList dvClauses,
+              final Skeleton instance) {
     assert !instance.formula.isEmpty();
     this.numVariables = numVariables;
     this.units.addAll(units);
     this.proxies = proxies;
+    this.dvClauses = dvClauses;
     this.instance = instance;
   }
 
@@ -46,6 +49,10 @@ public final class Core {
           units.add(-literal);
         }
       }
+    }
+
+    if (dvClauses != null) {
+      DependentVariableElimination.addUnits(dvClauses, units);
     }
 
     Solution result = Solution.satisfiable(units.elements());

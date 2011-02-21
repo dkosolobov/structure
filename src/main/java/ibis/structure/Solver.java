@@ -24,6 +24,8 @@ public final class Solver {
   public ImplicationsGraph graph;
   /** Watchlists. */
   public WatchLists watchLists;
+  /** Dependent variable clauses. Dependent variable is the first literal in clause. */
+  public TIntArrayList dvClauses;
   /** Units queue. */
   private TIntArrayList unitsQueue;
 
@@ -164,7 +166,7 @@ public final class Solver {
     Skeleton core = new Skeleton(numVariables);
     core.formula = formula;
 
-    return new Core(numVariables, units.toArray(), proxies, core);
+    return new Core(numVariables, units.toArray(), proxies, dvClauses, core);
   }
 
   /**
@@ -177,16 +179,23 @@ public final class Solver {
     propagate();
 
     if (isRoot) {
+      DependentVariableElimination.run(this);
+      PureLiterals.run(this);
       renameEquivalentLiterals();
-      // graph.transitiveClosure();
+
+      while (propagate()) {
+      }
+    } else {
       propagate();
     }
 
     for (int i = 0; i < Configure.numHyperBinaryResolutions; i++) {
-      if (!HyperBinaryResolution.run(this)) {
+      if (!(new HyperBinaryResolution(this)).run()) {
         break;
       }
       propagate();
+      // renameEquivalentLiterals();
+      // propagate();
     }
 
     if (Configure.binarySelfSubsumming) {
@@ -207,17 +216,6 @@ public final class Solver {
     renameEquivalentLiterals();
     queueContradictions();
     propagate();
-
-    /*
-    for (int u = 1; u <= numVariables; ++u) {
-      if (watchLists.get(u).size() == 1) {
-        int clause = watchLists.get(u).toArray()[0];
-        if (type(watchLists.formula(), clause) != OR) {
-          logger.info("dependent " + u + " in " + length(watchLists.formula(), clause));
-        }
-      }
-    }
-    */
 
     MissingLiterals.run(this);
     propagateUnits();
