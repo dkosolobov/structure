@@ -16,12 +16,12 @@ public final class WatchLists {
   protected static final TIntHashSet EMPTY = new TIntHashSet();
 
   /** Number of variables. */
-  protected final int numVariables;
+  private final int numVariables;
   /** List of clauses separated by 0. */
-  protected final TIntArrayList formula;
+  private final TIntArrayList formula;
 
   /** Watch lists */
-  protected final TIntHashSet[] watchLists;
+  private final TIntHashSet[] watchLists;
   /** Short clauses discovered */
   public boolean contradiction;
   public final TIntArrayList units, binaries;
