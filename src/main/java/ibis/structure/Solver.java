@@ -194,8 +194,11 @@ public final class Solver {
   public void simplify(boolean isRoot) throws ContradictionException {
     if (isRoot) {
       DependentVariableElimination.run(this);
-      PureLiterals.run(this);
-      propagate();
+
+      if (Configure.pureLiterals) {
+        PureLiterals.run(this);
+        propagate();
+      }
 
       renameEquivalentLiterals();
       propagate();
@@ -210,9 +213,9 @@ public final class Solver {
       if (!(new HyperBinaryResolution(this)).run()) {
         break;
       }
+
       propagate();
-      // renameEquivalentLiterals();
-      // propagate();
+      renameEquivalentLiterals();
     }
 
     if (Configure.binarySelfSubsumming) {
