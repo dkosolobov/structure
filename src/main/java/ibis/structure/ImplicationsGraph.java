@@ -114,7 +114,7 @@ public class ImplicationsGraph {
     visited.reset();
     for (int i = 0; i < literals.size(); i++) {
       int u = literals.get(i);
-      assert !visited.contains(u);
+      assert !visited.contains(u): "Literal " + u + " was already removed";
       visited.add(u);
       visited.add(-u);
 
@@ -181,7 +181,8 @@ public class ImplicationsGraph {
    *
    * If the graph is transitive closed this is similar to findAllContradictions().
    */
-  public void findContradictions(final TIntArrayList contradictions) {
+  public void findContradictions(final TIntArrayList contradictions)
+      throws ContradictionException {
     TIntArrayList units = new TIntArrayList();
     for (int u = -numVariables; u <= numVariables; u++) {
       visited.reset();
@@ -203,10 +204,17 @@ public class ImplicationsGraph {
       internalDFS(units.get(i), contradictions);
     }
 
+    for (int i = 0; i < contradictions.size(); i++) {
+      if (visited.contains(neg(contradictions.getQuick(i)))) {
+        throw new ContradictionException();
+      }
+    }
+
     remove(contradictions);
   }
 
-  public TIntArrayList findContradictions() {
+  public TIntArrayList findContradictions()
+      throws ContradictionException {
     TIntArrayList contradictions = new TIntArrayList();
     findContradictions(contradictions);
     return contradictions;
