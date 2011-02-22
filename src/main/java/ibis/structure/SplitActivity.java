@@ -60,7 +60,9 @@ public final class SplitActivity extends Activity {
     }
 
     split();
-    instance = null;  // Helps GC
+    if (!Configure.enableExpensiveChecks) {
+      instance = null;  // Helps GC
+    }
 
     // Submits subInstance to solve
     numSubmittedSplits = subInstances.size();
