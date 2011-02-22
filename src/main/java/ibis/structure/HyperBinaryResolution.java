@@ -20,8 +20,7 @@ import static ibis.structure.Misc.*;
  * then l &ge; b, otherwise if l then clause is contradiction
  */
 public final class HyperBinaryResolution {
-  private static final int BINARIES_LIMIT = 1 << 20;
-  private static final int UNITS_LIMIT = 1 << 14;
+  private static final int BINARIES_LIMIT = 1 << 24;
   private static final int TIME_MILLIS_LIMIT = 20000;
   private static final int CACHE_SIZE = 256;
 
@@ -60,9 +59,6 @@ public final class HyperBinaryResolution {
       int clause = it.next();
       run(clause);
 
-      if (units.size() >= UNITS_LIMIT) {
-        break;
-      }
       long curr = System.currentTimeMillis();
       if (curr - start >= TIME_MILLIS_LIMIT) {
         break;
@@ -75,28 +71,31 @@ public final class HyperBinaryResolution {
     }
 
     // Adds discovered binary.
+    int[] last = new int[2 * numVariables + 1];
+    int numBinaries = 0;
     for (int i = 0; i < binaries.size(); i += 2) {
       int u = binaries.get(i);
       int v = binaries.get(i + 1);
-      solver.addBinary(u, v);
-    }
+      int u_ = u + numVariables;
+      int v_ = v + numVariables;
 
-    long e = System.currentTimeMillis();
+      // last is a small cache to remove some duplicates
+      if (last[u_] != v && last[v_] != u) {
+        last[u_] = v;
+        solver.addBinary(u, v);
+        numBinaries++;
+      }
+    }
 
     if (Configure.verbose) {
       if (!units.isEmpty()) {
         System.err.print("hu" + units.size() + ".");
       }
       if (!binaries.isEmpty()) {
-        System.err.print("hb" + binaries.size() + ".");
+        System.err.print("hb" + numBinaries + ".");
       }
     }
 
-    /*
-    logger.info("hbr took " + (e - s) / 1000. + " " 
-          + units.size() + " " + binaries.size() / 2);
-    System.exit(1);
-    */
     return !units.isEmpty() || !binaries.isEmpty();
   }
 
