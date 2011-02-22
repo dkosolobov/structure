@@ -14,13 +14,13 @@ public class BinarySelfSubsumming {
 
   public static void run(final Solver solver)
       throws ContradictionException {
-    long start = System.currentTimeMillis();
+    // long start = System.currentTimeMillis();
     
     int numVariables = solver.numVariables;
     TouchSet touched = new TouchSet(numVariables);
     TIntArrayList tautologies = new TIntArrayList();
     for (int u = -numVariables; u <= numVariables; u++) {
-      if (u != 0 && solver.numBinaries(u) > 0) {
+      if (u != 0 && solver.numBinaries(u) > 0 && !solver.watchLists.get(u).isEmpty()) {
         tautologies.reset();
         touched.reset();
         solver.graph.dfs(-u, touched);
@@ -34,7 +34,7 @@ public class BinarySelfSubsumming {
       }
     }
 
-    long end = System.currentTimeMillis();
+    // long end = System.currentTimeMillis();
     // logger.info("bsss took " + (end - start) / 1000.);
     // System.exit(1);
   }
@@ -55,7 +55,7 @@ clause_loop:
         continue;
       }
       int length = length(formula, clause);
-      
+
       // Checks if clause is a tautology
       for (int j = clause; j < clause + length; j++) {
         int v = formula.get(j);
