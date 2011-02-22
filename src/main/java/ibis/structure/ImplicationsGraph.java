@@ -502,20 +502,95 @@ public class ImplicationsGraph {
     return buffer.toString();
   }
 
-  /** Returns the graph as a SAT instance */
-  public void serialize(final TIntArrayList formula) {
-    for (int u = -numVariables; u <= numVariables; u++) {
-      for (int i = 0; i < edges(u).size(); i++) {
-        int v = edges(u).getQuick(i);
+  public void transitiveReduction() {
+    topologicalSort();
 
-        if (-u < v) {
-          continue;
+    for (int i = 0; i < topologicalSort.length; i++) {
+      int u = topologicalSort[i];
+      if (u == 0) {
+        continue;
+      }
+
+      TIntArrayList edges;
+
+      // Removes duplicates starting from end.
+      visited.reset();
+      edges = edges(u);
+      // System.err.println("u = " + u + " edges are " + edges);
+      int p = edges.size() - 1;
+      for (int j = edges.size() - 1; j >= 0; j--) {
+        int v = edges.getQuick(j);
+        if (!visited.containsOrAdd(v)) {
+          edges.setQuick(p, v);
+          p--;
+        }
+      }
+      if (p > 0) {
+        edges.remove(0, p);
+      }
+
+      // Puts u at the end of parents.
+      // When duplicates in parents' lists are removed, the remaining nodes are in
+      // topological order.
+      visited.reset();
+      edges = edges(neg(u));
+      for (int j = 0; j < edges.size(); j++) {
+        int v = neg(edges.getQuick(j));
+        if (!visited.containsOrAdd(v)) {
+          edges(v).add(u);
+        }
+      }
+    }
+
+    int removed = 0;
+    for (int i = 0; i < topologicalSort.length; i++) {
+      int u = topologicalSort[i];
+      if (u == 0) {
+        continue;
+      }
+
+      visited.reset();
+      int remaining = 2;
+
+      TIntArrayList edges = edges(u);
+      int p = edges.size() - 1;
+      for (int j = edges.size() - 1; j >= 0; j--) {
+        int v = edges.getQuick(j);
+        if (visited.contains(v)) {
+          // Ignores v because it can be reached from u through another node
         }
 
-        if (-u == v) {
-          formula.add(encode(1, OR));
-          formula.add(-u);
-        } else {
+        if (remaining > 0) {
+          remaining--;
+          visited.add(edges(v));
+        }
+        edges.setQuick(p, v);
+        p--;
+      }
+      if (p > 0) {
+        edges.remove(0, p);
+      }
+    }
+
+    // System.err.println("removed " + removed);
+  }
+
+  /** Returns the graph as a SAT instance */
+  public void serialize(final TIntArrayList formula) {
+    transitiveReduction();
+
+    for (int u = -numVariables; u <= numVariables; u++) {
+      if (u == 0) {
+        continue;
+      }
+
+      TIntArrayList edges = edges(u);
+      for (int i = 0; i < edges.size(); i++) {
+        int v = edges.getQuick(i);
+        assert u != v;
+
+        if (-u < v) {
+          // u -> v and -v -> u are identical
           formula.add(encode(2, OR));
           formula.add(-u);
           formula.add(v);

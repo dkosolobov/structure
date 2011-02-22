@@ -1,5 +1,8 @@
 package ibis.structure;
 
+import gnu.trove.TIntArrayList;
+
+
 public final class TouchSet {
   private int numVariables = 0;
   private short currentColor = 0;
@@ -27,6 +30,14 @@ public final class TouchSet {
   /** Adds all literas in array to the set */
   public void add(int[] array) {
     for (int u : array) {
+      colors[u + numVariables] = currentColor;
+    }
+  }
+
+  /** Adds all literas in array to the set */
+  public void add(TIntArrayList array) {
+    for (int i = 0; i < array.size(); i++) {
+      int u = array.getQuick(i);
       colors[u + numVariables] = currentColor;
     }
   }
