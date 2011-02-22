@@ -76,6 +76,10 @@ public final class BranchActivity extends Activity {
   }
 
   /** Computes scores for every literal */
+  /*
+   *
+   * Building a Hybrid SAT Solver via Conflict Driven, Look Ahead and XOR Reasoning Techniques
+   */
   double[] evaluateLiterals() {
     int numVariables = instance.numVariables;
     TIntArrayList formula = instance.formula;
@@ -87,10 +91,18 @@ public final class BranchActivity extends Activity {
       int length = length(formula, clause);
       int type = type(formula, clause);
 
-      if (length >= 2 && type == OR) {
+      if (type == OR && length >= 2) {
         double delta = Math.pow(0.22, length - 2);
         for (int i = clause; i < clause + length; i++) {
-          scores[formula.get(i) + numVariables] += delta;
+          scores[formula.getQuick(i) + numVariables] += delta;
+        }
+      } 
+
+      if (type != OR && length >= 2) {
+        double delta = 5.5 * Math.pow(0.50, length - 2);
+        for (int i = clause; i < clause + length; i++) {
+          scores[formula.getQuick(i) + numVariables] += delta;
+          scores[neg(formula.getQuick(i)) + numVariables] += delta;
         }
       }
     }
