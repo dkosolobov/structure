@@ -42,10 +42,9 @@ public final class DependentVariableElimination {
 
       dvClauses.add(encode(length, type));
       for (int i = clause; i < clause + length; i++) {
-        dvClauses.add(formula.getQuick(clause));
+        dvClauses.add(formula.getQuick(i));
       }
 
-      // logger.info("found dependent " + formula.get(clause) + " in " + length);
       numDependent++;
       solver.watchLists.removeClause(clause);
     }
@@ -64,20 +63,23 @@ public final class DependentVariableElimination {
       int length = length(dvClauses, clause);
       int type = type(dvClauses, clause);
 
+      // Literal was assigned because after DVE it is missing from formula.
+      int literal = dvClauses.get(clause);
+      units.remove(literal);
+      units.remove(neg(literal));
+
       int xor = 0;
       for (int i = clause + 1; i < clause + length; i++) {
-        int literal = dvClauses.getQuick(i);
-        if (units.contains(literal)) {
+        int u = dvClauses.getQuick(i);
+        if (units.contains(u)) {
           xor ^= 1;
         }
       }
 
-      int literal = dvClauses.get(clause);
       if (type == XOR) {
         if (xor == 1) {
           units.add(neg(literal));
         } else {
-          assert xor == 0;
           units.add(literal);
         }
       } else {
@@ -85,7 +87,6 @@ public final class DependentVariableElimination {
         if (xor == 1) {
           units.add(literal);
         } else {
-          assert xor == 0;
           units.add(neg(literal));
         }
       }
