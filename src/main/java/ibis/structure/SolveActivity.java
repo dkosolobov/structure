@@ -33,8 +33,8 @@ public final class SolveActivity extends Activity {
       }
     } catch (Throwable e) {
       logger.error("Failed to solve instance", e);
-      logger.error("Branch is " + branch);
-      logger.error("Formula is " + instance);
+      // logger.error("Branch is " + branch);
+      // logger.error("Formula is " + instance);
       System.exit(1);
       reply(Solution.unknown());
       finish();
@@ -43,22 +43,9 @@ public final class SolveActivity extends Activity {
 
     if (solution.isUnknown() && depth > 0) {
       core = solver.core();
-      /*
-      logger.info("units are " + new TIntArrayList(core.units.elements()));
-      logger.info("instance + " + core.instance());
-      System.exit(1);
-      */
-
-      // logger.info("after = " + core.instance());
       executor.submit(new SplitActivity(identifier(), depth, core.instance()));
       suspend();
     } else {
-      if (solution.isSatisfiable() && solver.bceClauses != null) {
-        BitSet units = new BitSet();
-        units.addAll(solution.units());
-        BlockedClauseElimination.addUnits(solver.bceClauses, units);
-        solution = Solution.satisfiable(units.elements());
-      }
 
       verify(solution, branch);
       reply(solution);
@@ -69,24 +56,10 @@ public final class SolveActivity extends Activity {
   public void process(final Event e) throws Exception {
     Solution response = (Solution)e.data;
     if (response.isSatisfiable()) {
-      /*
-      // logger.info("*************** MERGING *******************************");
-      // logger.info("before " + new TIntArrayList(response.units()));
-      // logger.info("instance " + instance);
-      // logger.info("core " + new TIntArrayList(core.units.elements()));
-      for (int u = 1; u <= instance.numVariables; ++u) {
-        if (core.proxies[u] != u) {
-          logger.info(u + " -> " + core.proxies[u]);
-        }
-      }
-      // logger.info("instance + " + core.instance());
-      */
       Solution solution = core.merge(response);
-      // logger.info("after " + new TIntArrayList(solution.units()));
       verify(solution, branch);
       reply(solution);
     } else {
-      // logger.info("***************************** UNSAT *********************");
       reply(response);
     }
     finish();

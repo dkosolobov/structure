@@ -9,7 +9,9 @@ import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
 
-
+/**
+ * Performes Blocked Clause Elimination.
+ */
 public final class BlockedClauseElimination {
   private static final Logger logger = Logger.getLogger(Solver.class);
 
@@ -26,16 +28,17 @@ public final class BlockedClauseElimination {
     seen = new TouchSet(numVariables);
   }
 
-  public static void addUnits(final TIntArrayList bceClauses, final BitSet units) {
-    ClauseIterator it = new ClauseIterator(bceClauses);
+  /** Fixes units to satisfy blocked clauses. */
+  public static void addUnits(final TIntArrayList bce, final BitSet units) {
+    ClauseIterator it = new ClauseIterator(bce);
     while (it.hasNext()) {
       int clause = it.next();
-      int length = length(bceClauses, clause);
-      int literal = bceClauses.get(clause);
+      int length = length(bce, clause);
+      int literal = bce.get(clause);
 
       boolean satisfied = false;
       for (int i = clause; i < clause + length; i++) {
-        if (units.contains(bceClauses.getQuick(i))) {
+        if (units.contains(bce.getQuick(i))) {
           satisfied = true;
           break;
         }
@@ -48,12 +51,11 @@ public final class BlockedClauseElimination {
     }
   }
 
-
   public void run() {
     long start_ = System.currentTimeMillis();
     // logger.info("running on " + formulaToString(formula));
 
-    solver.bceClauses = new TIntArrayList(); 
+    solver.bce = new TIntArrayList(); 
     TIntArrayList blocked = new TIntArrayList();;
     int numBlocked = 0;
     int numLiterals = 0;
@@ -73,12 +75,12 @@ public final class BlockedClauseElimination {
         // This is a cutoff to avoid very expensive literals.
         continue;
       }
-
       if (hasXORClauses(literal)) {
         // BCE can't handle xor clauses.
         continue;
       }
 
+      // Checks each clause containin literal if it is blocked on literal.
       blocked.reset();
       TIntHashSet clauses = solver.watchLists.get(literal);
       TIntIterator it = clauses.iterator();
@@ -86,7 +88,6 @@ public final class BlockedClauseElimination {
         int clause = it.next();
         if (type(formula, clause) == OR && isBlocked(literal, clause)) {
           blocked.add(clause);
-          // logger.info("blocked clause " + clauseToString(formula, clause) + " by " + literal);
         }
       }
 
@@ -96,24 +97,25 @@ public final class BlockedClauseElimination {
         int length = length(formula, clause);
         numLiterals += length;
 
-
         // Moves blocked literal in front of the clause
         int p = formula.indexOf(clause, literal);
         formula.setQuick(p, formula.getQuick(clause));
         formula.setQuick(clause, literal);
 
-        // Puts the clause in reverse order.
+        // Puts the clauses in reverse order.
         for (int j = clause + 1; j < clause + length; j++) {
-          solver.bceClauses.add(formula.getQuick(j));
+          solver.bce.add(formula.getQuick(j));
         }
-        solver.bceClauses.add(literal);
-        solver.bceClauses.add(encode(length, OR));
+        solver.bce.add(literal);
+        solver.bce.add(encode(length, OR));
 
         solver.watchLists.removeClause(clause);
       }
     }
 
-    solver.bceClauses.reverse();
+    // Solution is reconstructed starting from last removed
+    // blocked clause.
+    solver.bce.reverse();
 
     long end_ = System.currentTimeMillis();
     if (Configure.verbose) {
@@ -121,7 +123,6 @@ public final class BlockedClauseElimination {
         System.err.print("bc" + numBlocked + ".");
       }
     }
-    // logger.info("Found " + numBlocked + " (" + numLiterals + ") in " + (end_ - start_) / 1000.);
   }
 
   /** Returns true if there exists a XOR clause containing literal. */

@@ -143,36 +143,7 @@ public class ImplicationsGraph {
   }
 
   /**
-   * Finds all contradictions and returns a list of assigned literals.
-   *
-   * Returned units are removed from the graph.
-   */
-  public TIntArrayList findAllContradictions() {
-    TIntArrayList units = new TIntArrayList();
-    for (int u = -numVariables; u <= numVariables; u++) {
-      visited.reset();
-      internalDFS(u, -u);
-      if (visited.contains(-u)) {
-        units.add(-u);
-      }
-    }
-
-    visited.reset();
-    TIntArrayList visited = new TIntArrayList();
-    for (int i = 0; i < units.size(); i++) {
-      int unit = units.get(i);
-      if (unit != 0) {
-        internalDFS(unit, visited);
-      }
-    }
-
-    remove(visited);
-    return visited;
-  }
-
-
-  /**
-   * Finds contradictions and returns a list of assigned literals.
+   * Finds forced literals and returns a list of assigned literals.
    *
    * Returned units are removed from the graph.
    *
@@ -181,7 +152,7 @@ public class ImplicationsGraph {
    *
    * If the graph is transitive closed this is similar to findAllContradictions().
    */
-  public void findContradictions(final TIntArrayList contradictions)
+  public void findForcedLiterals(final TIntArrayList forced)
       throws ContradictionException {
     TIntArrayList units = new TIntArrayList();
     for (int u = -numVariables; u <= numVariables; u++) {
@@ -199,25 +170,25 @@ public class ImplicationsGraph {
     }
 
     visited.reset();
-    assert contradictions.isEmpty();
+    assert forced.isEmpty();
     for (int i = 0; i < units.size(); i++) {
-      internalDFS(units.get(i), contradictions);
+      internalDFS(units.get(i), forced);
     }
 
-    for (int i = 0; i < contradictions.size(); i++) {
-      if (visited.contains(neg(contradictions.getQuick(i)))) {
+    for (int i = 0; i < forced.size(); i++) {
+      if (visited.contains(neg(forced.getQuick(i)))) {
         throw new ContradictionException();
       }
     }
 
-    remove(contradictions);
+    remove(forced);
   }
 
-  public TIntArrayList findContradictions()
-      throws ContradictionException {
-    TIntArrayList contradictions = new TIntArrayList();
-    findContradictions(contradictions);
-    return contradictions;
+  /** For backwards compatibility and testing. */
+  public TIntArrayList findForcedLiterals() throws ContradictionException {
+    TIntArrayList forced = new TIntArrayList();
+    findForcedLiterals(forced);
+    return forced;
   }
 
   /**

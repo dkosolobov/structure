@@ -13,22 +13,23 @@ public final class Core {
   private BitSet units = new BitSet();
   /** Proxies for equivalent literals */
   private int[] proxies;
-  private final TIntArrayList dvClauses;
-  private final TIntArrayList bceClauses;
+  /** Clauses from DVE and BCE. */
+  private final TIntArrayList dve, bce;
   /** Core instance without units and equivalent literals */
   private Skeleton instance;
 
-  public Core(final int numVariables, final int[] units,
+  public Core(final int numVariables,
+              final int[] units,
               final int[] proxies,
-              final TIntArrayList dvClauses,
-              final TIntArrayList bceClauses,
+              final TIntArrayList dve,
+              final TIntArrayList bce,
               final Skeleton instance) {
     assert !instance.formula.isEmpty();
     this.numVariables = numVariables;
     this.units.addAll(units);
     this.proxies = proxies;
-    this.dvClauses = dvClauses;
-    this.bceClauses = bceClauses;
+    this.dve = dve;
+    this.bce = bce;
     this.instance = instance;
   }
 
@@ -43,9 +44,8 @@ public final class Core {
 
     // Adds instance's units
     units.addAll(solution.units());
-
-    if (bceClauses != null) {
-      BlockedClauseElimination.addUnits(bceClauses, units);
+    if (dve != null) {
+      BlockedClauseElimination.addUnits(bce, units);
     }
 
     // Adds equivalent literals
@@ -59,10 +59,9 @@ public final class Core {
       }
     }
 
-    if (dvClauses != null) {
-      DependentVariableElimination.addUnits(dvClauses, units);
+    if (dve != null) {
+      DependentVariableElimination.addUnits(dve, units);
     }
-
     Solution result = Solution.satisfiable(units.elements());
 
     // this Core becomes unusable

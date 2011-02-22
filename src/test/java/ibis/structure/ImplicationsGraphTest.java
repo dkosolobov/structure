@@ -162,14 +162,14 @@ public class ImplicationsGraphTest {
   }
 
   @Test
-  public void findContradictions() {
+  public void findForcedLiterals() throws ContradictionException {
     int[] contradictions;
 
     create(6);
     add(1, -1);
     graph.topologicalSort();
     graph.transitiveClosure();
-    contradictions = graph.findContradictions().toNativeArray();
+    contradictions = graph.findForcedLiterals().toNativeArray();
     compare(contradictions, -1);
     
     create(6);
@@ -178,7 +178,7 @@ public class ImplicationsGraphTest {
     add(4, -2);
     graph.topologicalSort();
     graph.transitiveClosure();
-    contradictions = graph.findContradictions().toNativeArray();
+    contradictions = graph.findForcedLiterals().toNativeArray();
     compare(contradictions, -2);
 
     create(6);
@@ -188,7 +188,7 @@ public class ImplicationsGraphTest {
     add(-1, -5);
     graph.topologicalSort();
     graph.transitiveClosure();
-    contradictions = graph.findContradictions().toNativeArray();
+    contradictions = graph.findForcedLiterals().toNativeArray();
     compare(contradictions, -1, -5);
 
     create(6);
@@ -199,7 +199,7 @@ public class ImplicationsGraphTest {
     add(3, 1, 5, 2);
     graph.topologicalSort();
     graph.transitiveClosure();
-    contradictions = graph.findContradictions().toNativeArray();
+    contradictions = graph.findForcedLiterals().toNativeArray();
     compare(contradictions, 5, 2, 1);
   }
 

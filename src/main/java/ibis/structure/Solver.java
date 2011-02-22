@@ -24,9 +24,9 @@ public final class Solver {
   public ImplicationsGraph graph;
   /** Watchlists. */
   public WatchLists watchLists;
-  /** Dependent variable clauses. Dependent variable is the first literal in clause. */
-  public TIntArrayList dvClauses;
-  public TIntArrayList bceClauses;
+  /** Clauses from DVE and BCE. */
+  public TIntArrayList dve, bce;
+
   /** Units queue. */
   private TIntArrayList unitsQueue;
 
@@ -106,37 +106,49 @@ public final class Solver {
 
       watchLists.build();
       simplify(branch == 0);
+
+      // If all clauses were removed solve the remaining 2SAT.
+      boolean empty = !(new ClauseIterator(watchLists.formula())).hasNext();
+      return empty ? solve2SAT() : Solution.unknown();
+
     } catch (ContradictionException e) {
       // logger.info("found contradiction", e);
       return Solution.unsatisfiable();
     }
+  }
 
-    // Checks if all clauses were removed.
-    boolean empty = !(new ClauseIterator(watchLists.formula())).hasNext();
-    if (empty) {
-      // Solves the remaining 2SAT encoded in the implication graph
-      try {
-        // Collapses strongly connected components and removes contradictions.
-        // No new binary clause is created because there are no clauses
-        // of longer length.
-        renameEquivalentLiterals();
-        propagate();
+  /**
+   * Solves the remaining 2SAT encoded in the implication graph
+   */
+  private Solution solve2SAT() throws ContradictionException {
+    try {
+      // Collapses strongly connected components and removes contradictions.
+      // No new binary clause is created because there are no clauses
+      // of longer length.
+      renameEquivalentLiterals();
+      propagate();
 
-        TIntArrayList assigned = new TIntArrayList();
-        for (int u = 1; u <= numVariables; ++u) {
-          if (isLiteralAssigned(u)) {
-            assigned.add(u);
-          }
+      TIntArrayList assigned = new TIntArrayList();
+      for (int u = 1; u <= numVariables; ++u) {
+        if (isLiteralAssigned(u)) {
+          assigned.add(u);
         }
-
-        units.add(graph.solve(assigned));
-      } catch (ContradictionException e) {
-        // logger.info("Contradiction at ", e);
-        return Solution.unsatisfiable();
       }
+
+      units.add(graph.solve(assigned));
+    } catch (ContradictionException e) {
+      return Solution.unsatisfiable();
     }
 
-    // Assigns literals with assigned proxies.
+    if (bce != null) {
+      BitSet tmp = new BitSet();
+      tmp.addAll(units.toArray());
+      BlockedClauseElimination.addUnits(bce, tmp);
+      units.reset();
+      units.add(tmp.elements());
+    }
+
+    // Satisfy literals with proxies.
     for (int literal = -numVariables; literal <= numVariables; ++literal) {
       if (literal == 0) {
         continue;
@@ -153,8 +165,10 @@ public final class Solver {
       }
     }
 
-    return empty ? Solution.satisfiable(units.toArray()) : Solution.unknown();
+    return Solution.satisfiable(units.toArray());
   }
+
+
 
   public Core core() {
     assert unitsQueue.isEmpty();
@@ -167,7 +181,8 @@ public final class Solver {
     Skeleton core = new Skeleton(numVariables);
     core.formula = formula;
 
-    return new Core(numVariables, units.toArray(), proxies, dvClauses, bceClauses, core);
+    return new Core(numVariables, units.toArray(), proxies,
+                    dve, bce, core);
   }
 
   /**
@@ -184,6 +199,7 @@ public final class Solver {
 
       renameEquivalentLiterals();
       propagate();
+
       queueContradictions();
       propagate();
     } else {
@@ -338,9 +354,8 @@ public final class Solver {
   }
 
   /** Queues contradictions in the implication graph */
-  @Deprecated
-  public void queueContradictions() {
-    graph.findContradictions(unitsQueue);
+  public void queueContradictions() throws ContradictionException {
+    graph.findForcedLiterals(unitsQueue);
   }
 
   /** Returns number of binaries in implication graph containing u. */
