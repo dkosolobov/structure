@@ -34,7 +34,8 @@ public final class SolveActivity extends Activity {
     } catch (Throwable e) {
       logger.error("Failed to solve instance", e);
       logger.error("Branch is " + branch);
-      // logger.error("Formula is " + instance);
+      logger.error("Formula is " + instance);
+      System.exit(1);
       reply(Solution.unknown());
       finish();
       return;
@@ -52,6 +53,13 @@ public final class SolveActivity extends Activity {
       executor.submit(new SplitActivity(identifier(), depth, core.instance()));
       suspend();
     } else {
+      if (solution.isSatisfiable() && solver.bceClauses != null) {
+        BitSet units = new BitSet();
+        units.addAll(solution.units());
+        BlockedClauseElimination.addUnits(solver.bceClauses, units);
+        solution = Solution.satisfiable(units.elements());
+      }
+
       verify(solution, branch);
       reply(solution);
       finish();

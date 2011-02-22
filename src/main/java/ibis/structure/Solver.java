@@ -26,6 +26,7 @@ public final class Solver {
   public WatchLists watchLists;
   /** Dependent variable clauses. Dependent variable is the first literal in clause. */
   public TIntArrayList dvClauses;
+  public TIntArrayList bceClauses;
   /** Units queue. */
   private TIntArrayList unitsQueue;
 
@@ -166,7 +167,7 @@ public final class Solver {
     Skeleton core = new Skeleton(numVariables);
     core.formula = formula;
 
-    return new Core(numVariables, units.toArray(), proxies, dvClauses, core);
+    return new Core(numVariables, units.toArray(), proxies, dvClauses, bceClauses, core);
   }
 
   /**
@@ -176,15 +177,15 @@ public final class Solver {
    * @throws ContradictionException if contradiction was found
    */
   public void simplify(boolean isRoot) throws ContradictionException {
-    propagate();
-
     if (isRoot) {
       DependentVariableElimination.run(this);
       PureLiterals.run(this);
-      renameEquivalentLiterals();
+      propagate();
 
-      while (propagate()) {
-      }
+      renameEquivalentLiterals();
+      propagate();
+      queueContradictions();
+      propagate();
     } else {
       propagate();
     }
@@ -214,11 +215,20 @@ public final class Solver {
     }
 
     renameEquivalentLiterals();
+    propagate();
+
     queueContradictions();
     propagate();
 
     MissingLiterals.run(this);
     propagateUnits();
+
+    if (isRoot) {
+      if (Configure.bce) {
+        (new BlockedClauseElimination(this)).run();
+      }
+    }
+
     verifyIntegrity();
   }
 
