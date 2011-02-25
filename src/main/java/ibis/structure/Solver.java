@@ -24,14 +24,13 @@ public final class Solver {
   public ImplicationsGraph graph;
   /** Watchlists. */
   public WatchLists watchLists;
-  /** Clauses from DVE and BCE. */
-  public TIntArrayList dve, bce;
 
   /** Units queue. */
   private TIntArrayList unitsQueue;
 
   /** Constructor. */
-  public Solver(final Skeleton instance) {
+  public Solver(final Skeleton instance)
+      throws ContradictionException {
     numVariables = instance.numVariables;
     units = new TouchSet(numVariables);
     graph = new ImplicationsGraph(numVariables);
@@ -43,12 +42,15 @@ public final class Solver {
       proxies[u + numVariables] = u;
     }
 
+    watchLists.build();
+    if (watchLists.contradiction) {
+      throw new ContradictionException();
+    }
+
     if (Configure.verbose) {
       System.err.print(".");
       System.err.flush();
     }
-    // logger.info("******************* SOLVING *****************************************");
-    // logger.info("instance\n" + instance);
   }
 
   /** Returns true if literal u is already assigned. */
@@ -104,8 +106,7 @@ public final class Solver {
         queueUnit(branch);
       }
 
-      watchLists.build();
-      simplify(branch == 0);
+      simplify();
 
       // If all clauses were removed solve the remaining 2SAT.
       boolean empty = !(new ClauseIterator(watchLists.formula())).hasNext();
@@ -140,14 +141,6 @@ public final class Solver {
       return Solution.unsatisfiable();
     }
 
-    if (bce != null) {
-      BitSet tmp = new BitSet();
-      tmp.addAll(units.toArray());
-      BlockedClauseElimination.addUnits(bce, tmp);
-      units.reset();
-      units.add(tmp.elements());
-    }
-
     // Satisfy literals with proxies.
     for (int literal = -numVariables; literal <= numVariables; ++literal) {
       if (literal == 0) {
@@ -168,8 +161,9 @@ public final class Solver {
     return Solution.satisfiable(units.toArray());
   }
 
-
-
+  /**
+   * Returns core after simplifications.
+   */
   public Core core() {
     assert unitsQueue.isEmpty();
 
@@ -178,36 +172,16 @@ public final class Solver {
     compact(formula);
     graph.serialize(formula);
 
-    Skeleton core = new Skeleton(numVariables);
-    core.formula = formula;
-
-    return new Core(numVariables, units.toArray(), proxies,
-                    dve, bce, core);
+    return new Core(numVariables, units.toArray(), proxies, formula);
   }
 
   /**
    * Simplifies the instance.
    *
-   * @param isRoot true if solver is at the root of branching tree
    * @throws ContradictionException if contradiction was found
    */
-  public void simplify(boolean isRoot) throws ContradictionException {
-    if (isRoot) {
-      DependentVariableElimination.run(this);
-
-      if (Configure.pureLiterals) {
-        PureLiterals.run(this);
-        propagate();
-      }
-
-      renameEquivalentLiterals();
-      propagate();
-
-      queueContradictions();
-      propagate();
-    } else {
-      propagate();
-    }
+  public void simplify() throws ContradictionException {
+    propagate();
 
     for (int i = 0; i < Configure.numHyperBinaryResolutions; i++) {
       if (!(new HyperBinaryResolution(this)).run()) {
@@ -228,28 +202,45 @@ public final class Solver {
       propagate();
     }
 
+    renameEquivalentLiterals();
+    propagate();
+
+    queueForcedLiterals();
+    propagate();
+
     if (Configure.pureLiterals) {
       PureLiterals.run(this);
       propagate();
     }
 
-    renameEquivalentLiterals();
-    propagate();
-
-    queueContradictions();
-    propagate();
-
     MissingLiterals.run(this);
     propagateUnits();
 
-    if (isRoot) {
-      if (Configure.bce) {
-        (new BlockedClauseElimination(this)).run();
-      }
-    }
-
     verifyIntegrity();
   }
+
+  public void simplifyAtTopLevel() throws ContradictionException {
+    if (Configure.pureLiterals) {
+      PureLiterals.run(this);
+      propagate();
+    }
+
+    propagate();
+
+    renameEquivalentLiterals();
+    propagate();
+
+    queueAllForcedLiterals();
+    propagate();
+
+    if (Configure.pureLiterals) {
+      PureLiterals.run(this);
+      propagate();
+    }
+
+    simplify();
+  }
+
 
   /** Propagates units and binaries */
   public boolean propagate() throws ContradictionException {
@@ -357,8 +348,12 @@ public final class Solver {
   }
 
   /** Queues contradictions in the implication graph */
-  public void queueContradictions() throws ContradictionException {
+  public void queueForcedLiterals() throws ContradictionException {
     graph.findForcedLiterals(unitsQueue);
+  }
+
+  public void queueAllForcedLiterals() throws ContradictionException {
+    graph.findAllForcedLiterals(unitsQueue);
   }
 
   /** Returns number of binaries in implication graph containing u. */

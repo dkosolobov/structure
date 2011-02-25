@@ -51,11 +51,8 @@ public final class BlockedClauseElimination {
     }
   }
 
-  public void run() {
-    long start_ = System.currentTimeMillis();
-    // logger.info("running on " + formulaToString(formula));
-
-    solver.bce = new TIntArrayList(); 
+  public TIntArrayList run() {
+    TIntArrayList bce = new TIntArrayList(); 
     TIntArrayList blocked = new TIntArrayList();;
     int numBlocked = 0;
     int numLiterals = 0;
@@ -104,10 +101,10 @@ public final class BlockedClauseElimination {
 
         // Puts the clauses in reverse order.
         for (int j = clause + 1; j < clause + length; j++) {
-          solver.bce.add(formula.getQuick(j));
+          bce.add(formula.getQuick(j));
         }
-        solver.bce.add(literal);
-        solver.bce.add(encode(length, OR));
+        bce.add(literal);
+        bce.add(encode(length, OR));
 
         solver.watchLists.removeClause(clause);
       }
@@ -115,14 +112,15 @@ public final class BlockedClauseElimination {
 
     // Solution is reconstructed starting from last removed
     // blocked clause.
-    solver.bce.reverse();
+    bce.reverse();
 
-    long end_ = System.currentTimeMillis();
     if (Configure.verbose) {
       if (numBlocked > 0) {
         System.err.print("bc" + numBlocked + ".");
       }
     }
+
+    return bce;
   }
 
   /** Returns true if there exists a XOR clause containing literal. */

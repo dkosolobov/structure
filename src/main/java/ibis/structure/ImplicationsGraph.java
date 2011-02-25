@@ -142,6 +142,32 @@ public class ImplicationsGraph {
     }
   }
 
+  public void findAllForcedLiterals(final TIntArrayList forced)
+      throws ContradictionException {
+    for (int u = -numVariables; u <= numVariables; u++) {
+      if (u == 0) {
+        continue;
+      }
+
+      visited.reset();
+      internalDFS(u, neg(u));
+      if (visited.contains(neg(u))) {
+        forced.add(neg(u));
+      }
+    }
+
+    visited.reset();
+    for (int i = 0; i < forced.size(); i++) {
+      int literal = forced.getQuick(i);
+      visited.add(literal);
+      if (visited.contains(neg(literal))) {
+        throw new ContradictionException();
+      }
+    }
+
+    remove(forced);
+  }
+
   /**
    * Finds forced literals and returns a list of assigned literals.
    *
@@ -496,7 +522,9 @@ public class ImplicationsGraph {
     StringBuffer buffer = new StringBuffer();
     buffer.append("digraph ig {\n");
     for (int u = -numVariables; u <= numVariables; u++) {
-      buffer.append(u + " -> " + edges(u).toString().replace(',', ';') + ";\n");
+      if (!edges(u).isEmpty()) {
+        buffer.append(u + " -> " + edges(u).toString().replace(',', ';') + ";\n");
+      }
     }
     buffer.append("}");
     return buffer.toString();
@@ -579,22 +607,23 @@ public class ImplicationsGraph {
   public void serialize(final TIntArrayList formula) {
     transitiveReduction();
 
-    for (int u = -numVariables; u <= numVariables; u++) {
+    for (int i = 0; i < topologicalSort.length; i++) {
+      int u = topologicalSort[i];
       if (u == 0) {
         continue;
       }
 
       TIntArrayList edges = edges(u);
-      for (int i = 0; i < edges.size(); i++) {
-        int v = edges.getQuick(i);
+      for (int j = 0; j < edges.size(); j++) {
+        int v = edges.getQuick(j);
         assert u != v;
 
-        if (-u < v) {
+        // if (-u < v) {
           // u -> v and -v -> u are identical
           formula.add(encode(2, OR));
           formula.add(-u);
           formula.add(v);
-        }
+        // }
       }
     }
   }

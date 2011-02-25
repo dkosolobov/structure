@@ -1,14 +1,15 @@
 package ibis.structure;
 
+import gnu.trove.TIntArrayList;
 import ibis.constellation.Constellation;
 import ibis.constellation.ConstellationFactory;
-import ibis.constellation.SimpleExecutor;
+import ibis.constellation.context.UnitWorkerContext;
 import ibis.constellation.Executor;
+import ibis.constellation.SimpleExecutor;
 import ibis.constellation.SingleEventCollector;
 import ibis.constellation.StealStrategy;
-import ibis.constellation.context.UnitWorkerContext;
-import java.io.PrintStream;
 import java.io.FileOutputStream;
+import java.io.PrintStream;
 import org.apache.log4j.Logger;
 
 class Structure {
@@ -90,17 +91,63 @@ class Structure {
   }
 
   private static Solution solve(Constellation constellation, Skeleton instance) {
-    if (Configure.xor) {
-      try {
+    TIntArrayList dve = null, bce = null;
+    Solver solver;
+    
+    try {
+      solver = new Solver(instance);
+
+      if (Configure.xor) {
         XOR.extractXORClauses(instance);
-      } catch (ContradictionException e) {
-        return Solution.unsatisfiable();
+        dve = DependentVariableElimination.run(solver);
       }
+
+      solver.simplifyAtTopLevel();
+
+      if (Configure.bce) {
+        bce = (new BlockedClauseElimination(solver)).run();
+      }
+    } catch (ContradictionException e) {
+      return Solution.unsatisfiable();
     }
+
+    Core core = solver.core();
+    InstanceNormalizer normalizer = new InstanceNormalizer();
+    normalizer.normalize(core.instance());
+    logger.info(core.instance().numVariables
+                + " variables remaining from "
+                + instance.numVariables);
 
     SingleEventCollector root = new SingleEventCollector();
     constellation.submit(root);
-    constellation.submit(new SolveActivity(root.identifier(), instance.numVariables, instance, 0));
-    return (Solution) root.waitForEvent().data;
+    constellation.submit(new BranchActivity(root.identifier(),
+                                            core.instance().numVariables,
+                                            core.instance()));
+
+    Solution solution = (Solution) root.waitForEvent().data;
+    if (!solution.isSatisfiable()) {
+      return solution;
+    }
+
+    normalizer.denormalize(solution);
+    BitSet units;
+
+    units = new BitSet();
+    units.addAll(solution.units());
+    if (bce != null) {
+      BlockedClauseElimination.addUnits(bce, units);
+      solution = Solution.satisfiable(units.elements());
+    }
+
+    solution = core.merge(solution);
+
+    units = new BitSet();
+    units.addAll(solution.units());
+    if (dve != null) {
+      DependentVariableElimination.addUnits(dve, units);
+      solution = Solution.satisfiable(units.elements());
+    }
+
+    return solution;
   }
 }

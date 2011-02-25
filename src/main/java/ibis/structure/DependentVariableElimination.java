@@ -14,10 +14,10 @@ import static ibis.structure.Misc.*;
 public final class DependentVariableElimination {
   private static final Logger logger = Logger.getLogger(DependentVariableElimination.class);
 
-  public static void run(final Solver solver) {
+  public static TIntArrayList run(final Solver solver) {
     int numVariables = solver.numVariables;
     TIntArrayList formula = solver.watchLists.formula();
-    solver.dve = new TIntArrayList();
+    TIntArrayList dve = new TIntArrayList();
 
     int numDependent = 0;
     for (int u = 1; u <= numVariables; u++) {
@@ -38,10 +38,10 @@ public final class DependentVariableElimination {
       formula.setQuick(clause, u);
 
       int length = length(formula, clause);
-      solver.dve.add(encode(length, type));
+      dve.add(encode(length, type));
       for (int i = clause; i < clause + length; i++) {
         int literal = formula.getQuick(i);
-        solver.dve.add(literal);
+        dve.add(literal);
       }
 
       numDependent++;
@@ -53,6 +53,8 @@ public final class DependentVariableElimination {
         System.err.print("dv" + numDependent + ".");
       }
     }
+
+    return dve;
   }
 
   /** Fixes units to satisfy clauses with dependent variables */
