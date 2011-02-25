@@ -67,17 +67,20 @@ public final class Subsumming {
     TIntArrayList uClauses = new TIntArrayList();
     TLongArrayList uHashes = new TLongArrayList();
     for (int u = -numVariables; u <= numVariables; ++u) {
+      int index = last[u + numVariables];
+      if (index == -1) {
+        continue;
+      }
+
       uClauses.reset();
       uHashes.reset();
-
       TIntIterator it1 = watchLists.get(u).iterator();
-      for (int size =  watchLists.get(u).size(); size > 0; size--) {
+      for (int size = watchLists.get(u).size(); size > 0; size--) {
         int clause = it1.next();
         uClauses.add(clause);
         uHashes.add(hashes.get(clause));
       }
 
-      int index = last[u + numVariables];
       while (index != -1) {
         int clause = clauses.get(index);
         if (!isClauseRemoved(formula, clause)) {
@@ -86,7 +89,6 @@ public final class Subsumming {
         index = prevIndex.get(index);
       }
     }
-
 
     if (Configure.verbose) {
       if (numRemovedClauses > 0) {
