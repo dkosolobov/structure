@@ -70,29 +70,30 @@ class Structure {
     // HyperBinaryResolution.createThreadPool();
 
     // Starts the computation
+    Solution solution = null;
     try {
       if (Configure.verbose) {
         displayHeader();
       }
       if (constellation.isMaster()) {
-        Solution solution = solve(constellation, instance);
-
-        final long endTime = System.currentTimeMillis();
-        output.println("c Elapsed time " + (endTime - Configure.startTime) / 1000.);
-        solution.print(output);
+        solution = solve(constellation, instance);
       }
-    } catch (Exception e) {
+    } catch (Throwable e) {
       logger.error("Caught unhandled exception", e);
-      Solution.unknown().print(output);
+      solution = Solution.unknown();
     } finally {
+      final long endTime = System.currentTimeMillis();
+      output.println("c Elapsed time " + (endTime - Configure.startTime) / 1000.);
+      solution.print(output);
+
       constellation.done();
-      System.exit(0);
+      System.exit(solution.exitcode());
     }
   }
 
   private static Solution solve(Constellation constellation, Skeleton instance) {
     TIntArrayList dve = null, bce = null;
-    Solver solver;
+    Solver solver = null;
     
     try {
       solver = new Solver(instance);
@@ -120,7 +121,6 @@ class Structure {
     logger.info(core.instance().formula.size()
                 + " literals remaining from "
                 + instance.formula.size());
-    // System.exit(1);
 
     SingleEventCollector root = new SingleEventCollector();
     constellation.submit(root);

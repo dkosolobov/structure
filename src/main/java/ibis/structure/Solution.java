@@ -61,6 +61,19 @@ public final class Solution {
     return solved == UNKNOWN;
   }
 
+  public int exitcode() {
+    switch (solved) {
+      case SATISFIABLE:
+        return 10;
+      case UNSATISFIABLE:
+        return 20;
+      case UNKNOWN:
+        return 0;
+    }
+    assert false;
+    return -1;
+  }
+
   public int[] units() {
     return units;
   }
