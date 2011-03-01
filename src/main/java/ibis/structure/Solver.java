@@ -202,10 +202,10 @@ public final class Solver {
       propagate();
     }
 
-    renameEquivalentLiterals();
+    queueForcedLiterals();
     propagate();
 
-    queueForcedLiterals();
+    renameEquivalentLiterals();
     propagate();
 
     if (Configure.pureLiterals) {
@@ -227,16 +227,11 @@ public final class Solver {
 
     propagate();
 
-    renameEquivalentLiterals();
-    propagate();
-
     queueAllForcedLiterals();
     propagate();
 
-    if (Configure.pureLiterals) {
-      PureLiterals.run(this);
-      propagate();
-    }
+    renameEquivalentLiterals();
+    propagate();
 
     simplify();
   }
