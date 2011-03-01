@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
 import static ibis.structure.Misc.*;
 
 
-public abstract class Activity extends ibis.constellation.Activity {
+public class Activity extends ibis.constellation.Activity {
   private static final Logger logger = Logger.getLogger(Activity.class);
 
   /** Parent of this activity. */
@@ -36,7 +36,7 @@ public abstract class Activity extends ibis.constellation.Activity {
     verify(response, 0);
   }
 
-  protected void verify(final Solution response, int branch) {
+  public void verify(final Solution response, int branch) {
     if (Configure.enableExpensiveChecks) {
       if (response.isSatisfiable()) {
         try {
@@ -47,14 +47,40 @@ public abstract class Activity extends ibis.constellation.Activity {
           logger.error("Units are " + (new TIntArrayList(response.units())));
           logger.error("Branch is " + branch);
           logger.error("Formula is " + instance);
-          // System.exit(1);  // TODO: exit gracefully
+          System.exit(1);  // TODO: exit gracefully
+        }
+      }
+
+      if (response.isUnsatisfiable()) {
+        Skeleton i = new Skeleton(instance.numVariables);
+        i.formula = (TIntArrayList) instance.formula.clone();
+        if (branch != 0) {
+          i.formula.add(encode(1, OR));
+          i.formula.add(branch);
+        }
+
+        String cnf = i.toString();
+        int r = 0;
+
+        try {
+          Process p = Runtime.getRuntime().exec("./cryptominisat");
+          p.getOutputStream().write(cnf.getBytes());
+          p.getOutputStream().close();
+          r = p.waitFor();
+        } catch (Exception e) {
+          // ignored
+        }
+
+        if (r == 10) {
+          logger.info("Satisfiable instance\n" + cnf);
+          System.exit(1);
         }
       }
     }
   }
 
   /** Checks units don't contain a contradiction */
-  private void verifyUnits(final int[] units) throws Exception {
+  public void verifyUnits(final int[] units) throws Exception {
     BitSet unitsSet = new BitSet();
     for (int unit : units) {
       unitsSet.add(unit);
@@ -65,7 +91,7 @@ public abstract class Activity extends ibis.constellation.Activity {
   }
 
   /** Checks all CNF clauses are satisfied */
-  private void verifySatisfied(final int[] units) throws Exception {
+  public void verifySatisfied(final int[] units) throws Exception {
     TIntArrayList formula = instance.formula;
     BitSet unitsSet = new BitSet();
     unitsSet.addAll(units);
@@ -105,6 +131,14 @@ public abstract class Activity extends ibis.constellation.Activity {
         }
       }
     }
+  }
+
+  @Override
+  public void initialize() throws Exception {
+  }
+
+  @Override
+  public void process(Event e) throws Exception {
   }
 
   @Override
