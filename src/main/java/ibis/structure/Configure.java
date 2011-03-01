@@ -36,9 +36,9 @@ public class Configure {
   /** True to extract xor gates. */
   public static boolean bce = true;
   /** Number of hyper binary resolutions to perform. 0 to disable. */
-  public static int numHyperBinaryResolutions = 1;
+  public static int numHyperBinaryResolutions = 2;
   /** Threshold for transitive closure. */
-  public static double ttc = 0.75;
+  public static double[] ttc = {0.65, 0.63};
 
   public static boolean configure(String[] args) {
     Options options = new Options();
@@ -55,7 +55,7 @@ public class Configure {
     options.addOption("noxor", false, "disable xor gates extraction");
     options.addOption("nobce", false, "disable blocked clause elimination");
     options.addOption("hbr", true, "# of hyper binary resolutions (0 to disable)");
-    options.addOption("ttc", true, "threshold for transitive closure");
+    options.addOption("ttc", true, "some coefficients");
 
     BasicParser parser = new BasicParser();
     CommandLine cl = null;
@@ -113,7 +113,11 @@ public class Configure {
       numHyperBinaryResolutions = Integer.parseInt(cl.getOptionValue("hbr"));
     }
     if (cl.hasOption("ttc")) {
-      ttc = Double.parseDouble(cl.getOptionValue("ttc"));
+      String[] ttc_ = cl.getOptionValue("ttc").split(",");
+      ttc = new double[ttc_.length];
+      for (int i = 0; i < ttc_.length; i++) {
+        ttc[i] = Double.parseDouble(ttc_[i]);
+      }
     }
 
     return true;
