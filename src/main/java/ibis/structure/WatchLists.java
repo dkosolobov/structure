@@ -44,7 +44,7 @@ public final class WatchLists {
   /** Builds the watch lists */
   public void build() throws ContradictionException {
     for (int u = -numVariables; u <= numVariables; ++u) {
-      watchLists[u + numVariables] = new TIntHashSet();
+      watchLists[u + numVariables] = new TIntHashSet(3);
     }
 
     ClauseIterator it = new ClauseIterator(formula);
