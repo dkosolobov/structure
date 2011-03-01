@@ -88,7 +88,9 @@ public class XOR {
     Collections.sort(clauses, variablesComparator);
     Collections.sort(clauses, lengthComparator);
 
+    int numXORGates = 0;
     int count = 1;
+
     for (int i = 1; i <= clauses.size(); i++) {
       int curr = i == clauses.size() ? -1 : clauses.get(i);
       int prev = clauses.get(i - 1);
@@ -103,6 +105,7 @@ public class XOR {
           int length = length(formula, clause);
 
           // Builds the xor clause
+          numXORGates++;
           xors.add(encode(length, isXORClause == -1 ? XOR : NXOR));
           for (int j = clause; j < clause + length; j++) {
             xors.add(var(formula.get(j)));
@@ -124,9 +127,13 @@ public class XOR {
         count = 1;
       }
     }
-  
+
     compact(formula);
     formula.add(xors.toNativeArray());
+
+    if (numXORGates > 0) {
+      logger.info("Found " + numXORGates + " xor gates");
+    }
   }
 
   private static Vector<Integer> findAndSortClauses(
