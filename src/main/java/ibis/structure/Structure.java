@@ -117,6 +117,10 @@ class Structure {
     logger.info(core.instance().numVariables
                 + " variables remaining from "
                 + instance.numVariables);
+    logger.info(core.instance().formula.size()
+                + " literals remaining from "
+                + instance.formula.size());
+    // System.exit(1);
 
     SingleEventCollector root = new SingleEventCollector();
     constellation.submit(root);
