@@ -90,8 +90,12 @@ public final class Solver {
   /** Adds implication -u &rarr; v. */
   public void addBinary(final int u, final int v) {
     assert !isLiteralAssigned(u) && !isLiteralAssigned(v);
-    assert u != v;
-    graph.add(-u, v);
+
+    if (u == v) {
+      queueUnit(u);
+    } else if (neg(u) != v) {
+      graph.add(neg(u), v);
+    }
   }
 
   /**
