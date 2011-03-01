@@ -79,6 +79,7 @@ public final class BranchActivity extends Activity {
   /**
    * Computes scores for every literal.
    *
+   * Idea adapted from:
    * Building a Hybrid SAT Solver via Conflict Driven, Look Ahead and XOR Reasoning Techniques
    */
   double[] evaluateLiterals() {
@@ -87,9 +88,11 @@ public final class BranchActivity extends Activity {
     double[] scores = new double[2 * numVariables + 1];
     ClauseIterator it;
 
-    final double alpha = 0.65;
+    // These values were fine tuned for easy instances from
+    // SAT Competition 2011.
+    final double alpha = 0.29;
     final double beta = 0.55;
-    final double gamma = 0.63;
+    final double gamma = 0.19;
     
     it = new ClauseIterator(formula);
     while (it.hasNext()) {
@@ -135,46 +138,22 @@ public final class BranchActivity extends Activity {
   /** Chooses a literal for branching */
   private int chooseBranch() {
     final int numVariables = instance.numVariables;
-    final int maxSize = 8;
+    final double[] scores = evaluateLiterals();
 
-    double[] branchScores = evaluateLiterals();
-    int[] branches = new int[maxSize];
-    double[] scores = new double[maxSize];
-    int size = 0;
+    int bestBranch = 0;
+    double bestScore = Double.NEGATIVE_INFINITY;;
 
     for (int branch = 1; branch <= numVariables; branch++) {
-      double p = branchScores[branch + numVariables];
-      double n = branchScores[-branch + numVariables];
+      double p = scores[branch + numVariables];
+      double n = scores[neg(branch) + numVariables];
       double score = 1024 * n * p + n + p;
 
-      int j = 0;
-      for (; j < size; j++) {
-        if (branches[j] == 0 || scores[j] < score) {
-          break;
-        }
-      }
-      if (j == branches.length) {
-        continue;
-      }
-
-      if (branches[j] != 0) {
-        for (int k = size - 1; k > j; k--) {
-          branches[k] = branches[k - 1];
-          scores[k] = scores[k - 1];
-        }
-      }
-
-      branches[j] = branch;
-      scores[j] = score;
-      if (j == size) {
-        size++;
+      if (score > bestScore) {
+        bestBranch = branch;
+        bestScore = score;
       }
     }
 
-    int branch = branches[random.nextInt(size)];
-    if (random.nextInt(2) == 0) {
-      return neg(branch);
-    }
-    return branch;
+    return random.nextBoolean() ? bestBranch : neg(bestBranch);
   }
 }

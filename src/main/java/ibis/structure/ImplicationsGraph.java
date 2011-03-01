@@ -570,7 +570,6 @@ public class ImplicationsGraph {
       }
     }
 
-    int removed = 0;
     for (int i = 0; i < topologicalSort.length; i++) {
       int u = topologicalSort[i];
       if (u == 0) {
@@ -599,8 +598,6 @@ public class ImplicationsGraph {
         edges.remove(0, p);
       }
     }
-
-    // System.err.println("removed " + removed);
   }
 
   /** Returns the graph as a SAT instance */
@@ -618,12 +615,9 @@ public class ImplicationsGraph {
         int v = edges.getQuick(j);
         assert u != v;
 
-        // if (-u < v) {
-          // u -> v and -v -> u are identical
-          formula.add(encode(2, OR));
-          formula.add(-u);
-          formula.add(v);
-        // }
+        formula.add(encode(2, OR));
+        formula.add(-u);
+        formula.add(v);
       }
     }
   }
