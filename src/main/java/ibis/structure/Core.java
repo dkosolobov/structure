@@ -34,6 +34,10 @@ public final class Core {
     return instance;
   }
 
+  public void gc() {
+    instance = null;
+  }
+
   /** Merges solution. */
   public Solution merge(final Solution solution) {
     assert solution.isSatisfiable();
