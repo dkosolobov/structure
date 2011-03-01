@@ -43,7 +43,7 @@ public class ImplicationsGraph {
   private void createLiteral(int u) {
     if (edges(u) == EMPTY) {
       edges[u + numVariables] = new TIntArrayList();
-      edges[-u + numVariables] = new TIntArrayList();
+      // edges[-u + numVariables] = new TIntArrayList();
     }
   }
 
@@ -553,8 +553,8 @@ public class ImplicationsGraph {
           p--;
         }
       }
-      if (p > 0) {
-        edges.remove(0, p);
+      if (p >= 0) {
+        edges.remove(0, p + 1);
       }
 
       // Puts u at the end of parents.
@@ -577,14 +577,15 @@ public class ImplicationsGraph {
       }
 
       visited.reset();
-      int remaining = 2;
 
       TIntArrayList edges = edges(u);
+      int remaining = 3;
       int p = edges.size() - 1;
       for (int j = edges.size() - 1; j >= 0; j--) {
         int v = edges.getQuick(j);
         if (visited.contains(v)) {
           // Ignores v because it can be reached from u through another node
+          continue;
         }
 
         if (remaining > 0) {
@@ -594,8 +595,8 @@ public class ImplicationsGraph {
         edges.setQuick(p, v);
         p--;
       }
-      if (p > 0) {
-        edges.remove(0, p);
+      if (p >= 0) {
+        edges.remove(0, p + 1);
       }
     }
   }
