@@ -90,9 +90,13 @@ public final class BranchActivity extends Activity {
 
     // These values were fine tuned for easy instances from
     // SAT Competition 2011.
-    final double alpha = 0.29;
+    final double alpha = 0.17;
     final double beta = 0.55;
-    final double gamma = 0.19;
+    final double gamma = 0.11;
+
+    // final double alpha = Configure.ttc[0];
+    // final double beta = 0.55;
+    // final double gamma = Configure.ttc[1];
     
     it = new ClauseIterator(formula);
     while (it.hasNext()) {

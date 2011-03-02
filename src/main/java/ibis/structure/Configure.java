@@ -36,9 +36,9 @@ public class Configure {
   /** True to extract xor gates. */
   public static boolean bce = true;
   /** Number of hyper binary resolutions to perform. 0 to disable. */
-  public static int numHyperBinaryResolutions = 2;
+  public static int numHyperBinaryResolutions = 1;
   /** Threshold for transitive closure. */
-  public static double[] ttc = {0.65, 0.63};
+  public static double[] ttc = {0.29, 0.19};
 
   public static boolean configure(String[] args) {
     Options options = new Options();
