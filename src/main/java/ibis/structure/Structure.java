@@ -116,10 +116,10 @@ class Structure {
     InstanceNormalizer normalizer = new InstanceNormalizer();
     normalizer.normalize(core.instance());
     logger.info(core.instance().numVariables
-                + " variables remaining from "
+                + " variables remaining out of "
                 + instance.numVariables);
     logger.info(core.instance().formula.size()
-                + " literals remaining from "
+                + " literals remaining out of "
                 + instance.formula.size());
 
     SingleEventCollector root = new SingleEventCollector();
