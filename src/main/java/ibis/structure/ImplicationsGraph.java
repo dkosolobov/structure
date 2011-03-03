@@ -1,7 +1,7 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
-import gnu.trove.TIntHashSet;
+import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.set.hash.TIntHashSet;
 
 import static ibis.structure.Misc.*;
 
@@ -357,8 +357,7 @@ public final class ImplicationsGraph {
     for (int u = -numVariables; u <= numVariables; u++) {
       if (get(colapsed, u) != u) {
         // Moves u's edges into parent
-        // TODO: inefficient toNativeArray()
-        edges(get(colapsed, u)).add(edges(u).toNativeArray());
+        edges(get(colapsed, u)).addAll(edges(u));
         edges[u + numVariables] = EMPTY;
         continue;
       }

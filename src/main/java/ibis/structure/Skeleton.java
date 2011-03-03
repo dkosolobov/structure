@@ -1,20 +1,11 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
-import gnu.trove.TIntHashSet;
-import gnu.trove.TIntIterator;
-import gnu.trove.TIntIntHashMap;
-import gnu.trove.TIntIntIterator;;
-import java.io.Serializable;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Vector;
-import org.apache.log4j.Logger;
+import gnu.trove.list.array.TIntArrayList;
 
 import static ibis.structure.Misc.*;
 
 
-public final class Skeleton implements Serializable {
+public final class Skeleton implements java.io.Serializable {
   public int numVariables;
   public TIntArrayList formula = new TIntArrayList();
 

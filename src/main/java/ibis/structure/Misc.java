@@ -1,6 +1,7 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
+import gnu.trove.list.array.TIntArrayList;
+
 
 public final class Misc {
   public static final int NXOR = 0;

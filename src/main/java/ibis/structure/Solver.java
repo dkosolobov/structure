@@ -1,10 +1,10 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
-import gnu.trove.TIntHashSet;
-import gnu.trove.TIntIntHashMap;
-import gnu.trove.TIntLongHashMap;
-import gnu.trove.TIntIterator;
+import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.set.hash.TIntHashSet;
+import gnu.trove.map.hash.TIntIntHashMap;
+import gnu.trove.map.hash.TIntLongHashMap;
+import gnu.trove.iterator.TIntIterator;
 import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
@@ -158,7 +158,7 @@ public final class Solver {
       if (units.contains(proxy)) {
         units.add(literal);
         proxies[literal + numVariables] = literal;
-        proxies[-literal + numVariables] = -literal;
+        proxies[neg(literal) + numVariables] = neg(literal);
       }
     }
 

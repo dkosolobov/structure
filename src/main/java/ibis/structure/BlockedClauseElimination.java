@@ -1,13 +1,12 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
-import gnu.trove.TIntHashSet;
-import gnu.trove.TIntIterator;
-import gnu.trove.TIntStack;
+import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.set.hash.TIntHashSet;
+import gnu.trove.iterator.TIntIterator;
 import org.apache.log4j.Logger;
 
-
 import static ibis.structure.Misc.*;
+
 
 /**
  * Performes Blocked Clause Elimination.

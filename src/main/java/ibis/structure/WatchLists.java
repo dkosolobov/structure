@@ -1,8 +1,8 @@
 package ibis.structure;
 
-import gnu.trove.TIntHashSet;
-import gnu.trove.TIntArrayList;
-import gnu.trove.TIntIterator;
+import gnu.trove.set.hash.TIntHashSet;
+import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.iterator.TIntIterator;
 import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
@@ -29,7 +29,7 @@ public final class WatchLists {
   /** Constructor */
   public WatchLists(final int numVariables, final TIntArrayList formula) {
     this.numVariables = numVariables;
-    this.formula = (TIntArrayList) formula.clone();
+    this.formula = new TIntArrayList(formula);
 
     watchLists = new TIntHashSet[2 * numVariables + 1];
     units = new TIntArrayList();

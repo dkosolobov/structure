@@ -1,6 +1,6 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
+import gnu.trove.list.array.TIntArrayList;
 
 import static ibis.structure.Misc.*;
 
@@ -44,10 +44,15 @@ public final class Core {
     units.addAll(solution.units());
 
     // Adds equivalent literals
-    for (int literal = -numVariables; literal <= numVariables; ++literal) {
-      if (literal != 0 && literal != proxies[literal + numVariables]) {
+    // XXX A bug prevents from iterating from -numVariables to +numVariables
+    for (int literal = 1; literal <= numVariables; ++literal) {
+      if (literal != proxies[literal + numVariables]) {
+        // System.err.println(literal + " <- " + proxies[literal + numVariables]);
+
         if (units.contains(proxies[literal + numVariables])) {
           units.add(literal);
+        } else if (units.contains(proxies[-literal + numVariables])) {
+          units.add(-literal);
         }
       }
     }

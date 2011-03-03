@@ -1,6 +1,6 @@
 package ibis.structure;
 
-import gnu.trove.TIntIterator;
+import gnu.trove.iterator.TIntIterator;
 
 import static ibis.structure.Misc.*;
 

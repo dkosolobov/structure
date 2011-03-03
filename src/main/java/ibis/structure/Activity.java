@@ -1,6 +1,6 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
+import gnu.trove.list.array.TIntArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.context.UnitActivityContext;
 import ibis.constellation.Event;
@@ -39,6 +39,7 @@ public class Activity extends ibis.constellation.Activity {
   public void verify(final Solution response, int branch) {
     if (Configure.enableExpensiveChecks) {
       if (response.isSatisfiable()) {
+        // For satisfiable instances reponse contains a proof.
         try {
           verifyUnits(response.units());
           verifySatisfied(response.units());
@@ -51,9 +52,11 @@ public class Activity extends ibis.constellation.Activity {
         }
       }
 
+      /*
       if (response.isUnsatisfiable()) {
+        // For unsatisfiable invoke cryptominisat.
         Skeleton i = new Skeleton(instance.numVariables);
-        i.formula = (TIntArrayList) instance.formula.clone();
+        i.formula = new TIntArrayList(instance.formula);
         if (branch != 0) {
           i.formula.add(encode(1, OR));
           i.formula.add(branch);
@@ -76,6 +79,7 @@ public class Activity extends ibis.constellation.Activity {
           System.exit(1);
         }
       }
+      */
     }
   }
 

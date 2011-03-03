@@ -2,9 +2,6 @@ package ibis.structure;
 
 import java.io.PrintStream;
 
-import gnu.trove.TIntIntHashMap;
-import gnu.trove.TIntIntIterator;
-
 
 /**
  * Solution represents the solution for an instance.

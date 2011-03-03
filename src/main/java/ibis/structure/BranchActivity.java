@@ -1,9 +1,7 @@
 package ibis.structure;
 
 import java.util.Random;
-import gnu.trove.TIntArrayList;
-import gnu.trove.TDoubleArrayList;
-import gnu.trove.TIntHashSet;;
+import gnu.trove.list.array.TIntArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;

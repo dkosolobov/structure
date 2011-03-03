@@ -1,6 +1,5 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;

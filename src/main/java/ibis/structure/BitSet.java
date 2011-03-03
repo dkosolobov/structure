@@ -1,6 +1,6 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
+import gnu.trove.list.array.TIntArrayList;
 
 /**
  * A bitset that can store negative indexes.
@@ -65,7 +65,7 @@ public final class BitSet {
     for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i + 1)) {
       elements.add(mapNtoZ(i));
     }
-    return elements.toNativeArray();
+    return elements.toArray();
   }
 
   /**

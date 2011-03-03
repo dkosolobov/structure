@@ -1,6 +1,6 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
+import gnu.trove.list.array.TIntArrayList;
 
 /**
  * Provides a set storing literals with the following complexities

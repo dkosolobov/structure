@@ -2,7 +2,7 @@ package ibis.structure;
 
 import java.util.Collections;
 import java.util.Vector;
-import gnu.trove.TIntArrayList;
+import gnu.trove.list.array.TIntArrayList;
 import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
@@ -129,7 +129,7 @@ public class XOR {
     }
 
     compact(formula);
-    formula.add(xors.toNativeArray());
+    formula.addAll(xors);
 
     if (numXORGates > 0) {
       logger.info("Found " + numXORGates + " xor gates");

@@ -1,6 +1,6 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
+import gnu.trove.list.array.TIntArrayList;
 import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;

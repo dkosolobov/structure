@@ -1,6 +1,6 @@
 package ibis.structure;
 
-import gnu.trove.TIntArrayList;
+import gnu.trove.list.array.TIntArrayList;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -105,7 +105,7 @@ public class ImplicationsGraphTest {
 
     create(6);
     add(1, 2, 3);
-    propagated = graph.propagate(1).toNativeArray();
+    propagated = graph.propagate(1).toArray();
     assertFalse(graph.contains(1, 2));
     assertFalse(graph.contains(-2, -1));
     assertFalse(graph.contains(1, 3));
@@ -114,7 +114,7 @@ public class ImplicationsGraphTest {
 
     create(6);
     add(1, 2);
-    propagated = graph.propagate(2).toNativeArray();
+    propagated = graph.propagate(2).toArray();
     assertFalse(graph.contains(1, 2));
     assertFalse(graph.contains(-2, -1));
     compare(propagated, 2);
@@ -125,7 +125,7 @@ public class ImplicationsGraphTest {
     add(2, 4);
     add(3, 4);
     add(4, 1);
-    propagated = graph.propagate(4).toNativeArray();
+    propagated = graph.propagate(4).toArray();
     assertFalse(graph.contains(1, 2));
     assertFalse(graph.contains(-2, -1));
     assertFalse(graph.contains(1, 3));
@@ -145,7 +145,7 @@ public class ImplicationsGraphTest {
     add(2, 3);
     add(3, 4);
     add(4, 5);
-    propagated = graph.propagate(3).toNativeArray();
+    propagated = graph.propagate(3).toArray();
     compare(propagated, 3, 4, 5, 1, 2);
   }
 
@@ -169,7 +169,7 @@ public class ImplicationsGraphTest {
     add(1, -1);
     graph.topologicalSort();
     graph.transitiveClosure();
-    contradictions = graph.findForcedLiterals().toNativeArray();
+    contradictions = graph.findForcedLiterals().toArray();
     compare(contradictions, -1);
 
     create(6);
@@ -178,7 +178,7 @@ public class ImplicationsGraphTest {
     add(4, -2);
     graph.topologicalSort();
     graph.transitiveClosure();
-    contradictions = graph.findForcedLiterals().toNativeArray();
+    contradictions = graph.findForcedLiterals().toArray();
     compare(contradictions, -2);
 
     create(6);
@@ -188,7 +188,7 @@ public class ImplicationsGraphTest {
     add(-1, -5);
     graph.topologicalSort();
     graph.transitiveClosure();
-    contradictions = graph.findForcedLiterals().toNativeArray();
+    contradictions = graph.findForcedLiterals().toArray();
     compare(contradictions, -1, -5);
 
     create(6);
@@ -199,7 +199,7 @@ public class ImplicationsGraphTest {
     add(3, 1, 5, 2);
     graph.topologicalSort();
     graph.transitiveClosure();
-    contradictions = graph.findForcedLiterals().toNativeArray();
+    contradictions = graph.findForcedLiterals().toArray();
     compare(contradictions, 5, 2, 1);
   }
 

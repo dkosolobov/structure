@@ -1,10 +1,10 @@
 package ibis.structure;
 
-import gnu.trove.TIntHashSet;
-import gnu.trove.TIntLongHashMap;
-import gnu.trove.TIntIterator;
-import gnu.trove.TIntArrayList;
-import gnu.trove.TLongArrayList;
+import gnu.trove.set.hash.TIntHashSet;
+import gnu.trove.map.hash.TIntLongHashMap;
+import gnu.trove.iterator.TIntIterator;
+import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.list.array.TLongArrayList;
 import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
