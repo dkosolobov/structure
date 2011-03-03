@@ -6,17 +6,18 @@ import gnu.trove.TIntHashSet;
 import static ibis.structure.Misc.*;
 
 
-public class ImplicationsGraph {
+public final class ImplicationsGraph {
+  // An optimizations for nodes with no edges.
   private static final TIntArrayList EMPTY = new TIntArrayList();
 
-  private int numVariables;
-  private TIntArrayList[] edges = null;
-  private TouchSet visited;
-  private int[] topologicalSort;
-  private int[] colapsed;
-  private int[] stack;
+  private final int numVariables;
+  private final TIntArrayList[] edges;
+  private final TouchSet visited;
+  private final int[] topologicalSort;
+  private final int[] colapsed;
+  private final int[] stack;
 
-  public ImplicationsGraph(int numVariables) {
+  public ImplicationsGraph(final int numVariables) {
     this.numVariables = numVariables;
 
     edges = new TIntArrayList[2 * numVariables + 1];
@@ -31,7 +32,7 @@ public class ImplicationsGraph {
   }
 
   /** Adds a new implication u &rarr; v. */
-  public void add(int u, int v) {
+  public void add(final int u, final int v) {
     createLiteral(u);
     createLiteral(-v);
 
@@ -40,20 +41,19 @@ public class ImplicationsGraph {
   }
 
   /** Creats edges for literals u and -u */
-  private void createLiteral(int u) {
+  private void createLiteral(final int u) {
     if (edges(u) == EMPTY) {
       edges[u + numVariables] = new TIntArrayList();
-      // edges[-u + numVariables] = new TIntArrayList();
     }
   }
 
   /** Returns true if implication u &rarrr; v is valid */
-  public boolean contains(int u, int v) {
+  public boolean contains(final int u, final int v) {
     return edges(u).contains(v);
   }
 
   /** Returns the edges list for node u. */
-  public TIntArrayList edges(int u) {
+  public TIntArrayList edges(final int u) {
     return edges[u + numVariables];
   }
 
@@ -64,7 +64,8 @@ public class ImplicationsGraph {
    * @return list of units propagated
    * @throws ContradictionException if a literal and its negation are propagated.
    */
-  public TIntArrayList propagate(TIntArrayList literals) throws ContradictionException {
+  public TIntArrayList propagate(final TIntArrayList literals)
+      throws ContradictionException {
     visited.reset();
 
     TIntArrayList visited = new TIntArrayList();
@@ -84,7 +85,7 @@ public class ImplicationsGraph {
     return visited;
   }
 
-  public TIntArrayList propagate(int... literals) throws ContradictionException {
+  public TIntArrayList propagate(final int... literals) throws ContradictionException {
     return propagate(new TIntArrayList(literals));
   }
 
@@ -388,7 +389,7 @@ public class ImplicationsGraph {
   }
 
   /** Performs a depth first search keeping track of visited nodes. */
-  private void internalDFS(int u, TIntArrayList seen) {
+  private void internalDFS(final int u, final TIntArrayList seen) {
     if (visited.containsOrAdd(u)) {
       return;
     }
@@ -398,9 +399,9 @@ public class ImplicationsGraph {
     seen.add(u);
 
     while (stackTop > 0) {
-      u = stack[--stackTop];
-      for (int i = 0; i < edges(u).size(); i++) {
-        int v = edges(u).getQuick(i);
+      int w = stack[--stackTop];
+      for (int i = 0; i < edges(w).size(); i++) {
+        int v = edges(w).getQuick(i);
         if (!visited.containsOrAdd(v)) {
           stack[stackTop++] = v;
           seen.add(v);
@@ -462,7 +463,6 @@ public class ImplicationsGraph {
     }
   }
 
-
   /** Does a topological sort and stores it in topologicalSort array. */
   public void topologicalSort() {
     visited.reset();
@@ -478,7 +478,7 @@ public class ImplicationsGraph {
   }
 
   /** Orders nodes by exit times in reversed graph. */
-  private int topologicalSort(int u, int time) {
+  private int topologicalSort(final int u, int time) {
     if (visited.containsOrAdd(u)) {
       return time;
     }
@@ -488,7 +488,8 @@ public class ImplicationsGraph {
       time = topologicalSort(v, time);
     }
 
-    topologicalSort[time++] = u;
+    topologicalSort[time] = u;
+    time++;
     return time;
   }
 
@@ -506,14 +507,14 @@ public class ImplicationsGraph {
       for (int i = 0; i < edges(u).size(); i++) {
         int v = edges(u).get(i);
         set(stack, v, get(stack, v) + 1);
-        assert edges(-v).contains(-u):
-           "Missing reverse edge " + (-v) + " -> " + (-u);
+        assert edges(-v).contains(-u)
+            : "Missing reverse edge " + (-v) + " -> " + (-u);
       }
     }
 
     for (int u = -numVariables; u <= numVariables; u++) {
-      assert get(stack, u) == edges(-u).size():
-          "Wrong number of edges for literal " + (-u);
+      assert get(stack, u) == edges(-u).size()
+          : "Wrong number of edges for literal " + (-u);
     }
   }
 
@@ -530,6 +531,16 @@ public class ImplicationsGraph {
     return buffer.toString();
   }
 
+  /**
+   * Performes transitive reduction on the graph.
+   *
+   * Mainly if a &rarr; b &rarr; c then a &rarr; c is reduntant and
+   * can be removed if it exists.
+   *
+   * The reduction is not complete but it is in O(N + M)
+   * and removes most of the redundant edges.
+   *
+   * */
   public void transitiveReduction() {
     topologicalSort();
 
@@ -627,11 +638,11 @@ public class ImplicationsGraph {
     return new int[2 * numVariables + 1];
   }
 
-  private int get(int[] array, int u) {
+  private int get(final int[] array, final int u) {
     return array[u + numVariables];
   }
 
-  private void set(int[] array, int u, int v) {
+  private void set(final int[] array, final int u, final int v) {
     array[u + numVariables] = v;
   }
 }

@@ -1,13 +1,6 @@
 package ibis.structure;
 
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
 import gnu.trove.TIntArrayList;
-import gnu.trove.TIntHashSet;
-import gnu.trove.TIntIntHashMap;
-import gnu.trove.TIntIntIterator;
-import gnu.trove.TIntIterator;
 import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
@@ -27,8 +20,8 @@ public final class HyperBinaryResolution {
   private static final Logger logger = Logger.getLogger(HyperBinaryResolution.class);
 
   /** The solver. */
-  private Solver solver;
-  private int numVariables;
+  private final Solver solver;
+  private final int numVariables;
   /** Formula. */
   private final TIntArrayList formula;
   /** Units discovered. */
