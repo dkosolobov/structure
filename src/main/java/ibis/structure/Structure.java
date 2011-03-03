@@ -96,13 +96,14 @@ class Structure {
     Solver solver = null;
     
     try {
-      solver = new Solver(instance);
-
       if (Configure.xor) {
         XOR.extractXORClauses(instance);
-        dve = DependentVariableElimination.run(solver);
       }
 
+      solver = new Solver(instance);
+      if (Configure.dve) {
+        dve = DependentVariableElimination.run(solver);
+      }
       solver.simplifyAtTopLevel();
 
       if (Configure.bce) {

@@ -33,7 +33,9 @@ public class Configure {
   public static boolean split = true;
   /** True to extract xor gates. */
   public static boolean xor = true;
-  /** True to extract xor gates. */
+  /** True to enable dependent variable elimination */
+  public static boolean dve = true;
+  /** True to run blocked clause elimination. */
   public static boolean bce = true;
   /** Number of hyper binary resolutions to perform. 0 to disable. */
   public static int numHyperBinaryResolutions = 1;
@@ -53,6 +55,7 @@ public class Configure {
     options.addOption("noss", false, "disable subsumming");
     options.addOption("nosplit", false, "disable splitting");
     options.addOption("noxor", false, "disable xor gates extraction");
+    options.addOption("nodve", false, "disable dependent variable elimination");
     options.addOption("nobce", false, "disable blocked clause elimination");
     options.addOption("hbr", true, "# of hyper binary resolutions (0 to disable)");
     options.addOption("ttc", true, "some coefficients");
@@ -105,6 +108,9 @@ public class Configure {
     }
     if (cl.hasOption("noxor")) {
       xor = false;
+    }
+    if (cl.hasOption("nodve")) {
+      dve = false;
     }
     if (cl.hasOption("nobce")) {
       bce = false;
