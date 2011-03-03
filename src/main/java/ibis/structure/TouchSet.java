@@ -2,18 +2,31 @@ package ibis.structure;
 
 import gnu.trove.TIntArrayList;
 
-
+/**
+ * Provides a set storing literals with the following complexities
+ * (N is the number of variables):
+ *
+ * <ul>
+ * <li>memory - O(N). Memory consumed remains constant.</li>
+ * <li><tt>add</tt> - O(1). Adds a new element.</li>
+ * <li><tt>contains</tt> - O(1). Checks membership.</li>
+ * <li><tt>remove</tt> - O(1). Removes an element.</li>
+ * <li><tt>reset</tt> - O(1). Removes all elements.</li>
+ * </ul>
+ *
+ */
 public final class TouchSet {
   private int numVariables = 0;
   private short currentColor = 0;
   private short[] colors = null;
 
-  public TouchSet(int numVariables) {
+  public TouchSet(final int numVariables) {
     this.numVariables = numVariables;
     this.colors = new short[2 * numVariables + 1];
     reset();
   }
 
+  /** Clears the set. */
   public void reset() {
     if (currentColor == Short.MAX_VALUE) {
       java.util.Arrays.fill(colors, (byte) 0);
@@ -23,19 +36,19 @@ public final class TouchSet {
   }
 
   /** Adds a new literal to the set */
-  public void add(int u) {
+  public void add(final int u) {
     colors[u + numVariables] = currentColor;
   }
 
   /** Adds all literas in array to the set */
-  public void add(int[] array) {
+  public void add(final int[] array) {
     for (int u : array) {
       colors[u + numVariables] = currentColor;
     }
   }
 
   /** Adds all literas in array to the set */
-  public void add(TIntArrayList array) {
+  public void add(final TIntArrayList array) {
     for (int i = 0; i < array.size(); i++) {
       int u = array.getQuick(i);
       colors[u + numVariables] = currentColor;
@@ -47,6 +60,7 @@ public final class TouchSet {
     return colors[u + numVariables] == currentColor;
   }
 
+  /** Returns true if set contains u, otherwise adds it to the set. */
   public boolean containsOrAdd(final int u) {
     if (contains(u)) {
       return true;
