@@ -1,7 +1,5 @@
 package ibis.structure;
 
-import gnu.trove.TIntIntHashMap;
-import gnu.trove.TIntIntIterator;
 import gnu.trove.TIntArrayList;
 
 import static ibis.structure.Misc.*;
@@ -11,9 +9,9 @@ public final class Core {
   private int numVariables;
   /** Units. */
   private BitSet units = new BitSet();
-  /** Proxies for equivalent literals */
+  /** Proxies for equivalent literals. */
   private int[] proxies;
-  /** Core instance without units and equivalent literals */
+  /** Core instance without units and equivalent literals. */
   private Skeleton instance;
 
   public Core(final int numVariables,
@@ -34,6 +32,7 @@ public final class Core {
     return instance;
   }
 
+  /** Frees any memory unnecessary to merge solution. */
   public void gc() {
     instance = null;
   }
@@ -45,14 +44,10 @@ public final class Core {
     units.addAll(solution.units());
 
     // Adds equivalent literals
-    for (int literal = 1; literal <= numVariables; ++literal) {
-      if (literal != proxies[literal + numVariables]) {
-        // System.err.println(literal + " <- " + proxies[literal + numVariables]);
-
+    for (int literal = -numVariables; literal <= numVariables; ++literal) {
+      if (literal != 0 && literal != proxies[literal + numVariables]) {
         if (units.contains(proxies[literal + numVariables])) {
           units.add(literal);
-        } else if (units.contains(proxies[-literal + numVariables])) {
-          units.add(-literal);
         }
       }
     }

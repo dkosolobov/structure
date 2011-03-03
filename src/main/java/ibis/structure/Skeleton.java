@@ -19,11 +19,11 @@ public final class Skeleton implements Serializable {
   public TIntArrayList formula = new TIntArrayList();
 
   /** Constructor. */
-  public Skeleton(int numVariables) {
+  public Skeleton(final int numVariables) {
     this.numVariables = numVariables;
   }
 
-  /** Returns the skeleton as in DIMACS format. */
+  /** Returns the skeleton as in extended DIMACS format. */
   public String toString() {
     int numClauses = 0;
     StringBuffer result = new StringBuffer();

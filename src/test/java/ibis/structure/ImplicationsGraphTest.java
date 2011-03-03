@@ -3,9 +3,9 @@ package ibis.structure;
 import gnu.trove.TIntArrayList;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;                                                                                                                   
-import static org.junit.Assert.assertTrue;                                                                                                                     
-import static org.junit.Assert.assertFalse;     
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 public class ImplicationsGraphTest {
   ImplicationsGraph graph;
@@ -171,7 +171,7 @@ public class ImplicationsGraphTest {
     graph.transitiveClosure();
     contradictions = graph.findForcedLiterals().toNativeArray();
     compare(contradictions, -1);
-    
+
     create(6);
     add(2, 3);
     add(3, 4);

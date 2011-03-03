@@ -10,10 +10,11 @@ public final class Hash {
    * Robert Jenkins' 32 bit integer hash function
    * http://burtleburtle.net/bob/hash/integer.html
    *
-   * @param a integer to hash
+   * @param b integer to hash
    * @return a hash code for the given integer
    */
-  public static int hash(int a) {
+  public static int hash(final int b) {
+    int a = b;
     a = (a + 0x7ed55d16) + (a << 12);
     a = (a ^ 0xc761c23c) ^ (a >>> 19);
     a = (a + 0x165667b1) + (a << 5);
