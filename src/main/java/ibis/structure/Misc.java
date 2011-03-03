@@ -11,7 +11,20 @@ public final class Misc {
   private static final int TYPE_MASK = (1 << TYPE_BITS) - 1;
   private static final int REMOVED = Integer.MAX_VALUE;
 
-  public static class ClauseIterator {
+  /**
+   * A clause iterator over a given formula.
+   *
+   * Example:
+   * <pre>
+   * ClauseIterator it = new ClauseIterator(formula);
+   * while (it.hasNext()) {
+   *   int clause = it.next();
+   *   ... do stuff ...
+   * }
+   * </pre>
+   *
+   */
+  public static final class ClauseIterator {
     private TIntArrayList formula;
     private int index;
 
@@ -21,10 +34,12 @@ public final class Misc {
       skipRemoved();
     }
 
+    /** Returns true if there are more clauses left. */
     public boolean hasNext() {
       return index < formula.size();
     }
 
+    /** Returns the next clause */
     public int next() {
       int clause = index;
       index += length(formula, index);
@@ -33,11 +48,21 @@ public final class Misc {
     }
 
     private void skipRemoved() {
-      while (index < formula.size() && formula.get(index) == REMOVED) {
+      while (index < formula.size() && formula.getQuick(index) == REMOVED) {
         index++;
       }
       index++;
     }
+  }
+
+  /** Returns the negation of literal */
+  public static int neg(final int literal) {
+    return -literal;
+  }
+
+  /** Returns the variable of literal */
+  public static int var(final int literal) {
+    return Math.abs(literal);
   }
 
   /** Encodes the length and the type into a single int. */
@@ -49,21 +74,23 @@ public final class Misc {
   /** Returns the length of the clause. */
   public static int length(final TIntArrayList formula, final int clause) {
     assert !isClauseRemoved(formula, clause) : "Clause " + clause + " was removed";
-    return formula.get(clause - 1) >> TYPE_BITS;
+    return formula.getQuick(clause - 1) >> TYPE_BITS;
   }
 
   /** Returns the type of the clause. */
   public static int type(final TIntArrayList formula, final int clause) {
     assert !isClauseRemoved(formula, clause) : "Clause " + clause + " was removed";
-    return formula.get(clause - 1) & TYPE_MASK;
+    return formula.getQuick(clause - 1) & TYPE_MASK;
   }
 
+  /** Switches the value of the XOR instance. */
   public static void switchXOR(final TIntArrayList formula, final int clause) {
     assert !isClauseRemoved(formula, clause) : "Clause " + clause + " was removed";
-    formula.set(clause - 1, formula.get(clause - 1) ^ 1);
+    assert type(formula, clause) == XOR || type(formula, clause) == NXOR;
+    formula.setQuick(clause - 1, formula.getQuick(clause - 1) ^ 1);
   }
 
-  /** Returns a string representation of the clause */
+  /** Returns a string representation of the clause. */
   public static String clauseToString(final TIntArrayList formula, final int clause) {
     int type = type(formula, clause);
     int length = length(formula, clause);
@@ -84,6 +111,7 @@ public final class Misc {
     return result.toString();
   }
 
+  /** Returns a string representation of the formula. */
   public static String formulaToString(final TIntArrayList formula) {
     StringBuffer result = new StringBuffer();
     ClauseIterator it = new ClauseIterator(formula);
@@ -101,11 +129,11 @@ public final class Misc {
     int type = type(formula, clause);
     int length = length(formula, clause);
     for (int i = index + 1; i < clause + length; i++) {
-      formula.set(i - 1, formula.get(i));
+      formula.setQuick(i - 1, formula.getQuick(i));
     }
 
-    formula.set(clause - 1, encode(length - 1, type));
-    formula.set(clause + length - 1, REMOVED);
+    formula.setQuick(clause - 1, encode(length - 1, type));
+    formula.setQuick(clause + length - 1, REMOVED);
   }
 
   /** Removes literal from clause. */
@@ -119,18 +147,21 @@ public final class Misc {
   public static void removeClause(final TIntArrayList formula,
                                   final int clause) {
     int length = length(formula, clause);
-    for (int i = clause - 1; i < clause + length; i++) {
-      formula.set(i, REMOVED);
-    }
+    formula.fill(clause - 1, clause + length, REMOVED);
   }
 
   /** Returns true if the clause was removed. */
   public static boolean isClauseRemoved(final TIntArrayList formula,
                                         final int clause) {
-    return formula.get(clause - 1) == REMOVED;
+    return formula.getQuick(clause - 1) == REMOVED;
   }
 
-  /** Returns formula with REMOVED removed */
+  /**
+   * Removes REMOVED elements from formula.
+   *
+   * formula will represent the same CNF instance,
+   * but the clauses will no longer correspond.
+   */
   public static void compact(final TIntArrayList formula) {
     int p = 0;
     for (int i = 0; i < formula.size(); i++) {
@@ -143,18 +174,7 @@ public final class Misc {
 
     int removed = formula.size() - p;
     if (removed > 0) {
-      // System.err.println(formula.size() + " -> " + p);
       formula.remove(p, removed);
     }
-  }
-
-  /** Returns the negation of literal */
-  public static int neg(final int literal) {
-    return -literal;
-  }
-
-  /** Returns the variable of literal */
-  public static int var(final int literal) {
-    return Math.abs(literal);
   }
 }
