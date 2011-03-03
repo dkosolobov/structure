@@ -56,6 +56,70 @@ public final class Misc {
     }
   }
 
+  /** Sorts clauses by length */
+  public static final class ClauseLengthComparator
+      implements java.util.Comparator<Integer> {
+    private final TIntArrayList formula;
+
+    public ClauseLengthComparator(final TIntArrayList formula) {
+      this.formula = formula;
+    }
+
+    public int compare(final Integer c1, final Integer c2) {
+      int l1 = length(formula, c1);
+      int l2 = length(formula, c2);
+      return l1 - l2;
+    }
+  }
+
+  /** Sorts clauses by variables */
+  public static final class ClauseVariablesComparator
+      implements java.util.Comparator<Integer> {
+    private final TIntArrayList formula;
+
+    public ClauseVariablesComparator(final TIntArrayList formula) {
+      this.formula = formula;
+    }
+
+    public int compare(final Integer o1, final Integer o2) {
+      int c1 = o1, c2 = o2;
+      int l1 = length(formula, c1);
+      int l2 = length(formula, c2);
+      for (int i = 0; i < l1 && i < l2; i++) {
+        int u1 = var(formula.getQuick(c1 + i));
+        int u2 = var(formula.getQuick(c2 + i));
+        if (u1 != u2) {
+          return u1 - u2;
+        }
+      }
+      return l1 - l2;
+    }
+  }
+
+  /** Sorts clauses by literals */
+  public static final class ClauseLiteralsComparator
+      implements java.util.Comparator<Integer> {
+    private final TIntArrayList formula;
+
+    public ClauseLiteralsComparator(final TIntArrayList formula) {
+      this.formula = formula;
+    }
+
+    public int compare(final Integer o1, final Integer o2) {
+      int c1 = o1, c2 = o2;
+      int l1 = length(formula, c1);
+      int l2 = length(formula, c2);
+      for (int i = 0; i < l1 && i < l2; i++) {
+        int u1 = formula.getQuick(c1 + i);
+        int u2 = formula.getQuick(c2 + i);
+        if (u1 != u2) {
+          return u1 - u2;
+        }
+      }
+      return l1 - l2;
+    }
+  }
+
   /** Returns the negation of literal */
   public static int neg(final int literal) {
     return -literal;

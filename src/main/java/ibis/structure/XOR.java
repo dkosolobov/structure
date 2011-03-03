@@ -12,81 +12,32 @@ public class XOR {
   private static int REMOVED = Integer.MAX_VALUE;
   private static final Logger logger = Logger.getLogger(Solver.class);
 
-  /** Sorts clauses by length */
-  private static final class ClauseLengthComparator
-      implements java.util.Comparator<Integer> {
-    private TIntArrayList formula;
-
-    public ClauseLengthComparator(final TIntArrayList formula) {
-      this.formula = formula;
-    }
-
-    public int compare(Integer c1, Integer c2) {
-      int l1 = length(formula, c1);
-      int l2 = length(formula, c2);
-      return l1 - l2;
-    }
-  }
-
-  /** Sorts clauses by variables */
-  private static final class ClauseVariablesComparator
-      implements java.util.Comparator<Integer> {
-    private TIntArrayList formula;
-
-    public ClauseVariablesComparator(final TIntArrayList formula) {
-      this.formula = formula;
-    }
-
-    public int compare(Integer c1, Integer c2) {
-      int l1 = length(formula, c1);
-      int l2 = length(formula, c2);
-      for (int i = 0; i < l1 && i < l2; i++) {
-        int u1 = var(formula.get(c1 + i));
-        int u2 = var(formula.get(c2 + i));
-        if (u1 != u2) {
-          return u1 - u2;
-        }
-      }
-      return l1 - l2;
-    }
-  }
-
-  /** Sorts clauses by literals */
-  private static final class ClauseLiteralsComparator
-      implements java.util.Comparator<Integer> {
-    private TIntArrayList formula;
-
-    public ClauseLiteralsComparator(final TIntArrayList formula) {
-      this.formula = formula;
-    }
-
-    public int compare(Integer c1, Integer c2) {
-      int l1 = length(formula, c1);
-      int l2 = length(formula, c2);
-      for (int i = 0; i < l1 && i < l2; i++) {
-        int u1 = formula.get(c1 + i);
-        int u2 = formula.get(c2 + i);
-        if (u1 != u2) {
-          return u1 - u2;
-        }
-      }
-      return l1 - l2;
-    }
-  }
-
-  public static void extractXORClauses(final Skeleton instance)
+  /**
+   * Finds and removes XOR gates from formula.
+   *
+   * @param formula containing XOR gates encoded in CNF.
+   * @return a formula containing removed XOR gates.
+   */
+  public static TIntArrayList extractGates(final TIntArrayList formula)
       throws ContradictionException {
-    TIntArrayList formula = instance.formula;
-    TIntArrayList xors = new TIntArrayList();
+    TIntArrayList xorGates = new TIntArrayList();
 
     ClauseLengthComparator lengthComparator =
         new ClauseLengthComparator(formula);
     ClauseVariablesComparator variablesComparator =
         new ClauseVariablesComparator(formula);
+    ClauseLiteralsComparator literalsComparator =
+        new ClauseLiteralsComparator(formula);
 
-    Vector<Integer> clauses = findAndSortClauses(formula);
+    // Collections.sort is stable. Using radix sort clauses are
+    // sorted by length, then by variables and then by literals.
+    Vector<Integer> clauses = getAndSortClauses(formula);
+    long start_ = System.currentTimeMillis();
+    Collections.sort(clauses, literalsComparator);
     Collections.sort(clauses, variablesComparator);
     Collections.sort(clauses, lengthComparator);
+    long end_ = System.currentTimeMillis();
+    logger.info("Sorting took " + (end_ - start_) / 1000. + " seconds");
 
     int numXORGates = 0;
     int count = 1;
@@ -100,18 +51,16 @@ public class XOR {
       } else {
         int start = i - count, end = i;
         int isXORClause = isXORClause(formula, clauses, start, end);
-        if (isXORClause != 0) {
+        if (isXORClause != OR) {
           int clause = clauses.get(i - count);
           int length = length(formula, clause);
 
           // Builds the xor clause
           numXORGates++;
-          xors.add(encode(length, isXORClause == -1 ? XOR : NXOR));
+          xorGates.add(encode(length, isXORClause));
           for (int j = clause; j < clause + length; j++) {
-            xors.add(var(formula.get(j)));
+            xorGates.add(var(formula.getQuick(j)));
           }
-
-          // logger.info("Found xor gate " + clauseToString(xors, xors.size() - length));
 
           // Removes the cnf clauses
           for (int j = start; j < end; j++) {
@@ -128,21 +77,23 @@ public class XOR {
       }
     }
 
-    compact(formula);
-    formula.addAll(xors);
-
     if (numXORGates > 0) {
       logger.info("Found " + numXORGates + " xor gates");
     }
+
+    compact(formula);
+    return xorGates;
   }
 
-  private static Vector<Integer> findAndSortClauses(
-      final TIntArrayList formula) {
+  /**
+   * Returns a vector with all clauses in formula.
+   *
+   * Variables are sorted inside clauses.
+   */
+  private static Vector<Integer> getAndSortClauses(final TIntArrayList formula) {
     Vector<Integer> clauses = new Vector<Integer>();
 
-    ClauseIterator it;
-
-    it = new ClauseIterator(formula);
+    ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
@@ -164,35 +115,41 @@ public class XOR {
     return clauses;
   }
 
+  /**
+   * Checks if CNF clauses from start to end code a XOR gate.
+   *
+   * @return XOR, NXOR or OR
+   */
   private static int isXORClause(final TIntArrayList formula,
                                  final Vector<Integer> clauses,
                                  final int start,
                                  final int end) throws ContradictionException {
     int clause = clauses.get(start);
     int length = length(formula, clause);
-    if (length < 3 || length > 24) {
+    if (length < 0 || length > 24) {
       // Too small or too big for a xor clause.
-      return 0;
+      return OR;
     }
 
     int size = end - start;
     int requiredSize = 1 << length - 1;
     if (size < requiredSize) {
       // Not enough XOR clauses
-      return 0;
+      return OR;
     }
 
     ClauseLiteralsComparator literalsComparator =
         new ClauseLiteralsComparator(formula);
-    Collections.sort(clauses.subList(start, end), literalsComparator);
 
     int numImpairs = 0, numPairs = 0;
     for (int i = start; i < end; i++) {
       if (i == start || literalsComparator.compare(
             clauses.get(i), clauses.get(i - 1)) != 0) {
-        boolean odd = hasOddNumNegations(formula, clauses.get(i));
-        numImpairs += odd ? 1 : 0;
-        numPairs += odd ? 0 : 1;
+        if (hasOddNumNegations(formula, clauses.get(i))) {
+          numImpairs += 1;
+        } else {
+          numPairs += 1;
+        }
       }
     }
 
@@ -200,23 +157,23 @@ public class XOR {
       throw new ContradictionException();
     }
     if (numImpairs == requiredSize) {
-      return +1;
+      return NXOR;
     }
     if (numPairs == requiredSize) {
-      return -1;
+      return XOR;
     }
-    return 0;
+    return OR;
   }
 
   /** Returns true if formula contains an odd number of negations */
   private static boolean hasOddNumNegations(final TIntArrayList formula,
                                             final int clause) {
     int length = length(formula, clause);
-    int count = 0;
+    boolean odd = false;
     for (int i = clause; i < clause + length; i++) {
-      int u = formula.get(i);
-      count += (u < 0) ? 1 : 0;
+      int u = formula.getQuick(i);
+      odd = odd ^ (u < 0);
     }
-    return (count & 1) != 0;
+    return odd;
   }
 }
