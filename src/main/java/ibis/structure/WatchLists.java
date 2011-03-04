@@ -13,13 +13,12 @@ public final class WatchLists {
 
   /** Marks a removed literal */
   /** An EMPTY HashSet to improve performance */
-  protected static final TIntHashSet EMPTY = new TIntHashSet();
+  private static final TIntHashSet EMPTY = new TIntHashSet();
 
   /** Number of variables. */
   private final int numVariables;
   /** List of clauses separated by 0. */
   private final TIntArrayList formula;
-
   /** Watch lists */
   private final TIntHashSet[] watchLists;
   /** Short clauses discovered */
