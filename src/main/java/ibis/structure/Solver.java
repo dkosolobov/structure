@@ -43,9 +43,6 @@ public final class Solver {
     }
 
     watchLists.build();
-    if (watchLists.contradiction) {
-      throw new ContradictionException();
-    }
 
     if (Configure.verbose) {
       System.err.print(".");
@@ -219,7 +216,6 @@ public final class Solver {
 
     MissingLiterals.run(this);
     propagateUnits();
-
     verifyIntegrity();
   }
 
@@ -287,10 +283,6 @@ public final class Solver {
     // TODO: all available units can be propagated simulatneously
     // logger.info("from watchLists");
     while (!clauses.isEmpty()) {
-      if (watchLists.contradiction) {
-        throw new ContradictionException();
-      }
-
       literals.reset();
       for (int i = 0; i < clauses.size(); i++) {
         int clause = clauses.getQuick(i);
@@ -361,7 +353,8 @@ public final class Solver {
   }
 
   /** Renames from into to */
-  private void renameLiteral(final int from, final int to) {
+  private void renameLiteral(final int from, final int to)
+      throws ContradictionException {
     // logger.info("Renaming " + from + " to " + to);
     watchLists.merge(from, to);
     watchLists.merge(-from, -to);

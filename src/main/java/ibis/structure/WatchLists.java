@@ -23,7 +23,6 @@ public final class WatchLists {
   /** Watch lists */
   private final TIntHashSet[] watchLists;
   /** Short clauses discovered */
-  public boolean contradiction;
   public final TIntArrayList units, binaries;
 
   /** Constructor */
@@ -64,7 +63,8 @@ public final class WatchLists {
     return watchLists[literal + numVariables];
   }
 
-  public void merge(final int from, final int to) {
+  public void merge(final int from, final int to)
+      throws ContradictionException {
     TIntArrayList tautologies = new TIntArrayList();
 
     TIntIterator it = get(from).iterator();
@@ -87,7 +87,8 @@ public final class WatchLists {
   }
 
   /** Renames from to to in an or clause. */
-  private boolean mergeOR(final int clause, final int from, final int to) {
+  private boolean mergeOR(final int clause, final int from, final int to)
+      throws ContradictionException {
     if (get(to).contains(clause)) {
       // to or to = to
       Misc.removeLiteral(formula, clause, from);
@@ -104,7 +105,8 @@ public final class WatchLists {
   }
 
   /** Renames from to to in a xor/nxor clause. */
-  private void mergeXOR(final int clause, final int from, final int to) {
+  private void mergeXOR(final int clause, final int from, final int to)
+      throws ContradictionException {
     assert type(formula, clause) != OR;
     assert from > 0;
 
@@ -131,16 +133,16 @@ public final class WatchLists {
   }
 
   /** Removes literal at index from clause. */
-  public void removeLiteralAt(final int clause,
-                              final int index) {
+  public void removeLiteralAt(final int clause, final int index)
+      throws ContradictionException {
     get(formula.get(index)).remove(clause);
     Misc.removeLiteralAt(formula, clause, index);
     clauseLengthChanged(clause);
   }
 
   /** Removes literal at index from clause. */
-  public void removeLiteral(final int clause,
-                            final int literal) {
+  public void removeLiteral(final int clause, final int literal)
+      throws ContradictionException {
     int index = formula.indexOf(clause, literal);
     removeLiteralAt(clause, index);
   }
@@ -155,7 +157,7 @@ public final class WatchLists {
   }
 
   /** Assigns u to true, -u to false and removes the literals from clauses. */
-  public void assign(final int u) {
+  public void assign(final int u) throws ContradictionException {
     // logger.info("assigning unit " + u);
     // logger.info("formula is " + formulaToString(formula));
 
@@ -187,11 +189,11 @@ public final class WatchLists {
   }
 
   /** Enqueues short clauses. */
-  private void clauseLengthChanged(final int clause) {
+  private void clauseLengthChanged(final int clause) throws ContradictionException {
     int length = length(formula, clause);
     if (length == 0) {
       if (type(formula, clause) != NXOR) {
-        contradiction = true;
+        throw new ContradictionException();
       } else {
         Misc.removeClause(formula, clause);
       }

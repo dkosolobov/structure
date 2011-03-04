@@ -12,10 +12,7 @@ import static ibis.structure.Misc.*;
 public class BinarySelfSubsumming {
   private static final Logger logger = Logger.getLogger(BinarySelfSubsumming.class);
 
-  public static void run(final Solver solver)
-      throws ContradictionException {
-    // long start = System.currentTimeMillis();
-    
+  public static void run(final Solver solver) throws ContradictionException {
     int numVariables = solver.numVariables;
     TouchSet touched = new TouchSet(numVariables);
     TIntArrayList tautologies = new TIntArrayList();
@@ -33,18 +30,14 @@ public class BinarySelfSubsumming {
         }
       }
     }
-
-    // long end = System.currentTimeMillis();
-    // logger.info("bsss took " + (end - start) / 1000.);
-    // System.exit(1);
   }
 
   private static void run(final Solver solver,
-                          final int u,
+                          final int literal,
                           final TouchSet touched,
-                          final TIntArrayList tautologies) {
-
-    TIntHashSet watchList = solver.watchLists.get(u);
+                          final TIntArrayList tautologies)
+      throws ContradictionException {
+    TIntHashSet watchList = solver.watchLists.get(literal);
     TIntArrayList formula = solver.watchLists.formula();
     TIntIterator it = watchList.iterator();
 
@@ -59,8 +52,8 @@ clause_loop:
       // Checks if clause is a tautology
       for (int j = clause; j < clause + length; j++) {
         int v = formula.get(j);
-        if (v != u && touched.contains(v)) {
-          // If u + v + a + ... and -u => v
+        if (v != literal && touched.contains(v)) {
+          // If literal + v + a + ... and -literal => v
           // then clause is tautology
           tautologies.add(clause);
           continue clause_loop;
@@ -70,7 +63,7 @@ clause_loop:
       // Removes extra literals
       for (int j = clause; j < clause + length; j++) {
         int v = formula.get(j);
-        if (v != u && touched.contains(-v)) {
+        if (v != literal && touched.contains(-v)) {
           // If a + b + c + ... and -a => -b
           // then a + c + ...
           solver.watchLists.removeLiteralAt(clause, j);
@@ -79,7 +72,6 @@ clause_loop:
         }
       }
     }
-
   }
 }
  

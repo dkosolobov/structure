@@ -101,7 +101,8 @@ public final class Subsumming {
 
   private void findSubsummed(final int clause, final long hash,
                              final TIntArrayList uClauses,
-                             final TLongArrayList uHashes) {
+                             final TLongArrayList uHashes)
+      throws ContradictionException {
     int length = length(formula, clause);
     int type = type(formula, clause);
 
@@ -143,12 +144,6 @@ public final class Subsumming {
         numRemovedClauses++;
         watchLists.removeClause(other);
       } else if (type != OR && otherType != OR) {
-        /*
-        System.err.println("mergegin " +
-            clauseToString(formula, clause) + " into " +
-            clauseToString(formula, other));
-            */
-
         if (type == XOR) {
           switchXOR(formula, other);
         }
