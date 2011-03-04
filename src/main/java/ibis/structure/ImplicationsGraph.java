@@ -612,9 +612,10 @@ public final class ImplicationsGraph {
   }
 
   /** Returns the graph as a SAT instance */
-  public void serialize(final TIntArrayList formula) {
+  public TIntArrayList serialize() {
     transitiveReduction();
 
+    TIntArrayList bins = new TIntArrayList();
     for (int i = 0; i < topologicalSort.length; i++) {
       int u = topologicalSort[i];
       if (u == 0) {
@@ -626,11 +627,12 @@ public final class ImplicationsGraph {
         int v = edges.getQuick(j);
         assert u != v;
 
-        formula.add(encode(2, OR));
-        formula.add(-u);
-        formula.add(v);
+        bins.add(-u);
+        bins.add(v);
       }
     }
+
+    return bins;
   }
 
   private int[] create() {

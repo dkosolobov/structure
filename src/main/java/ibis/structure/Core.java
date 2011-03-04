@@ -17,14 +17,14 @@ public final class Core {
   public Core(final int numVariables,
               final int[] units,
               final int[] proxies,
-              final TIntArrayList formula) {
+              final TIntArrayList formula,
+              final TIntArrayList bins) {
     this.numVariables = numVariables;
     this.units.addAll(units);
     this.proxies = proxies;
 
     assert !formula.isEmpty();
-    instance = new Skeleton(numVariables);
-    instance.formula = formula;
+    instance = new Skeleton(numVariables, formula, bins);
   }
 
   /** Returns core's instance. */

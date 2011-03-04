@@ -7,11 +7,32 @@ import static ibis.structure.Misc.*;
 
 public final class Skeleton implements java.io.Serializable {
   public int numVariables;
-  public TIntArrayList formula = new TIntArrayList();
+  public TIntArrayList formula;
+  public TIntArrayList bins;
 
   /** Constructor. */
   public Skeleton(final int numVariables) {
+    this(numVariables, new TIntArrayList(), new TIntArrayList());
+  }
+
+  /** Constructor. */
+  public Skeleton(final int numVariables,
+                  final TIntArrayList formula) {
+    this(numVariables, formula, new TIntArrayList());
+  }
+
+  /** Constructor. */
+  public Skeleton(final int numVariables,
+                  final TIntArrayList formula,
+                  final TIntArrayList bins) {
     this.numVariables = numVariables;
+    this.formula = formula;
+    this.bins = bins;
+  }
+
+  /** Returns number of literals + number of clauses */
+  public int size() {
+    return formula.size() + 3 * bins.size() / 2;
   }
 
   /** Returns the skeleton as in extended DIMACS format. */

@@ -23,7 +23,7 @@ public final class BranchActivity extends Activity {
                         final int depth,
                         final Skeleton instance) {
     super(parent, depth, instance);
-    assert !instance.formula.isEmpty();
+    assert instance.size() > 0;
   }
 
   public void initialize() {
@@ -82,21 +82,21 @@ public final class BranchActivity extends Activity {
    */
   double[] evaluateLiterals() {
     int numVariables = instance.numVariables;
-    TIntArrayList formula = instance.formula;
     double[] scores = new double[2 * numVariables + 1];
-    ClauseIterator it;
 
     // These values were fine tuned for easy instances from
     // SAT Competition 2011.
-    final double alpha = 0.17;
-    final double beta = 0.55;
-    final double gamma = 0.11;
-
-    // final double alpha = Configure.ttc[0];
+    // final double alpha = 0.17;
     // final double beta = 0.55;
-    // final double gamma = Configure.ttc[1];
+    // final double gamma = 0.11;
+
+    final double alpha = Configure.ttc[0];
+    final double beta = 0.55;
+    final double gamma = Configure.ttc[1];
     
-    it = new ClauseIterator(formula);
+    // First scores are computed based on clauses length
+    TIntArrayList formula = instance.formula;
+    ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
@@ -120,18 +120,22 @@ public final class BranchActivity extends Activity {
         }
       } 
     }
+    
+    TIntArrayList bins = instance.bins;
+    for (int i = 0; i < bins.size(); i += 2) {
+      int u = bins.getQuick(i);
+      int v = bins.getQuick(i + 1);
 
-    it = new ClauseIterator(formula);
-    while (it.hasNext()) {
-      int clause = it.next();
-      int length = length(formula, clause);
-      int type = type(formula, clause);
+      double delta = Math.pow(alpha, 2);
+      scores[neg(u) + numVariables] += delta;
+      scores[neg(v) + numVariables] += delta;
+    }
 
-      if (type == OR && length == 2) {
-        int u = formula.getQuick(clause);
-        int v = formula.getQuick(clause + 1);
-        scores[neg(u) + numVariables] += gamma * scores[v + numVariables];
-      }
+    // Second add scores up on implication graph
+    for (int i = 0; i < bins.size(); i += 2) {
+      int u = bins.getQuick(i);
+      int v = bins.getQuick(i + 1);
+      scores[neg(u) + numVariables] += gamma * scores[v + numVariables];
     }
 
     return scores;

@@ -51,6 +51,7 @@ public final class SplitActivity extends Activity {
     units = new int[numVariables];
 
     joinVariablesInClauses(instance.formula);
+    joinVariablesInBinaries(instance.bins);
 
     if (!isSplit()) {
       executor.submit(new BranchActivity(parent, depth, instance));
@@ -108,8 +109,8 @@ public final class SplitActivity extends Activity {
     }
   }
 
-  /** Puts variables in each clause in the same set */
-  private void joinVariablesInClauses(TIntArrayList formula) {
+  /** Puts variables in each clause in the same set. */
+  private void joinVariablesInClauses(final TIntArrayList formula) {
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
@@ -117,8 +118,15 @@ public final class SplitActivity extends Activity {
 
       int u = formula.get(clause);
       for (int i = clause; i < clause + length; i++) {
-        join(u, formula.get(i));
+        join(u, formula.getQuick(i));
       }
+    }
+  }
+
+  /** Puts variables in each binary in the same set. */
+  private void joinVariablesInBinaries(final TIntArrayList bins) {
+    for (int i = 0; i < bins.size(); i += 2) {
+      join(bins.getQuick(i), bins.getQuick(i + 1));
     }
   }
 
@@ -140,8 +148,8 @@ public final class SplitActivity extends Activity {
   /** Splits the instance in sub instances. */
   private void split() {
     subInstances = new TIntObjectHashMap<Skeleton>();
-    TIntArrayList formula = instance.formula;
 
+    final TIntArrayList formula = instance.formula;
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
@@ -160,6 +168,21 @@ public final class SplitActivity extends Activity {
       for (int i = clause; i < clause + length; i++) {
         subFormula.add(formula.get(i));
       }
+    }
+
+    final TIntArrayList bins = instance.bins;
+    for (int i = 0; i < bins.size(); i += 2) {
+      int u = bins.getQuick(i);
+      int v = bins.getQuick(i + 1);
+
+      Skeleton subInstance = subInstances.get(find(u));
+      if (subInstance == null) {
+        subInstance = new Skeleton(instance.numVariables);
+        subInstances.put(find(u), subInstance);
+      }
+
+      subInstance.bins.add(u);
+      subInstance.bins.add(v);
     }
   }
 

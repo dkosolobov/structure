@@ -26,12 +26,7 @@ public final class InstanceNormalizer {
 
       for (int i = clause; i < clause + length; i++) {
         int literal = formula.get(i);
-        int renamed = variableMap.get(literal);
-        if (renamed == 0) {
-          renamed = variableMap.size() / 2 + 1;
-          variableMap.put(literal, renamed);
-          variableMap.put(-literal, -renamed);
-        }
+        int renamed = rename(literal);
 
         if (type == OR) {
           formula.set(i, renamed);
@@ -49,7 +44,22 @@ public final class InstanceNormalizer {
       }
     }
 
+    for (int i = 0; i < instance.bins.size(); i++) {
+      instance.bins.setQuick(i, rename(instance.bins.getQuick(i)));
+    }
+
     instance.numVariables = variableMap.size() / 2;
+  }
+
+  private int rename(final int literal) {
+    int rename = variableMap.get(literal);
+    if (rename == 0) {
+      rename = variableMap.size() / 2 + 1;
+      variableMap.put(literal, rename);
+      variableMap.put(-literal, -rename);
+    }
+
+    return rename;
   }
 
   /** Denormalizes inplace an array of literals. */

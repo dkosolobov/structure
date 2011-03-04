@@ -42,7 +42,15 @@ public final class Solver {
       proxies[u + numVariables] = u;
     }
 
+    // Builds the watch lists.
     watchLists.build();
+
+    // Rebuilds the implication graph.
+    for (int i = 0; i < instance.bins.size(); i += 2) {
+      int u = instance.bins.getQuick(i);
+      int v = instance.bins.getQuick(i + 1);
+      addBinary(u, v);
+    }
 
     if (Configure.verbose) {
       System.err.print(".");
@@ -169,11 +177,12 @@ public final class Solver {
     assert unitsQueue.isEmpty();
 
     TIntArrayList formula = watchLists.formula();
+    TIntArrayList bins = graph.serialize();
+
     watchLists = null;
     compact(formula);
-    graph.serialize(formula);
 
-    return new Core(numVariables, units.toArray(), proxies, formula);
+    return new Core(numVariables, units.toArray(), proxies, formula, bins);
   }
 
   /**
