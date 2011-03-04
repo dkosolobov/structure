@@ -113,12 +113,8 @@ public final class BlockedClauseElimination {
     // blocked clause.
     bce.reverse();
 
-    if (Configure.verbose) {
-      if (numBlocked > 0) {
-        System.err.print("bc" + numBlocked + ".");
-      }
-    }
-
+    logger.info("Found " + bce.size() + " literals in "
+                + numBlocked + " blocked clauses");
     return bce;
   }
 
