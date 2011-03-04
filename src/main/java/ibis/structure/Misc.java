@@ -7,6 +7,7 @@ public final class Misc {
   public static final int NXOR = 0;
   public static final int XOR = 1;
   public static final int OR = 2;
+  public static final int DELETED = 3;
 
   private static final int TYPE_BITS = 2;
   private static final int TYPE_MASK = (1 << TYPE_BITS) - 1;
@@ -26,11 +27,12 @@ public final class Misc {
    *
    */
   public static final class ClauseIterator {
-    private TIntArrayList formula;
+    private final TIntArrayList formula;
     private int index;
 
     public ClauseIterator(final TIntArrayList formula) {
       this.formula = formula;
+
       index = 0;
       skipRemoved();
     }
@@ -49,10 +51,18 @@ public final class Misc {
     }
 
     private void skipRemoved() {
-      while (index < formula.size() && formula.getQuick(index) == REMOVED) {
+      while (true) {
+        while (index < formula.size() && formula.getQuick(index) == REMOVED) {
+          index++;
+        }
         index++;
+
+        if (index < formula.size() && type(formula, index) == DELETED) {
+          index += length(formula, index);
+        } else {
+          break;
+        }
       }
-      index++;
     }
   }
 
@@ -132,25 +142,22 @@ public final class Misc {
 
   /** Encodes the length and the type into a single int. */
   public static int encode(final int length, final int type) {
-    assert type == XOR || type == NXOR || type == OR;
+    assert type == XOR || type == NXOR || type == OR || type == DELETED;
     return (length << TYPE_BITS) + type;
   }
 
   /** Returns the length of the clause. */
   public static int length(final TIntArrayList formula, final int clause) {
-    assert !isClauseRemoved(formula, clause) : "Clause " + clause + " was removed";
     return formula.getQuick(clause - 1) >> TYPE_BITS;
   }
 
   /** Returns the type of the clause. */
   public static int type(final TIntArrayList formula, final int clause) {
-    assert !isClauseRemoved(formula, clause) : "Clause " + clause + " was removed";
     return formula.getQuick(clause - 1) & TYPE_MASK;
   }
 
   /** Switches the value of the XOR instance. */
   public static void switchXOR(final TIntArrayList formula, final int clause) {
-    assert !isClauseRemoved(formula, clause) : "Clause " + clause + " was removed";
     assert type(formula, clause) == XOR || type(formula, clause) == NXOR;
     formula.setQuick(clause - 1, formula.getQuick(clause - 1) ^ 1);
   }
@@ -161,8 +168,11 @@ public final class Misc {
     int length = length(formula, clause);
 
     StringBuffer result = new StringBuffer();
-    if (type != OR) {
+    if (type == XOR || type == NXOR) {
       result.append("x ");
+    }
+    if (type == DELETED) {
+      result.append("r ");
     }
     for (int i = clause; i < clause + length; i++) {
       int literal = formula.getQuick(i);
@@ -212,13 +222,13 @@ public final class Misc {
   public static void removeClause(final TIntArrayList formula,
                                   final int clause) {
     int length = length(formula, clause);
-    formula.fill(clause - 1, clause + length, REMOVED);
+    formula.setQuick(clause - 1, encode(length, DELETED));
   }
 
   /** Returns true if the clause was removed. */
   public static boolean isClauseRemoved(final TIntArrayList formula,
                                         final int clause) {
-    return formula.getQuick(clause - 1) == REMOVED;
+    return type(formula, clause) == DELETED;
   }
 
   /**
@@ -229,17 +239,21 @@ public final class Misc {
    */
   public static void compact(final TIntArrayList formula) {
     int p = 0;
-    for (int i = 0; i < formula.size(); i++) {
-      int literal = formula.getQuick(i);
-      if (literal != REMOVED) {
-        formula.setQuick(p, literal);
-        p++;
+
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+      int type = type(formula, clause);
+
+      if (type != DELETED) {
+        formula.setQuick(p++, encode(length, type));
+        for (int i = clause; i < clause + length; i++) {
+          formula.setQuick(p++, formula.getQuick(i));
+        }
       }
     }
 
-    int removed = formula.size() - p;
-    if (removed > 0) {
-      formula.remove(p, removed);
-    }
+    formula.remove(p, formula.size() - p);
   }
 }
