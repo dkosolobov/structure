@@ -41,10 +41,6 @@ public final class WatchLists {
 
   /** Builds the watch lists */
   public void build() throws ContradictionException {
-    for (int u = -numVariables; u <= numVariables; ++u) {
-      watchLists[u + numVariables] = new TIntHashSet(3);
-    }
-
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
@@ -59,7 +55,11 @@ public final class WatchLists {
 
   /** Returns the watch list for literal. */
   public TIntHashSet get(final int literal) {
-    return watchLists[literal + numVariables];
+    int temp = literal + numVariables;
+    if (watchLists[temp] == null) {
+      watchLists[temp] = new TIntHashSet();
+    }
+    return watchLists[temp];
   }
 
   public void merge(final int from, final int to)
