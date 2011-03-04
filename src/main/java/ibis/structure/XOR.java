@@ -66,7 +66,7 @@ public class XOR {
           for (int j = start; j < end; j++) {
             clause = clauses.get(j);
             boolean odd = hasOddNumNegations(formula, clause);
-            if (isXORClause == (odd ? 1 : -1)) {
+            if ((odd && isXORClause == NXOR) || (!odd && isXORClause == XOR)) {
               // logger.info("removed " + clauseToString(formula, clause));
               removeClause(formula, clause);
             }
@@ -126,7 +126,7 @@ public class XOR {
                                  final int end) throws ContradictionException {
     int clause = clauses.get(start);
     int length = length(formula, clause);
-    if (length < 0 || length > 24) {
+    if (length < 3 || length > 24) {
       // Too small or too big for a xor clause.
       return OR;
     }
