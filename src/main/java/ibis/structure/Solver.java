@@ -193,13 +193,12 @@ public final class Solver {
   public void simplify() throws ContradictionException {
     propagate();
 
-    for (int i = 0; i < Configure.numHyperBinaryResolutions; i++) {
-      if (!(new HyperBinaryResolution(this)).run()) {
-        break;
-      }
-
+    if (Configure.hyperBinaryResolution) {
+      (new HyperBinaryResolution(this)).run();
       propagate();
+
       renameEquivalentLiterals();
+      propagate();
     }
 
     if (Configure.binarySelfSubsumming) {

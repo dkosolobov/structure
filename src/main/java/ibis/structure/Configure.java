@@ -38,7 +38,7 @@ public class Configure {
   /** True to run blocked clause elimination. */
   public static boolean bce = true;
   /** Number of hyper binary resolutions to perform. 0 to disable. */
-  public static int numHyperBinaryResolutions = 1;
+  public static boolean hyperBinaryResolution = true;
   /** Threshold for transitive closure. */
   public static double[] ttc = {0.29, 0.19};
 
@@ -57,7 +57,7 @@ public class Configure {
     options.addOption("noxor", false, "disable xor gates extraction");
     options.addOption("nodve", false, "disable dependent variable elimination");
     options.addOption("nobce", false, "disable blocked clause elimination");
-    options.addOption("hbr", true, "# of hyper binary resolutions (0 to disable)");
+    options.addOption("nohbr", true, "disable hyper binary resolutions");
     options.addOption("ttc", true, "some coefficients");
 
     BasicParser parser = new BasicParser();
@@ -115,8 +115,8 @@ public class Configure {
     if (cl.hasOption("nobce")) {
       bce = false;
     }
-    if (cl.hasOption("hbr")) {
-      numHyperBinaryResolutions = Integer.parseInt(cl.getOptionValue("hbr"));
+    if (cl.hasOption("nohbr")) {
+      hyperBinaryResolution = false;
     }
     if (cl.hasOption("ttc")) {
       String[] ttc_ = cl.getOptionValue("ttc").split(",");
