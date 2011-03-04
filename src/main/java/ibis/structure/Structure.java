@@ -12,6 +12,8 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import org.apache.log4j.Logger;
 
+import static ibis.structure.Misc.formulaToString;
+
 class Structure {
   private static final Logger logger = Logger.getLogger(Structure.class);
 
@@ -92,26 +94,42 @@ class Structure {
   }
 
   private static Solution solve(Constellation constellation, Skeleton instance) {
-    TIntArrayList dve = null, bce = null;
-    Solver solver = null;
+    TIntArrayList xorGates = null;
+    TIntArrayList dve = null;
+    TIntArrayList bce = null;
+
+    Solver solver;
+    Solution solution;
     
     try {
       if (Configure.xor) {
-        XOR.extractXORClauses(instance);
+        xorGates = XOR.extractGates(instance.formula);
+        logger.info("After XOR " + xorGates.size() + " literals in xorGates");
+        if (Configure.dve) {
+          dve = DependentVariableElimination.run(
+              instance.numVariables, instance.formula, xorGates);
+          logger.info("After DVE " + xorGates.size() + " literals in xorGates");
+        }
+        instance.formula.addAll(xorGates);
       }
 
       solver = new Solver(instance);
-      if (Configure.dve) {
-        dve = DependentVariableElimination.run(solver);
+      solution = solver.solve(0);
+
+      if (!solution.isUnknown()) {
+        solution = DependentVariableElimination.restore(dve, solution);
+        return solution;
       }
-      solver.simplifyAtTopLevel();
 
       if (Configure.bce) {
         bce = (new BlockedClauseElimination(solver)).run();
       }
     } catch (ContradictionException e) {
+      solution = Solution.unsatisfiable();
       return Solution.unsatisfiable();
     }
+
+    assert solution.isUnknown();
 
     Core core = solver.core();
     InstanceNormalizer normalizer = new InstanceNormalizer();
@@ -122,6 +140,7 @@ class Structure {
     logger.info(core.instance().formula.size()
                 + " literals remaining out of "
                 + instance.formula.size());
+    // System.exit(1);
 
     SingleEventCollector root = new SingleEventCollector();
     constellation.submit(root);
@@ -129,7 +148,7 @@ class Structure {
                                             core.instance().numVariables,
                                             core.instance()));
 
-    Solution solution = (Solution) root.waitForEvent().data;
+    solution = (Solution) root.waitForEvent().data;
     if (!solution.isSatisfiable()) {
       return solution;
     }
@@ -145,14 +164,7 @@ class Structure {
     }
 
     solution = core.merge(solution);
-
-    units = new BitSet();
-    units.addAll(solution.units());
-    if (dve != null) {
-      DependentVariableElimination.addUnits(dve, units);
-      solution = Solution.satisfiable(units.elements());
-    }
-
+    solution = DependentVariableElimination.restore(dve, solution);
     return solution;
   }
 }

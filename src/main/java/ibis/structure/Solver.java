@@ -103,16 +103,16 @@ public final class Solver {
    */
   public Solution solve(final int branch) {
     try {
-      if (branch != 0) {
+      if (branch == 0) {
+        simplifyAtTopLevel();
+      } else {
         queueUnit(branch);
+        simplify();
       }
-
-      simplify();
 
       // If all clauses were removed solve the remaining 2SAT.
       boolean empty = !(new ClauseIterator(watchLists.formula())).hasNext();
       return empty ? solve2SAT() : Solution.unknown();
-
     } catch (ContradictionException e) {
       // logger.info("found contradiction", e);
       return Solution.unsatisfiable();
@@ -235,7 +235,6 @@ public final class Solver {
 
     simplify();
   }
-
 
   /** Propagates units and binaries */
   public boolean propagate() throws ContradictionException {
