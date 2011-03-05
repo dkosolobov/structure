@@ -8,8 +8,8 @@ import org.apache.log4j.Logger;
 public final class SolveActivity extends Activity {
   private static final Logger logger = Logger.getLogger(SolveActivity.class);
 
-  private int branch;
-  private Core core = null;
+  private final int branch;
+  private Core core;
 
   public SolveActivity(final ActivityIdentifier parent,
                        final int depth,
@@ -33,7 +33,7 @@ public final class SolveActivity extends Activity {
       logger.error("Failed to solve instance", e);
       // logger.error("Branch is " + branch);
       // logger.error("Formula is " + instance);
-      // System.exit(1);
+      System.exit(1);
       reply(Solution.unknown());
       finish();
       return;
@@ -52,11 +52,11 @@ public final class SolveActivity extends Activity {
   }
 
   public void process(final Event e) throws Exception {
-    Solution response = (Solution)e.data;
+    Solution response = (Solution) e.data;
     if (response.isSatisfiable()) {
-      Solution solution = core.merge(response);
-      verify(solution, branch);
-      reply(solution);
+      response = core.merge(response);
+      verify(response, branch);
+      reply(response);
     } else {
       reply(response);
     }
