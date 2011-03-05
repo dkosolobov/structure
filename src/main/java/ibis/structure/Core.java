@@ -39,7 +39,10 @@ public final class Core {
 
   /** Merges solution. */
   public Solution merge(final Solution solution) {
-    assert solution.isSatisfiable();
+    if (!solution.isSatisfiable()) {
+      return solution;
+    }
+
     // Adds instance's units
     units.addAll(solution.units());
 

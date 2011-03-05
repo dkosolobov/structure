@@ -66,6 +66,7 @@ public final class PreprocessActivity extends Activity {
 
     core = solver.core();
     executor.submit(new SplitActivity(identifier(), depth, core.instance()));
+    suspend();
   }
 
   public void process(final Event e) throws Exception {

@@ -55,11 +55,9 @@ public final class SolveActivity extends Activity {
     Solution response = (Solution) e.data;
     if (response.isSatisfiable()) {
       response = core.merge(response);
-      verify(response, branch);
-      reply(response);
-    } else {
-      reply(response);
     }
+    verify(response, branch);
+    reply(response);
     finish();
   }
 }
