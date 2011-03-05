@@ -27,8 +27,17 @@ public final class BlockedClauseElimination {
     seen = new TouchSet(numVariables);
   }
 
+  public static TIntArrayList run(final Solver solver) {
+    return (new BlockedClauseElimination(solver)).run();
+  }
+
   /** Fixes units to satisfy blocked clauses. */
-  public static void addUnits(final TIntArrayList bce, final BitSet units) {
+  public static Solution restore(final TIntArrayList bce, final Solution solution) {
+    if (!solution.isSatisfiable() || bce == null || bce.isEmpty()) {
+      return solution;
+    }
+
+    TIntHashSet units = new TIntHashSet(solution.units());
     ClauseIterator it = new ClauseIterator(bce);
     while (it.hasNext()) {
       int clause = it.next();
@@ -48,16 +57,20 @@ public final class BlockedClauseElimination {
         units.add(literal);
       }
     }
+
+    return Solution.satisfiable(units.toArray());
   }
 
-  public TIntArrayList run() {
+  private TIntArrayList run() {
     TIntArrayList bce = new TIntArrayList(); 
     TIntArrayList blocked = new TIntArrayList();;
     int numBlocked = 0;
     int numLiterals = 0;
 
     for (int literal = -numVariables; literal <= numVariables; literal++) {
-      if (solver.numBinaries(-literal) != 0) {
+      if (solver.numBinaries(neg(literal)) != 0) {
+        // BCE can't handle binaries, but they are handled
+        // by BinarySelfSubsumming.
         continue;
       }
 

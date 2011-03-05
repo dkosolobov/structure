@@ -1,6 +1,5 @@
 package ibis.structure;
 
-import gnu.trove.list.array.TIntArrayList;
 import ibis.constellation.Constellation;
 import ibis.constellation.ConstellationFactory;
 import ibis.constellation.context.UnitWorkerContext;
@@ -94,77 +93,11 @@ class Structure {
   }
 
   private static Solution solve(Constellation constellation, Skeleton instance) {
-    TIntArrayList xorGates = null;
-    TIntArrayList dve = null;
-    TIntArrayList bce = null;
-
-    Solver solver;
-    Solution solution;
-    
-    try {
-      if (Configure.xor) {
-        xorGates = XOR.extractGates(instance.formula);
-        logger.info("After XOR " + xorGates.size() + " literals in xorGates");
-        if (Configure.dve) {
-          dve = DependentVariableElimination.run(
-              instance.numVariables, instance.formula, xorGates);
-          logger.info("After DVE " + xorGates.size() + " literals in xorGates");
-        }
-        instance.formula.addAll(xorGates);
-      }
-
-      solver = new Solver(instance);
-      solution = solver.solve(0);
-
-      if (!solution.isUnknown()) {
-        solution = DependentVariableElimination.restore(dve, solution);
-        return solution;
-      }
-
-      if (Configure.bce) {
-        bce = (new BlockedClauseElimination(solver)).run();
-      }
-    } catch (ContradictionException e) {
-      solution = Solution.unsatisfiable();
-      return Solution.unsatisfiable();
-    }
-
-    assert solution.isUnknown();
-
-    Core core = solver.core();
-    InstanceNormalizer normalizer = new InstanceNormalizer();
-    normalizer.normalize(core.instance());
-    logger.info(core.instance().numVariables
-                + " variables remaining out of "
-                + instance.numVariables);
-    logger.info(core.instance().formula.size()
-                + " literals remaining out of "
-                + instance.formula.size());
-    // System.exit(1);
-
     SingleEventCollector root = new SingleEventCollector();
     constellation.submit(root);
     constellation.submit(new BranchActivity(root.identifier(),
-                                            core.instance().numVariables,
-                                            core.instance()));
-
-    solution = (Solution) root.waitForEvent().data;
-    if (!solution.isSatisfiable()) {
-      return solution;
-    }
-
-    normalizer.denormalize(solution);
-    BitSet units;
-
-    units = new BitSet();
-    units.addAll(solution.units());
-    if (bce != null) {
-      BlockedClauseElimination.addUnits(bce, units);
-      solution = Solution.satisfiable(units.elements());
-    }
-
-    solution = core.merge(solution);
-    solution = DependentVariableElimination.restore(dve, solution);
-    return solution;
+                                            instance.numVariables,
+                                            instance));
+    return (Solution) root.waitForEvent().data;
   }
 }
