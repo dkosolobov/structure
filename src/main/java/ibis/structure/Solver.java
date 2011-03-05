@@ -220,6 +220,8 @@ public final class Solver {
     if (Configure.pureLiterals) {
       PureLiterals.run(this);
       propagate();
+      PureLiterals.run(this);
+      propagate();
     }
 
     MissingLiterals.run(this);
@@ -229,6 +231,8 @@ public final class Solver {
 
   public void simplifyAtTopLevel() throws ContradictionException {
     if (Configure.pureLiterals) {
+      PureLiterals.run(this);
+      propagate();
       PureLiterals.run(this);
       propagate();
     }
@@ -242,6 +246,21 @@ public final class Solver {
     propagate();
 
     simplify();
+  }
+
+  public void printHist() {
+    TIntIntHashMap hist = new TIntIntHashMap();
+    for (int u = 1; u <= numVariables; ++u) {
+      if (isLiteralAssigned(u)) {
+        continue;
+      }
+
+      int x = watchLists.get(u).size() + numBinaries(u);
+      int y = watchLists.get(neg(u)).size() + numBinaries(neg(u));
+      int z = x * y;
+      hist.put(z, hist.get(z) + 1);
+    }
+    logger.info("hist is " + hist);
   }
 
   /** Propagates units and binaries */
@@ -364,10 +383,10 @@ public final class Solver {
       throws ContradictionException {
     // logger.info("Renaming " + from + " to " + to);
     watchLists.merge(from, to);
-    watchLists.merge(-from, -to);
+    watchLists.merge(neg(from), neg(to));
 
     proxies[from + numVariables] = to;
-    proxies[-from + numVariables] = -to;
+    proxies[neg(from) + numVariables] = neg(to);
   }
 
   /** Checks solver for consistency.  */

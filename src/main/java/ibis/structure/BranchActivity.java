@@ -10,34 +10,34 @@ import static ibis.structure.Misc.*;
 
 
 public final class BranchActivity extends Activity {
-  private static final Logger logger = Logger.getLogger(SplitActivity.class);
+  private static final Logger logger = Logger.getLogger(BranchActivity.class);
   private static final Random random = new Random(1);
 
-  private InstanceNormalizer normalizer = new InstanceNormalizer();
+  /** Branching literal. */
+  private int branch;
   /** Responses from branches */
   private Solution[] responses = new Solution[2];
   /** Number of responses received */
   private int numReplies = 0;
 
+
   public BranchActivity(final ActivityIdentifier parent,
                         final int depth,
-                        final Skeleton instance) {
+                        final Skeleton instance,
+                        final int branch) {
     super(parent, depth, instance);
+    this.branch = branch;
+
     assert instance.size() > 0;
   }
 
   public void initialize() {
-    normalizer.normalize(instance);
-    int branch = chooseBranch();
-    
     executor.submit(
         new SolveActivity(identifier(), depth - 1, instance, branch));
     executor.submit(
         new SolveActivity(identifier(), depth - 1, instance, -branch));
 
-    if (!Configure.enableExpensiveChecks) {
-      instance = null;  // Helps GC
-    }
+    gc();
     suspend();
   }
 
@@ -47,7 +47,6 @@ public final class BranchActivity extends Activity {
       if (numReplies == 0 || !responses[0].isSatisfiable()) {
         // Sends the solution to parent.
         verify(response);
-        normalizer.denormalize(response);
         reply(response);
       }
     }
@@ -72,94 +71,5 @@ public final class BranchActivity extends Activity {
       reply(Solution.unknown());
     }
     finish();
-  }
-
-  /**
-   * Computes scores for every literal.
-   *
-   * Idea adapted from:
-   * Building a Hybrid SAT Solver via Conflict Driven, Look Ahead and XOR Reasoning Techniques
-   */
-  double[] evaluateLiterals() {
-    int numVariables = instance.numVariables;
-    double[] scores = new double[2 * numVariables + 1];
-
-    // These values were fine tuned for easy instances from
-    // SAT Competition 2011.
-    // final double alpha = 0.17;
-    // final double beta = 0.55;
-    // final double gamma = 0.11;
-
-    final double alpha = Configure.ttc[0];
-    final double beta = 0.55;
-    final double gamma = Configure.ttc[1];
-    
-    // First scores are computed based on clauses length
-    TIntArrayList formula = instance.formula;
-    ClauseIterator it = new ClauseIterator(formula);
-    while (it.hasNext()) {
-      int clause = it.next();
-      int length = length(formula, clause);
-      int type = type(formula, clause);
-      double delta;
-
-      if (type == OR) {
-        delta = Math.pow(alpha, length);
-        for (int i = clause; i < clause + length; i++) {
-          int literal = formula.getQuick(i);
-          scores[neg(literal) + numVariables] += delta;
-        }
-      } 
-
-      if (type != OR) {
-        delta = Math.pow(beta, length);
-        for (int i = clause; i < clause + length; i++) {
-          int literal = formula.getQuick(i);
-          scores[literal + numVariables] += delta;
-          scores[neg(literal) + numVariables] += delta;
-        }
-      } 
-    }
-    
-    TIntArrayList bins = instance.bins;
-    for (int i = 0; i < bins.size(); i += 2) {
-      int u = bins.getQuick(i);
-      int v = bins.getQuick(i + 1);
-
-      double delta = Math.pow(alpha, 2);
-      scores[neg(u) + numVariables] += delta;
-      scores[neg(v) + numVariables] += delta;
-    }
-
-    // Second add scores up on implication graph
-    for (int i = 0; i < bins.size(); i += 2) {
-      int u = bins.getQuick(i);
-      int v = bins.getQuick(i + 1);
-      scores[neg(u) + numVariables] += gamma * scores[v + numVariables];
-    }
-
-    return scores;
-  }
-
-  /** Chooses a literal for branching */
-  private int chooseBranch() {
-    final int numVariables = instance.numVariables;
-    final double[] scores = evaluateLiterals();
-
-    int bestBranch = 0;
-    double bestScore = Double.NEGATIVE_INFINITY;;
-
-    for (int branch = 1; branch <= numVariables; branch++) {
-      double p = scores[branch + numVariables];
-      double n = scores[neg(branch) + numVariables];
-      double score = 1024 * n * p + n + p;
-
-      if (score > bestScore) {
-        bestBranch = branch;
-        bestScore = score;
-      }
-    }
-
-    return random.nextBoolean() ? bestBranch : neg(bestBranch);
   }
 }

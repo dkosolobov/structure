@@ -1,7 +1,6 @@
 package ibis.structure;
 
 import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.set.hash.TIntHashSet;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.iterator.TIntObjectIterator;
 import ibis.constellation.ActivityIdentifier;
@@ -40,7 +39,7 @@ public final class SplitActivity extends Activity {
 
   public void initialize() {
     if (!Configure.split) {
-      executor.submit(new BranchActivity(parent, depth, instance));
+      executor.submit(new SelectBranchActivity(parent, depth, instance));
       finish();
       return;
     }
@@ -54,24 +53,22 @@ public final class SplitActivity extends Activity {
     joinVariablesInBinaries(instance.bins);
 
     if (!isSplit()) {
-      executor.submit(new BranchActivity(parent, depth, instance));
+      executor.submit(new SelectBranchActivity(parent, depth, instance));
       finish();
       return;
     }
 
     split();
-    if (!Configure.enableExpensiveChecks) {
-      instance = null;  // Helps GC
-    }
 
     // Submits subInstance to solve
     numSubmittedSplits = subInstances.size();
     TIntObjectIterator<Skeleton> it = subInstances.iterator();
     for (int size = subInstances.size(); size > 0; size--) {
       it.advance();
-      executor.submit(new BranchActivity(identifier(), depth, it.value()));
+      executor.submit(new SelectBranchActivity(identifier(), depth, it.value()));
     }
 
+    gc();
     suspend();
   }
 

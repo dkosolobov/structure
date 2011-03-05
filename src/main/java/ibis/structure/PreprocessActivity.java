@@ -66,6 +66,8 @@ public final class PreprocessActivity extends Activity {
 
     core = solver.core();
     executor.submit(new SplitActivity(identifier(), depth, core.instance()));
+
+    gc();
     suspend();
   }
 
@@ -74,7 +76,7 @@ public final class PreprocessActivity extends Activity {
     response = core.merge(response);
     response = BlockedClauseElimination.restore(bce, response);
     response = DependentVariableElimination.restore(dve, response);
-    verify(response, 0);
+    verify(response);
     reply(response);
     finish();
   }

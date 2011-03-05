@@ -136,6 +136,12 @@ public class Activity extends ibis.constellation.Activity {
       }
     }
   }
+  
+  public void gc() {
+    if (!Configure.enableExpensiveChecks) {
+      instance = null;  // Helps GC
+    }
+  }
 
   @Override
   public void initialize() throws Exception {
