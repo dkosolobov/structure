@@ -1,7 +1,6 @@
 package ibis.structure;
 
 import java.util.Random;
-import gnu.trove.list.array.TIntArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
@@ -17,8 +16,9 @@ public final class SelectBranchActivity extends Activity {
 
   public SelectBranchActivity(final ActivityIdentifier parent,
                               final int depth,
-                              final Skeleton instance) {
-    super(parent, depth, instance);
+                              final Skeleton instance,
+                              final boolean learn) {
+    super(parent, depth, instance, learn);
     assert instance.size() > 0;
   }
 
@@ -27,7 +27,7 @@ public final class SelectBranchActivity extends Activity {
     int branch = chooseBranch();
     
     executor.submit(new BranchActivity(
-          identifier(), depth, instance, branch));
+          identifier(), depth, instance, learn, branch));
 
     gc();
     suspend();

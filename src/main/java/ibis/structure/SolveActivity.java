@@ -14,8 +14,9 @@ public final class SolveActivity extends Activity {
   public SolveActivity(final ActivityIdentifier parent,
                        final int depth,
                        final Skeleton instance,
+                       final boolean learn,
                        final int branch) {
-    super(parent, depth, instance);
+    super(parent, depth, instance, learn);
     this.branch = branch;
   }
 
@@ -26,9 +27,6 @@ public final class SolveActivity extends Activity {
     try {
       solver = new Solver(instance);
       solution = solver.solve(branch);
-      if (!Configure.enableExpensiveChecks) {
-        instance = null;  // Helps GC
-      }
     } catch (Throwable e) {
       logger.error("Failed to solve instance", e);
       // logger.error("Branch is " + branch);
@@ -40,9 +38,11 @@ public final class SolveActivity extends Activity {
     }
 
     if (solution.isUnknown() && depth > 0) {
+      // solver.printHist();
       core = solver.core();
-      executor.submit(new SplitActivity(identifier(), depth, core.instance()));
-      core.gc();
+      executor.submit(new SplitActivity(
+            identifier(), depth, core.instance(), learn));
+      gc();
       suspend();
     } else {
       verify(solution, branch);
@@ -53,11 +53,14 @@ public final class SolveActivity extends Activity {
 
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
-    if (response.isSatisfiable()) {
-      response = core.merge(response);
-    }
+    response = core.merge(response);
     verify(response, branch);
     reply(response);
     finish();
+  }
+
+  public void gc() {
+    super.gc();
+    core.gc();
   }
 }

@@ -13,19 +13,23 @@ public class Activity extends ibis.constellation.Activity {
   private static final Logger logger = Logger.getLogger(Activity.class);
 
   /** Parent of this activity. */
-  protected ActivityIdentifier parent;
+  protected final ActivityIdentifier parent;
   /** Depth of the search. */
-  protected int depth;
+  protected final int depth;
   /** Instance to be solved. */
   protected Skeleton instance;
+  /** True if should learn. */
+  protected final boolean learn;
 
   protected Activity(final ActivityIdentifier parent,
                      final int depth,
-                     final Skeleton instance) {
+                     final Skeleton instance,
+                     final boolean learn) {
     super(UnitActivityContext.DEFAULT, true);
     this.parent = parent;
     this.depth = depth;
     this.instance = instance;
+    this.learn = learn;
   }
 
   protected void reply(final Solution response) {

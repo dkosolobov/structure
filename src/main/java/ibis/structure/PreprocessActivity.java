@@ -27,7 +27,7 @@ public final class PreprocessActivity extends Activity {
   public PreprocessActivity(final ActivityIdentifier parent,
                             final int depth,
                             final Skeleton instance) {
-    super(parent, depth, instance);
+    super(parent, depth, instance, false);
   }
 
   public void initialize() throws Exception {
@@ -65,7 +65,12 @@ public final class PreprocessActivity extends Activity {
     }
 
     core = solver.core();
-    executor.submit(new SplitActivity(identifier(), depth, core.instance()));
+    /*
+    executor.submit(new SplitActivity(
+          identifier(), depth, core.instance(), learn));
+          */
+    executor.submit(new FullLookAheadActivity(
+          identifier(), depth, core.instance()));
 
     gc();
     suspend();
@@ -79,5 +84,10 @@ public final class PreprocessActivity extends Activity {
     verify(response);
     reply(response);
     finish();
+  }
+
+  public void gc() {
+    super.gc();
+    core.gc();
   }
 }

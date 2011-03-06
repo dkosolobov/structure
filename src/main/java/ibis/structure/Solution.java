@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import java.io.PrintStream;
+import gnu.trove.list.array.TIntArrayList;
 
 
 /**
@@ -20,10 +21,11 @@ public final class Solution {
   private static final int UNKNOWN = 30;
 
   /** One of: SATISFIABLE, UNSATISFIABLE or UNKNOWN */
-  private int solved = UNKNOWN;
+  private int solved;
   /** Units. */
-  private int[] units = null;
-
+  private int[] units;
+  /** Learned clauses. TODO: add format. */
+  private TIntArrayList learned = new TIntArrayList();
 
   /** Returns a solution representing a satisfiable instance. */
   public static Solution satisfiable(final int[] units) {
@@ -73,6 +75,10 @@ public final class Solution {
 
   public int[] units() {
     return units;
+  }
+
+  public TIntArrayList learned() {
+    return learned;
   }
 
   /** Prints solution to out.  */

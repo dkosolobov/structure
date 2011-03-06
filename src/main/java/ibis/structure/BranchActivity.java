@@ -24,18 +24,18 @@ public final class BranchActivity extends Activity {
   public BranchActivity(final ActivityIdentifier parent,
                         final int depth,
                         final Skeleton instance,
+                        final boolean learn,
                         final int branch) {
-    super(parent, depth, instance);
+    super(parent, depth, instance, learn);
     this.branch = branch;
-
     assert instance.size() > 0;
   }
 
   public void initialize() {
-    executor.submit(
-        new SolveActivity(identifier(), depth - 1, instance, branch));
-    executor.submit(
-        new SolveActivity(identifier(), depth - 1, instance, -branch));
+    executor.submit(new SolveActivity(
+          identifier(), depth - 1, instance, learn, branch));
+    executor.submit(new SolveActivity(
+          identifier(), depth - 1, instance, learn, neg(branch)));
 
     gc();
     suspend();
@@ -66,9 +66,27 @@ public final class BranchActivity extends Activity {
       // A solution was already found and sent to parent.
     } else if (responses[0].isUnsatisfiable() && responses[1].isUnsatisfiable()) {
       // Both braches returned UNSATISFIABLE so the instance is unsatifiable
-      reply(Solution.unsatisfiable());
+      Solution solution = Solution.unknown();
+
+      if (learn) {
+        TIntArrayList learned = solution.learned();
+        learned.add(neg(branch));
+        learned.add(0);
+      }
+
+      reply(solution);
     } else {
-      reply(Solution.unknown());
+      Solution solution = Solution.unknown();
+
+      if (learn) {
+        TIntArrayList learned = solution.learned();
+        learned.add(neg(branch));
+        learned.addAll(responses[0].learned());
+        learned.addAll(responses[1].learned());
+        learned.add(0);
+      }
+    
+      reply(solution);
     }
     finish();
   }
