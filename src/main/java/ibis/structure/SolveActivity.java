@@ -26,9 +26,6 @@ public final class SolveActivity extends Activity {
     try {
       solver = new Solver(instance);
       solution = solver.solve(branch);
-      if (!Configure.enableExpensiveChecks) {
-        instance = null;  // Helps GC
-      }
     } catch (Throwable e) {
       logger.error("Failed to solve instance", e);
       // logger.error("Branch is " + branch);
@@ -42,7 +39,7 @@ public final class SolveActivity extends Activity {
     if (solution.isUnknown() && depth > 0) {
       core = solver.core();
       executor.submit(new SplitActivity(identifier(), depth, core.instance()));
-      core.gc();
+      gc();
       suspend();
     } else {
       verify(solution, branch);
@@ -59,5 +56,12 @@ public final class SolveActivity extends Activity {
     verify(response, branch);
     reply(response);
     finish();
+  }
+
+  protected void gc() {
+    super.gc();
+    if (!Configure.enableExpensiveChecks) {
+      core.gc();
+    }
   }
 }

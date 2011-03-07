@@ -194,11 +194,7 @@ public final class Solver {
     propagate();
 
     if (Configure.hyperBinaryResolution) {
-      (new HyperBinaryResolution(this)).run();
-      propagate();
-
-      renameEquivalentLiterals();
-      propagate();
+      HyperBinaryResolution.run(this);
     }
 
     if (Configure.binarySelfSubsumming) {
@@ -244,6 +240,10 @@ public final class Solver {
 
     renameEquivalentLiterals();
     propagate();
+
+    if (Configure.hyperBinaryResolution) {
+      HyperBinaryResolution.run(this);
+    }
 
     simplify();
   }
@@ -390,7 +390,7 @@ public final class Solver {
   }
 
   /** Checks solver for consistency.  */
-  private void verifyIntegrity() {
+  public void verifyIntegrity() {
     if (Configure.enableExpensiveChecks) {
       graph.verify();
       watchLists.verifyIntegrity();

@@ -137,7 +137,7 @@ public class Activity extends ibis.constellation.Activity {
     }
   }
   
-  public void gc() {
+  protected void gc() {
     if (!Configure.enableExpensiveChecks) {
       instance = null;  // Helps GC
     }

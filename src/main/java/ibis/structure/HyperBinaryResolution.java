@@ -35,7 +35,7 @@ public final class HyperBinaryResolution {
   private final int[] cacheLiterals = new int[CACHE_SIZE];
   private final TIntArrayList[] cacheEdges = new TIntArrayList[CACHE_SIZE];
 
-  public HyperBinaryResolution(final Solver solver) {
+  private HyperBinaryResolution(final Solver solver) {
     this.solver = solver;
 
     numVariables = solver.numVariables;
@@ -43,6 +43,16 @@ public final class HyperBinaryResolution {
     counts = new int[2 * numVariables + 1];
     sums = new int[2 * numVariables + 1];
     touched = new int[2 * numVariables + 1];
+  }
+
+  public static boolean run(final Solver solver) throws ContradictionException {
+    boolean simplified = (new HyperBinaryResolution(solver)).run();
+    solver.propagate();
+
+    solver.renameEquivalentLiterals();
+    solver.propagate();
+
+    return simplified;
   }
 
   public boolean run() {
