@@ -47,6 +47,8 @@ public class PureLiterals {
         System.err.print("p" + numUnits + ".");
       }
     }
+
+    solver.propagate();
     return numUnits > 0;
   }
 }

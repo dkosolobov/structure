@@ -23,10 +23,12 @@ public class Configure {
   public static boolean enableExpensiveChecks = false;
   /** True to print more info. */
   public static boolean verbose = true;
-  /** True to perform binary (self) subsumming. */
-  public static boolean binarySelfSubsumming = true;
+  /** True to perform hidden tautology elimination. */
+  public static boolean hiddenTautologyElimination = true;
   /** True to perform pure literals. */
   public static boolean pureLiterals = true;
+  /** True to perform binary (self) subsumming. */
+  public static boolean selfSubsumming = true;
   /** True to perform subsumming. */
   public static boolean subsumming = true;
   /** True to split instances when possible. */
@@ -50,14 +52,14 @@ public class Configure {
     options.addOption("debug", false, "enable expensive checks");
     options.addOption("q", false, "be quiet");
 
-    options.addOption("nobsss", false, "disable binary self subsumming");
+    options.addOption("nohte", false, "disable hidden tautology elimination");
     options.addOption("nopl", false, "disable pure literals");
-    options.addOption("noss", false, "disable subsumming");
+    options.addOption("nosss", false, "disable self-subsumming");
     options.addOption("nosplit", false, "disable splitting");
     options.addOption("noxor", false, "disable xor gates extraction");
     options.addOption("nodve", false, "disable dependent variable elimination");
     options.addOption("nobce", false, "disable blocked clause elimination");
-    options.addOption("nohbr", true, "disable hyper binary resolutions");
+    options.addOption("nohbr", false, "disable hyper binary resolutions");
     options.addOption("ttc", true, "some coefficients");
 
     BasicParser parser = new BasicParser();
@@ -94,14 +96,14 @@ public class Configure {
       verbose = false;
     }
 
-    if (cl.hasOption("nobsss")) {
-      binarySelfSubsumming = false;
+    if (cl.hasOption("hte")) {
+      hiddenTautologyElimination = false;
     }
     if (cl.hasOption("nopl")) {
       pureLiterals = false;
     }
-    if (cl.hasOption("noss")) {
-      subsumming = false;
+    if (cl.hasOption("nosss")) {
+      selfSubsumming = false;
     }
     if (cl.hasOption("nosplit")) {
       split = false;

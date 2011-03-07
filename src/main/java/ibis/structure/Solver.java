@@ -197,14 +197,12 @@ public final class Solver {
       HyperBinaryResolution.run(this);
     }
 
-    if (Configure.binarySelfSubsumming) {
-      BinarySelfSubsumming.run(this);
-      propagate();
+    if (Configure.hiddenTautologyElimination) {
+      HiddenTautologyElimination.run(this);
     }
 
-    if (Configure.subsumming) {
-      (new Subsumming(this)).run();
-      propagate();
+    if (Configure.selfSubsumming) {
+      SelfSubsumming.run(this);
     }
 
     queueForcedLiterals();
@@ -215,9 +213,6 @@ public final class Solver {
 
     if (Configure.pureLiterals) {
       PureLiterals.run(this);
-      propagate();
-      PureLiterals.run(this);
-      propagate();
     }
 
     MissingLiterals.run(this);
@@ -228,9 +223,7 @@ public final class Solver {
   public void simplifyAtTopLevel() throws ContradictionException {
     if (Configure.pureLiterals) {
       PureLiterals.run(this);
-      propagate();
       PureLiterals.run(this);
-      propagate();
     }
 
     propagate();
