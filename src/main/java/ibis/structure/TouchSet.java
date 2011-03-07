@@ -62,11 +62,9 @@ public final class TouchSet {
 
   /** Returns true if set contains u, otherwise adds it to the set. */
   public boolean containsOrAdd(final int u) {
-    if (contains(u)) {
-      return true;
-    }
-    add(u);
-    return false;
+    int tmp = colors[u + numVariables];
+    colors[u + numVariables] = currentColor;
+    return tmp == currentColor;
   }
 
   /** Returns an array with all elements in the set */
