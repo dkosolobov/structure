@@ -71,7 +71,7 @@ public final class ImplicationsGraph {
     TIntArrayList visited = new TIntArrayList();
     for (int i = 0; i < literals.size(); i++) {
       int u = literals.get(i);
-      internalDFS(u, visited);
+      internalBFS(u, visited);
     }
 
     for (int i = 0; i < visited.size(); i++) {
@@ -117,11 +117,11 @@ public final class ImplicationsGraph {
       int u = literals.get(i);
       assert !visited.contains(u): "Literal " + u + " was already removed";
       visited.add(u);
-      visited.add(-u);
+      visited.add(neg(u));
 
       assert EMPTY.isEmpty();
       edges[u + numVariables] = EMPTY;
-      edges[-u + numVariables] = EMPTY;
+      edges[neg(u) + numVariables] = EMPTY;
     }
 
     // Removes unwanted literals from dirty nodes.
@@ -181,6 +181,8 @@ public final class ImplicationsGraph {
    */
   public void findForcedLiterals(final TIntArrayList forced)
       throws ContradictionException {
+    assert forced.isEmpty();
+
     TIntArrayList units = new TIntArrayList();
     for (int u = -numVariables; u <= numVariables; u++) {
       visited.reset();
@@ -197,9 +199,8 @@ public final class ImplicationsGraph {
     }
 
     visited.reset();
-    assert forced.isEmpty();
     for (int i = 0; i < units.size(); i++) {
-      internalDFS(units.get(i), forced);
+      internalBFS(units.get(i), forced);
     }
 
     for (int i = 0; i < forced.size(); i++) {
@@ -316,23 +317,23 @@ public final class ImplicationsGraph {
     TIntArrayList component = new TIntArrayList();
     for (int i = 0; i < topologicalSort.length; i++) {
       component.reset();
-      internalDFS(topologicalSort[i], component);
+      internalBFS(topologicalSort[i], component);
       if (component.size() <= 1) {
         continue;
       }
 
       // Picks the smallest variable as the component name
       // This will pick the same variable on the component with negated literals.
-      int best = component.get(0);
+      int best = component.getQuick(0);
       for (int j = 0; j < component.size(); j++) {
-        int u = component.get(j);
-        if (Math.abs(best) > Math.abs(u)) {
+        int u = component.getQuick(j);
+        if (var(best) > var(u)) {
           best = u;
         }
       }
 
       for (int j = 0; j < component.size(); j++) {
-        int u = component.get(j);
+        int u = component.getQuick(j);
         set(colapsed, u, best);
       }
     }
@@ -387,30 +388,32 @@ public final class ImplicationsGraph {
     return java.util.Arrays.copyOfRange(colapsed, numVariables, 2 * numVariables + 1);
   }
 
-  /** Performs a depth first search keeping track of visited nodes. */
-  private void internalDFS(final int u, final TIntArrayList seen) {
+  /** Performs a breadth first search keeping track of visited nodes. */
+  private void internalBFS(final int u, final TIntArrayList seen) {
     if (visited.containsOrAdd(u)) {
       return;
     }
 
-    int stackTop = 0;
-    stack[stackTop++] = u;
-    seen.add(u);
+    int stackTail = 0, stackHead = 0;
+    stack[stackHead++] = u;
 
-    while (stackTop > 0) {
-      int w = stack[--stackTop];
-      for (int i = 0; i < edges(w).size(); i++) {
-        int v = edges(w).getQuick(i);
+    while (stackTail < stackHead) {
+      final int w = stack[stackTail++];
+      final TIntArrayList edges = edges(w);
+      for (int i = 0; i < edges.size(); i++) {
+        int v = edges.getQuick(i);
         if (!visited.containsOrAdd(v)) {
-          stack[stackTop++] = v;
-          seen.add(v);
+          stack[stackHead++] = v;
         }
       }
     }
+
+    // System.err.println("stackhead " + stackHead + " vs " + numVariables);
+    seen.add(stack, 0, stackHead);
   }
 
   /** DFS from u until stop is found.  */
-  private void internalDFS(int u, int stop) {
+  private void internalDFS(final int u, int stop) {
     if (visited.containsOrAdd(u)) {
       return;
     }
@@ -419,10 +422,10 @@ public final class ImplicationsGraph {
     stack[stackTop++] = u;
 
     while (stackTop > 0) {
-      u = stack[--stackTop];
-      final int size = edges(u).size();
-      for (int i = 0; i < size; i++) {
-        int v = edges(u).getQuick(i);
+      final int w = stack[--stackTop];
+      final TIntArrayList edges = edges(w);
+      for (int i = 0; i < edges.size(); i++) {
+        int v = edges.getQuick(i);
         if (!visited.containsOrAdd(v)) {
           if (v == stop) {
             break;
@@ -433,13 +436,13 @@ public final class ImplicationsGraph {
     }
   }
 
+  /** Performs a depth first search keeping track of visited nodes. */
   public void dfs(final int start, final TIntArrayList seen) {
-    visited.reset();
-    for (int i = 0; i < seen.size(); i++) {
-      visited.add(seen.getQuick(i));
+    if (seen.isEmpty()) {
+      visited.reset();
     }
 
-    internalDFS(start, seen);
+    internalBFS(start, seen);
   }
 
   /** Performs a depth first search keeping track of visited nodes. */
@@ -507,13 +510,13 @@ public final class ImplicationsGraph {
         int v = edges(u).get(i);
         set(stack, v, get(stack, v) + 1);
         assert edges(-v).contains(-u)
-            : "Missing reverse edge " + (-v) + " -> " + (-u);
+            : "Missing reverse edge " + neg(v) + " -> " + neg(u);
       }
     }
 
     for (int u = -numVariables; u <= numVariables; u++) {
-      assert get(stack, u) == edges(-u).size()
-          : "Wrong number of edges for literal " + (-u);
+      assert get(stack, u) == edges(neg(u)).size()
+          : "Wrong number of edges for literal " + neg(u);
     }
   }
 
@@ -539,8 +542,8 @@ public final class ImplicationsGraph {
    * The reduction is not complete but it is in O(N + M)
    * and removes most of the redundant edges.
    *
-   * */
-  public void transitiveReduction() {
+   */
+  public void transitiveReduction(int steps) {
     topologicalSort();
 
     for (int i = 0; i < topologicalSort.length; i++) {
@@ -589,7 +592,7 @@ public final class ImplicationsGraph {
       visited.reset();
 
       TIntArrayList edges = edges(u);
-      int remaining = 3;
+      int remaining = steps;
       int p = edges.size() - 1;
       for (int j = edges.size() - 1; j >= 0; j--) {
         int v = edges.getQuick(j);
@@ -613,7 +616,7 @@ public final class ImplicationsGraph {
 
   /** Returns the graph as a SAT instance */
   public TIntArrayList serialize() {
-    transitiveReduction();
+    transitiveReduction(3);
 
     TIntArrayList bins = new TIntArrayList();
     for (int i = 0; i < topologicalSort.length; i++) {
