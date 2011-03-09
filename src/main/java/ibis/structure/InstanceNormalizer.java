@@ -44,10 +44,6 @@ public final class InstanceNormalizer {
       }
     }
 
-    for (int i = 0; i < instance.bins.size(); i++) {
-      instance.bins.setQuick(i, rename(instance.bins.getQuick(i)));
-    }
-
     instance.numVariables = variableMap.size() / 2;
   }
 

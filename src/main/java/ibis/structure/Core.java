@@ -1,30 +1,30 @@
 package ibis.structure;
 
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.set.hash.TIntHashSet;
 
 import static ibis.structure.Misc.*;
 
 
 public final class Core {
-  private int numVariables;
+  private final int numVariables;
   /** Units. */
-  private BitSet units = new BitSet();
+  private final TIntHashSet units = new TIntHashSet();
   /** Proxies for equivalent literals. */
-  private int[] proxies;
+  private final int[] proxies;
   /** Core instance without units and equivalent literals. */
   private Skeleton instance;
 
   public Core(final int numVariables,
               final int[] units,
               final int[] proxies,
-              final TIntArrayList formula,
-              final TIntArrayList bins) {
+              final TIntArrayList formula) {
     this.numVariables = numVariables;
     this.units.addAll(units);
     this.proxies = proxies;
 
     assert !formula.isEmpty();
-    instance = new Skeleton(numVariables, formula, bins);
+    instance = new Skeleton(numVariables, formula);
   }
 
   /** Returns core's instance. */
@@ -60,13 +60,6 @@ public final class Core {
       }
     }
 
-    Solution result = Solution.satisfiable(units.elements());
-
-    // this Core becomes unusable
-    units = null;
-    proxies = null;
-    instance = null;
-
-    return result;
+    return Solution.satisfiable(units.toArray());
   }
 }

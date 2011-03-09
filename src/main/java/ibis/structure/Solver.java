@@ -45,17 +45,12 @@ public final class Solver {
     // Builds the watch lists.
     watchLists.build();
 
-    // Rebuilds the implication graph.
-    for (int i = 0; i < instance.bins.size(); i += 2) {
-      int u = instance.bins.getQuick(i);
-      int v = instance.bins.getQuick(i + 1);
-      addBinary(u, v);
-    }
-
     if (Configure.verbose) {
       System.err.print(".");
       System.err.flush();
     }
+
+    logger.info("Solving " + instance);
   }
 
   /** Returns true if literal u is already assigned. */
@@ -177,12 +172,12 @@ public final class Solver {
     assert unitsQueue.isEmpty();
 
     TIntArrayList formula = watchLists.formula();
-    TIntArrayList bins = graph.serialize();
+    // TIntArrayList bins = graph.serialize();
 
     watchLists = null;
     compact(formula);
 
-    return new Core(numVariables, units.toArray(), proxies, formula, bins);
+    return new Core(numVariables, units.toArray(), proxies, formula);
   }
 
   /**
@@ -282,8 +277,6 @@ public final class Solver {
         addBinary(formula.get(clause), -formula.get(clause + 1));
         addBinary(-formula.get(clause), formula.get(clause + 1));
       }
-
-      watchLists.removeClause(clause);
     }
 
     clauses.reset();
@@ -327,7 +320,7 @@ public final class Solver {
       throws ContradictionException {
     boolean simplified = false;
     TIntArrayList propagated = graph.propagate(literals);
-    // logger.info("propagating " + literals + " -> " + propagated);
+    logger.info("propagating " + literals + " -> " + propagated);
     for (int i = 0; i < propagated.size(); i++) {
       int unit = propagated.getQuick(i);
       assert proxy(unit) == unit;
@@ -374,7 +367,7 @@ public final class Solver {
   /** Renames from into to */
   private void renameLiteral(final int from, final int to)
       throws ContradictionException {
-    // logger.info("Renaming " + from + " to " + to);
+    logger.info("Renaming " + from + " to " + to);
     watchLists.merge(from, to);
     watchLists.merge(neg(from), neg(to));
 

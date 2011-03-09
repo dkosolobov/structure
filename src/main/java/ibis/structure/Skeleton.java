@@ -8,31 +8,22 @@ import static ibis.structure.Misc.*;
 public final class Skeleton implements java.io.Serializable {
   public int numVariables;
   public TIntArrayList formula;
-  public TIntArrayList bins;
 
   /** Constructor. */
   public Skeleton(final int numVariables) {
-    this(numVariables, new TIntArrayList(), new TIntArrayList());
+    this(numVariables, new TIntArrayList());
   }
 
   /** Constructor. */
   public Skeleton(final int numVariables,
                   final TIntArrayList formula) {
-    this(numVariables, formula, new TIntArrayList());
-  }
-
-  /** Constructor. */
-  public Skeleton(final int numVariables,
-                  final TIntArrayList formula,
-                  final TIntArrayList bins) {
     this.numVariables = numVariables;
     this.formula = formula;
-    this.bins = bins;
   }
 
   /** Returns number of literals + number of clauses */
   public int size() {
-    return formula.size() + 3 * bins.size() / 2;
+    return formula.size();
   }
 
   /**
@@ -78,23 +69,19 @@ public final class Skeleton implements java.io.Serializable {
         }
       } 
     }
+
+    it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+
+      if (length == 2) {
+        int u = formula.getQuick(clause);
+        int v = formula.getQuick(clause + 1);
+        scores[neg(u) + numVariables] += gamma * scores[v + numVariables];
+      }
+    }
     
-    for (int i = 0; i < bins.size(); i += 2) {
-      int u = bins.getQuick(i);
-      int v = bins.getQuick(i + 1);
-
-      double delta = Math.pow(alpha, 2);
-      scores[neg(u) + numVariables] += delta;
-      scores[neg(v) + numVariables] += delta;
-    }
-
-    // Second add scores up on implication graph
-    for (int i = 0; i < bins.size(); i += 2) {
-      int u = bins.getQuick(i);
-      int v = bins.getQuick(i + 1);
-      scores[neg(u) + numVariables] += gamma * scores[v + numVariables];
-    }
-
     return scores;
   }
 

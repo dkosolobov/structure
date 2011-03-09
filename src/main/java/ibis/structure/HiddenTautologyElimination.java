@@ -77,12 +77,16 @@ public class HiddenTautologyElimination {
 clause_loop:
     for (int size = watchList.size(); size > 0; size--) {
       int clause = it.next();
+      int length = length(formula, clause);
+
+      if (length < 3) {
+        continue;
+      }
       if (type(formula, clause) != OR) {
         continue;
       }
 
       // Checks if clause is a tautology
-      int length = length(formula, clause);
       for (int j = clause; j < clause + length; j++) {
         int v = formula.getQuick(j);
         if (v != literal && touched.contains(v)) {

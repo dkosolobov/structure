@@ -50,7 +50,6 @@ public final class SplitActivity extends Activity {
     units = new int[numVariables];
 
     joinVariablesInClauses(instance.formula);
-    joinVariablesInBinaries(instance.bins);
 
     if (!isSplit()) {
       executor.submit(new SelectBranchActivity(parent, depth, instance));
@@ -120,13 +119,6 @@ public final class SplitActivity extends Activity {
     }
   }
 
-  /** Puts variables in each binary in the same set. */
-  private void joinVariablesInBinaries(final TIntArrayList bins) {
-    for (int i = 0; i < bins.size(); i += 2) {
-      join(bins.getQuick(i), bins.getQuick(i + 1));
-    }
-  }
-
   /** Returns true if this instance can be split. */
   private boolean isSplit() {
     for (int u = 0, v = 1; v < instance.numVariables; v++) {
@@ -165,21 +157,6 @@ public final class SplitActivity extends Activity {
       for (int i = clause; i < clause + length; i++) {
         subFormula.add(formula.get(i));
       }
-    }
-
-    final TIntArrayList bins = instance.bins;
-    for (int i = 0; i < bins.size(); i += 2) {
-      int u = bins.getQuick(i);
-      int v = bins.getQuick(i + 1);
-
-      Skeleton subInstance = subInstances.get(find(u));
-      if (subInstance == null) {
-        subInstance = new Skeleton(instance.numVariables);
-        subInstances.put(find(u), subInstance);
-      }
-
-      subInstance.bins.add(u);
-      subInstance.bins.add(v);
     }
   }
 
