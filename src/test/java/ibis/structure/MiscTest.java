@@ -23,10 +23,7 @@ public class MiscTest {
   @Test
   public void clause() {
     TIntArrayList formula = new TIntArrayList();
-    formula.add(encode(3, XOR));
-    formula.add(1);
-    formula.add(2);
-    formula.add(3);
+    add(formula, XOR, 1, 2, 3);
 
     assertEquals(length(formula, 1), 3);
     assertEquals(type(formula, 1), XOR);
@@ -45,5 +42,63 @@ public class MiscTest {
 
     compact(formula);
     assertTrue(formula.isEmpty());
+  }
+
+  @Test
+  public void iterator() {
+    TIntArrayList formula = new TIntArrayList();
+    ClauseIterator it;
+
+    it = new ClauseIterator(formula);
+    assertFalse(it.hasNext());
+
+    add(formula, OR);
+    it = new ClauseIterator(formula);
+    assertTrue(it.hasNext());
+    assertEquals(it.next(), 1);
+    assertFalse(it.hasNext());
+
+    add(formula, XOR, 1, 2, 3);
+    it = new ClauseIterator(formula);
+    assertTrue(it.hasNext());
+    assertEquals(it.next(), 1);
+    assertTrue(it.hasNext());
+    assertEquals(it.next(), 2);
+    assertFalse(it.hasNext());
+
+    add(formula, NXOR, 3, -3);
+    it = new ClauseIterator(formula);
+    assertTrue(it.hasNext());
+    assertEquals(it.next(), 1);
+    assertTrue(it.hasNext());
+    assertEquals(it.next(), 2);
+    assertTrue(it.hasNext());
+    assertEquals(it.next(), 6);
+    assertFalse(it.hasNext());
+
+    removeClause(formula, 2);
+    it = new ClauseIterator(formula);
+    assertTrue(it.hasNext());
+    assertEquals(it.next(), 1);
+    assertTrue(it.hasNext());
+    assertEquals(it.next(), 6);
+    assertFalse(it.hasNext());
+
+    removeClause(formula, 1);
+    it = new ClauseIterator(formula);
+    assertTrue(it.hasNext());
+    assertEquals(it.next(), 6);
+    assertFalse(it.hasNext());
+
+    removeClause(formula, 6);
+    it = new ClauseIterator(formula);
+    assertFalse(it.hasNext());
+  }
+
+  private void add(final TIntArrayList formula,
+                   final int type,
+                   final int... clause) {
+    formula.add(encode(clause.length, type));
+    formula.add(clause);
   }
 }

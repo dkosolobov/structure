@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.set.hash.TIntHashSet;
 
 
 public final class Misc {
@@ -14,7 +15,7 @@ public final class Misc {
   private static final int REMOVED = Integer.MAX_VALUE;
 
   /**
-   * A clause iterator over a given formula.
+   * A clause iterator over a given formula. <br/>
    *
    * Example:
    * <pre>
@@ -23,46 +24,90 @@ public final class Misc {
    *   int clause = it.next();
    *   ... do stuff ...
    * }
-   * </pre>
+   * </pre> <br/>
+   * Example:
+   * <pre>
+   * int start = formula.size();
+   * formula.addAll(other);
+   * ClauseIterator it = new ClauseIterator(formula, start)
+   * while (it.hasNext()) {
+   *   int clause = it.next();
+   *   // ...
+   * }
+   * </pre> <br/>
    *
    */
   public static final class ClauseIterator {
     private final TIntArrayList formula;
     private int index;
+    private boolean hasNext;
 
+    /**
+     * Creates an interator over formula starting from begining.
+     */
     public ClauseIterator(final TIntArrayList formula) {
+      this(formula, 0);
+    }
+
+    /**
+     * Creates an interator over formula starting at start.
+     *
+     * This constructor is useful when iterating over some appending clases.
+     * start should point to a clause header.
+     *
+     */
+    public ClauseIterator(final TIntArrayList formula, final int start) {
       this.formula = formula;
 
-      index = 0;
-      skipRemoved();
+      index = start;
+
+      if (index == formula.size()) {
+        hasNext = false;
+      } else if (type(formula, index + 1) == DELETED) {
+        next();
+      } else {
+        hasNext = true;
+      }
     }
 
     /** Returns true if there are more clauses left. */
     public boolean hasNext() {
-      return index < formula.size();
+      return hasNext;
     }
 
     /** Returns the next clause */
     public int next() {
-      int clause = index;
-      index += length(formula, index);
-      skipRemoved();
+      final int clause = index + 1;
+
+      skipClause();
+      findNext();
       return clause;
     }
 
-    private void skipRemoved() {
+    private void findNext() {
+      hasNext = false;
+
       while (true) {
-        while (index < formula.size() && formula.getQuick(index) == REMOVED) {
+        while (index < formula.size()
+            && formula.getQuick(index) == REMOVED) {
           index++;
         }
-        index++;
 
-        if (index < formula.size() && type(formula, index) == DELETED) {
-          index += length(formula, index);
-        } else {
-          break;
+        if (index == formula.size()) {
+          return;
         }
+
+        if (type(formula, index + 1) != DELETED) {
+          hasNext = true;
+          return;
+        }
+
+        skipClause();
       }
+    }
+
+    private void skipClause() {
+      index += 1 + length(formula, index + 1);
     }
   }
 
@@ -201,14 +246,14 @@ public final class Misc {
   public static void removeLiteralAt(final TIntArrayList formula,
                                      final int clause,
                                      final int index) {
-    int type = type(formula, clause);
     int length = length(formula, clause);
+    int type = type(formula, clause);
     for (int i = index + 1; i < clause + length; i++) {
       formula.setQuick(i - 1, formula.getQuick(i));
     }
 
-    formula.setQuick(clause - 1, encode(length - 1, type));
     formula.setQuick(clause + length - 1, REMOVED);
+    formula.setQuick(clause - 1, encode(length - 1, type));
   }
 
   /** Removes literal from clause. */
@@ -229,6 +274,29 @@ public final class Misc {
   public static boolean isClauseRemoved(final TIntArrayList formula,
                                         final int clause) {
     return type(formula, clause) == DELETED;
+  }
+
+  public static boolean isClauseSatisfied(final TIntArrayList formula,
+                                          final int clause,
+                                          final TIntHashSet units) {
+    int length = length(formula, clause);
+    for (int i = clause; i < clause + length; i++) {
+      if (units.contains(formula.getQuick(i))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Appends clause from src to dst. */
+  public static void copy(final TIntArrayList dst,
+                          final TIntArrayList src,
+                          final int clause) {
+    int length = length(src, clause);
+    dst.ensureCapacity(dst.size() + length + 1);
+    for (int i = clause - 1; i < clause + length; i++) {
+      dst.add(src.getQuick(i));
+    }
   }
 
   /**
