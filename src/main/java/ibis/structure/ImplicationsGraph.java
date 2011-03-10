@@ -34,10 +34,10 @@ public final class ImplicationsGraph {
   /** Adds a new implication u &rarr; v. */
   public void add(final int u, final int v) {
     createLiteral(u);
-    createLiteral(-v);
+    createLiteral(neg(v));
 
     edges(u).add(v);
-    edges(-v).add(-u);
+    edges(neg(v)).add(neg(u));
   }
 
   /** Creats edges for literals u and -u */
@@ -89,11 +89,17 @@ public final class ImplicationsGraph {
     return propagate(new TIntArrayList(literals));
   }
 
+  /** Removes all edges of literal and -literal. */
+  public void remove(final int literal) {
+    TIntArrayList literals = new TIntArrayList();
+    literals.add(literal);
+    remove(literals);
+  }
+
   /**
    * Removes a list of literals and their negation.
    *
    * u and -u cannot be both in literals.
-   *
    */
   private void remove(final TIntArrayList literals) {
     // Finds all nodes that have dirty edges.
@@ -101,13 +107,21 @@ public final class ImplicationsGraph {
     int stackTop = 0;
     for (int i = 0; i < literals.size(); i++) {
       int u = literals.get(i);
+
       for (int j = 0; j < edges(-u).size(); j++) {
         int v = -edges(-u).get(j);
-        if (!visited.containsOrAdd(v)) stack[stackTop++] = v;
+        if (!visited.containsOrAdd(v)) {
+          stack[stackTop] = v;
+          stackTop++;
+        }
       }
+
       for (int j = 0; j < edges(u).size(); j++) {
         int v = -edges(u).get(j);
-        if (!visited.containsOrAdd(v)) stack[stackTop++] = v;
+        if (!visited.containsOrAdd(v)) {
+          stack[stackTop] = v;
+          stackTop++;
+        }
       }
     }
 
@@ -115,6 +129,7 @@ public final class ImplicationsGraph {
     visited.reset();
     for (int i = 0; i < literals.size(); i++) {
       int u = literals.get(i);
+
       assert !visited.contains(u): "Literal " + u + " was already removed";
       visited.add(u);
       visited.add(neg(u));
@@ -132,14 +147,12 @@ public final class ImplicationsGraph {
       for (int j = 0; j < edges(u).size(); j++) {
         int v = edges(u).get(j);
         if (!visited.contains(v)) {
-          edges(u).set(p++, v);
+          edges(u).set(p, v);
+          p++;
         }
       }
 
-      int removed = edges(u).size() - p;
-      if (removed > 0) {
-        edges(u).remove(p, removed);
-      }
+      edges(u).remove(p, edges(u).size() - p);
     }
   }
 
@@ -191,7 +204,7 @@ public final class ImplicationsGraph {
         int v = edges(u).get(i);
         if (visited.contains(-v)) {
           // If u -> v and u -> -v then -u
-          units.add(-u);
+          units.add(neg(u));
           break;
         }
         visited.add(v);
@@ -268,9 +281,9 @@ public final class ImplicationsGraph {
     visited.reset();
     for (int i = 0; i < assigned.size(); i++) {
       int u = assigned.get(i);
-      assert edges(u).isEmpty() && edges(-u).isEmpty();
+      assert edges(u).isEmpty() && edges(neg(u)).isEmpty();
       visited.add(u);
-      visited.add(-u);
+      visited.add(neg(u));
     }
 
     TIntHashSet units = new TIntHashSet();
@@ -280,9 +293,9 @@ public final class ImplicationsGraph {
         continue;
       }
 
-      for (int j = 0; j < edges(-u).size(); j++) {
+      for (int j = 0; j < edges(neg(u)).size(); j++) {
         // v is the parent of u
-        int v = -edges(-u).get(j);
+        int v = -edges(neg(u)).get(j);
         if (units.contains(v)) {
           units.add(u);
           break;
@@ -291,11 +304,11 @@ public final class ImplicationsGraph {
 
       // u was not forced by any parent so it should be false
       if (!units.contains(u)) {
-        units.add(-u);
+        units.add(neg(u));
       }
 
       visited.add(u);
-      visited.add(-u);
+      visited.add(neg(u));
     }
 
     return units.toArray();
@@ -616,7 +629,7 @@ public final class ImplicationsGraph {
 
   /** Returns the graph as a SAT instance */
   public TIntArrayList serialize() {
-    transitiveReduction(3);
+    // transitiveReduction(3);
 
     TIntArrayList bins = new TIntArrayList();
     for (int i = 0; i < topologicalSort.length; i++) {
@@ -630,7 +643,7 @@ public final class ImplicationsGraph {
         int v = edges.getQuick(j);
         assert u != v;
 
-        bins.add(-u);
+        bins.add(neg(u));
         bins.add(v);
       }
     }
