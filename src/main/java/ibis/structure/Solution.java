@@ -75,6 +75,21 @@ public final class Solution {
     return units;
   }
 
+  public String toString() {
+    switch (solved) {
+      case SATISFIABLE:
+        return "satisfiable";
+
+      case UNSATISFIABLE:
+        return "unsatisfiable";
+
+      case UNKNOWN:
+        return "unknown";
+    }
+
+    return "invalid";
+  }
+
   /** Prints solution to out.  */
   public void print(PrintStream out) {
     switch (solved) {
