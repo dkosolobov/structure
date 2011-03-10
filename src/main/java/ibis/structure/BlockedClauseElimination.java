@@ -9,7 +9,7 @@ import static ibis.structure.Misc.*;
 
 
 /**
- * Performes Blocked Clause Elimination.
+ * Performes <a href="http://fmv.jku.at/papers/JarvisaloBiereHeule-TACAS10.pdf">Blocked Clause Elimination</a>.
  */
 public final class BlockedClauseElimination {
   private static final Logger logger = Logger.getLogger(Solver.class);
@@ -53,7 +53,7 @@ public final class BlockedClauseElimination {
       }
 
       if (!satisfied) {
-        units.remove(-literal);
+        units.remove(neg(literal));
         units.add(literal);
       }
     }
@@ -61,6 +61,11 @@ public final class BlockedClauseElimination {
     return Solution.satisfiable(units.toArray());
   }
 
+  /**
+   * For all literals finds clauses blocked on that literal. <br/>
+   *
+   * Returns a list of blocked clauses.
+   */
   private TIntArrayList run() {
     TIntArrayList bce = new TIntArrayList(); 
     TIntArrayList blocked = new TIntArrayList();;
@@ -68,19 +73,9 @@ public final class BlockedClauseElimination {
     int numLiterals = 0;
 
     for (int literal = -numVariables; literal <= numVariables; literal++) {
-      if (solver.numBinaries(neg(literal)) != 0) {
-        // BCE can't handle binaries, but they are handled
-        // by BinarySelfSubsumming.
-        continue;
-      }
-
-      int ne = solver.watchLists.get(-literal).size();
+      int ne = solver.watchLists.get(neg(literal)).size();
       int pe = solver.watchLists.get(literal).size();
-      if (ne == 0) {
-        // Ignores pure literals.
-        continue;
-      }
-      if (ne > 100 && 1L * ne * pe > 10000) {
+      if (ne > 100 || 1L * ne * pe > 10000L) {
         // This is a cutoff to avoid very expensive literals.
         continue;
       }
@@ -89,7 +84,7 @@ public final class BlockedClauseElimination {
         continue;
       }
 
-      // Checks each clause containin literal if it is blocked on literal.
+      // Checks each clause containing literal if it is blocked on literal.
       blocked.reset();
       TIntHashSet clauses = solver.watchLists.get(literal);
       TIntIterator it = clauses.iterator();
@@ -132,7 +127,7 @@ public final class BlockedClauseElimination {
   }
 
   /** Returns true if there exists a XOR clause containing literal. */
-  private boolean hasXORClauses(int literal) {
+  private boolean hasXORClauses(final int literal) {
     TIntHashSet clauses = solver.watchLists.get(var(literal));
     TIntIterator it = clauses.iterator();
     for (int size = clauses.size(); size > 0; size--) {
@@ -145,7 +140,7 @@ public final class BlockedClauseElimination {
   }
 
   /** Returns true if literal blocks clause. */
-  private boolean isBlocked(int literal, int clause) {
+  private boolean isBlocked(final int literal, final int clause) {
     seen.reset();
     int length = length(formula, clause);
     for (int i = clause; i < clause + length; i++) {
@@ -169,7 +164,7 @@ public final class BlockedClauseElimination {
    * clause and clause marked in seen already have one variable in common (i.e.
    * the one currently tested in run()) of oposite signs.
    */
-  private boolean isResolutionTautology(int clause) {
+  private boolean isResolutionTautology(final int clause) {
     int length = length(formula, clause);
     int count = 0;
 
