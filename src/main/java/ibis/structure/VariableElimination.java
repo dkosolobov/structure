@@ -2,6 +2,7 @@ package ibis.structure;
 
 import java.util.Vector;
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TIntHashSet;
 import gnu.trove.iterator.TIntIterator;
 import gnu.trove.map.hash.TIntIntHashMap;
@@ -55,15 +56,10 @@ public class VariableElimination {
       units.remove(neg(data.literal));
       units.add(data.literal);
 
-      // logger.info("Restoring " + data.literal);
-      // logger.info("units " + units);
-      // logger.info("clauses " + formulaToString(data.clauses));
-
       ClauseIterator it = new ClauseIterator(data.clauses);
       while (it.hasNext()) {
         int clause = it.next();
         if (!isClauseSatisfied(data.clauses, clause, units)) {
-          // logger.info("satisfiying clause " + clauseToString(data.clauses, clause));
           units.remove(data.literal);
           units.add(neg(data.literal));
           assert isClauseSatisfied(data.clauses, clause, units);
@@ -71,23 +67,29 @@ public class VariableElimination {
       }
     }
 
-    // logger.info("new units " + units);
-    // logger.info("------------");
     return Solution.satisfiable(units.toArray());
   }
 
   private void run() throws ContradictionException {
-    // logger.info("VE on " + formulaToString(formula));
-
     Vector<Data> ve = new Vector<Data>();
+
+    TLongArrayList all = new TLongArrayList();
     for (int literal = 1; literal <= numVariables; literal++) {
+      int score = watchLists.get(literal).size() * watchLists.get(neg(literal)).size();
+      if (0 < score && score <= 25) {
+        all.add((((long) score) << 32) + literal);
+      }
+    }
+
+    all.sort();
+    for (int j = 0; j < all.size(); j++) {
+      int literal = (int) all.get(j);
       Data data = eliminate(literal);
       if (data != null) {
         ve.add(data);
       }
     }
 
-    // logger.info("Eliminated " + ve.size() + " variables");
     solver.ve = ve;
 
     if (Configure.verbose) {
@@ -101,7 +103,7 @@ public class VariableElimination {
       throws ContradictionException {
     // Checks that variable is suitable for elimination.
     if (solver.isLiteralAssigned(literal)
-        || solver.numClauses(literal) * solver.numClauses(neg(literal)) > 25
+        || solver.numClauses(literal) * solver.numClauses(neg(literal)) > 16
         || solver.numClauses(literal) == 0
         || solver.numClauses(neg(literal)) == 0) {
       return null;
