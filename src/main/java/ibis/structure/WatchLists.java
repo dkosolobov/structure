@@ -41,14 +41,27 @@ public final class WatchLists {
 
   /** Builds the watch lists */
   public void build() throws ContradictionException {
-    ClauseIterator it = new ClauseIterator(formula);
+    build(0);
+  }
+
+  public void append(final TIntArrayList clauses)
+      throws ContradictionException {
+    int start = formula.size();
+    formula.addAll(clauses);
+    build(start);
+  }
+
+  private void build(final int start) throws ContradictionException {
+    ClauseIterator it = new ClauseIterator(formula, start);
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
+
       for (int i = clause; i < clause + length; i++) {
-        int u = formula.get(i);
+        int u = formula.getQuick(i);
         get(u).add(clause);
       }
+
       clauseLengthChanged(clause);
     }
   }
@@ -157,9 +170,6 @@ public final class WatchLists {
 
   /** Assigns u to true, -u to false and removes the literals from clauses. */
   public void assign(final int u) throws ContradictionException {
-    // logger.info("assigning unit " + u);
-    // logger.info("formula is " + formulaToString(formula));
-
     for (int clause : get(u).toArray()) {
       if (type(formula, clause) == OR) {
         removeClause(clause);
@@ -218,13 +228,15 @@ public final class WatchLists {
       }
     }
 
-    ClauseIterator it;
-    
-    it = new ClauseIterator(formula);
+    ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
       int type = type(formula, clause);
+
+      assert type == NXOR || length != 0
+          : "Formula contains an undetected contradiction at " + clause;
+
       for (int i = clause; i < clause + length; i++) {
         int u = formula.get(i);
         assert get(u).contains(clause)
