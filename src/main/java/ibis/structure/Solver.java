@@ -135,7 +135,6 @@ public final class Solver {
       // No new binary clause is created because there are no clauses
       // of longer length.
       renameEquivalentLiterals();
-      propagate();
 
       TIntArrayList assigned = new TIntArrayList();
       for (int u = 1; u <= numVariables; ++u) {
@@ -207,10 +206,6 @@ public final class Solver {
     }
 
     renameEquivalentLiterals();
-    propagate();
-
-    queueForcedLiterals();
-    propagate();
 
     if (Configure.pureLiterals) {
       PureLiterals.run(this);
@@ -321,6 +316,7 @@ public final class Solver {
         renameLiteral(u, collapsed[u]);
       }
     }
+    propagate();
   }
 
   /** Queues contradictions in the implication graph */
