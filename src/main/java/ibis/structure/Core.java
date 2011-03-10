@@ -8,20 +8,23 @@ import static ibis.structure.Misc.*;
 
 public final class Core {
   private final int numVariables;
-  /** Units. */
-  private final TIntHashSet units = new TIntHashSet();
+  private TIntHashSet units = new TIntHashSet();
   /** Proxies for equivalent literals. */
-  private final int[] proxies;
+  private int[] proxies;
+  /** Variable elimination. */
+  private Object ve;
   /** Core instance without units and equivalent literals. */
   private Skeleton instance;
 
   public Core(final int numVariables,
               final int[] units,
               final int[] proxies,
+              final Object ve,
               final TIntArrayList formula) {
     this.numVariables = numVariables;
     this.units.addAll(units);
     this.proxies = proxies;
+    this.ve = ve;
 
     assert !formula.isEmpty();
     instance = new Skeleton(numVariables, formula);
@@ -43,8 +46,12 @@ public final class Core {
       return solution;
     }
 
+    // System.err.println("merging  ***************");
+    // System.err.println("old units " + units);
+
     // Adds instance's units
     units.addAll(solution.units());
+    // System.err.println("new units " + units);
 
     // Adds equivalent literals
     // XXX A bug prevents from iterating from -numVariables to +numVariables
@@ -60,6 +67,7 @@ public final class Core {
       }
     }
 
-    return Solution.satisfiable(units.toArray());
+    Solution tmp = Solution.satisfiable(units.toArray());
+    return VariableElimination.restore(ve, tmp);
   }
 }

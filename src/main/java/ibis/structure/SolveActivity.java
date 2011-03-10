@@ -24,12 +24,12 @@ public final class SolveActivity extends Activity {
     Solution solution = null;
 
     try {
-      solver = new Solver(instance);
-      solution = solver.solve(branch);
+      solver = new Solver(instance, branch);
+      solution = solver.solve();
     } catch (Throwable e) {
       logger.error("Failed to solve instance", e);
-      // logger.error("Branch is " + branch);
-      // logger.error("Formula is " + instance);
+      logger.error("Branch is " + branch);
+      logger.error("Formula is " + instance);
       System.exit(1);
       reply(Solution.unknown());
       finish();

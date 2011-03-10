@@ -24,12 +24,14 @@ public final class Solver {
   public ImplicationsGraph graph;
   /** Watchlists. */
   public WatchLists watchLists;
+  /** Variable elimination. */
+  public Object ve;
 
   /** Units queue. */
   private TIntArrayList unitsQueue;
 
   /** Constructor. */
-  public Solver(final Skeleton instance)
+  public Solver(final Skeleton instance, final int branch)
       throws ContradictionException {
     numVariables = instance.numVariables;
     units = new TouchSet(numVariables);
@@ -44,13 +46,19 @@ public final class Solver {
 
     // Builds the watch lists.
     watchLists.build();
+    if (branch != 0) {
+      TIntArrayList temp = new TIntArrayList();
+      temp.add(encode(1, OR));
+      temp.add(branch);
+      watchLists.append(temp);
+    }
 
     if (Configure.verbose) {
       System.err.print(".");
       System.err.flush();
     }
 
-    logger.info("Solving " + instance);
+    // logger.info("Solving " + instance);
   }
 
   /** Returns true if literal u is already assigned. */
@@ -93,25 +101,19 @@ public final class Solver {
 
     if (u == v) {
       queueUnit(u);
-    } else if (neg(u) != v) {
-      graph.add(neg(u), v);
     }
+
+    graph.add(neg(u), v);
   }
 
   /**
    * Returns a literal to branch on.
    *
-   * @param branch literal to branch on. 0 for no branching.
    * @return solution or simplified instance.
    */
-  public Solution solve(final int branch) {
+  public Solution solve() {
     try {
-      if (branch == 0) {
-        simplifyAtTopLevel();
-      } else {
-        queueUnit(branch);
-        simplify();
-      }
+      simplify();
 
       // If all clauses were removed solve the remaining 2SAT.
       boolean empty = !(new ClauseIterator(watchLists.formula())).hasNext();
@@ -126,6 +128,8 @@ public final class Solver {
    * Solves the remaining 2SAT encoded in the implication graph
    */
   private Solution solve2SAT() throws ContradictionException {
+    // logger.info("Solving 2SAT " + graph);
+
     try {
       // Collapses strongly connected components and removes contradictions.
       // No new binary clause is created because there are no clauses
@@ -162,7 +166,8 @@ public final class Solver {
       }
     }
 
-    return Solution.satisfiable(units.toArray());
+    Solution solution = Solution.satisfiable(units.toArray());
+    return VariableElimination.restore(ve, solution);
   }
 
   /**
@@ -177,7 +182,7 @@ public final class Solver {
     watchLists = null;
     compact(formula);
 
-    return new Core(numVariables, units.toArray(), proxies, formula);
+    return new Core(numVariables, units.toArray(), proxies, ve, formula);
   }
 
   /**
@@ -186,6 +191,7 @@ public final class Solver {
    * @throws ContradictionException if contradiction was found
    */
   public void simplify() throws ContradictionException {
+    VariableElimination.run(this);
     propagate();
 
     if (Configure.hyperBinaryResolution) {
@@ -200,10 +206,10 @@ public final class Solver {
       SelfSubsumming.run(this);
     }
 
-    queueForcedLiterals();
+    renameEquivalentLiterals();
     propagate();
 
-    renameEquivalentLiterals();
+    queueForcedLiterals();
     propagate();
 
     if (Configure.pureLiterals) {
@@ -211,44 +217,7 @@ public final class Solver {
     }
 
     MissingLiterals.run(this);
-    propagateUnits();
     verifyIntegrity();
-  }
-
-  public void simplifyAtTopLevel() throws ContradictionException {
-    if (Configure.pureLiterals) {
-      PureLiterals.run(this);
-      PureLiterals.run(this);
-    }
-
-    propagate();
-
-    queueAllForcedLiterals();
-    propagate();
-
-    renameEquivalentLiterals();
-    propagate();
-
-    if (Configure.hyperBinaryResolution) {
-      HyperBinaryResolution.run(this);
-    }
-
-    simplify();
-  }
-
-  public void printHist() {
-    TIntIntHashMap hist = new TIntIntHashMap();
-    for (int u = 1; u <= numVariables; ++u) {
-      if (isLiteralAssigned(u)) {
-        continue;
-      }
-
-      int x = watchLists.get(u).size() + numBinaries(u);
-      int y = watchLists.get(neg(u)).size() + numBinaries(neg(u));
-      int z = x * y;
-      hist.put(z, hist.get(z) + 1);
-    }
-    logger.info("hist is " + hist);
   }
 
   /** Propagates units and binaries */
@@ -284,7 +253,7 @@ public final class Solver {
   }
 
   /** Propagates all discovered units. */
-  private boolean propagateUnits() throws ContradictionException {
+  public boolean propagateUnits() throws ContradictionException {
     // logger.info("from unitsQueue");
     boolean simplified = propagateLiterals(unitsQueue);
     unitsQueue.reset();
@@ -320,7 +289,7 @@ public final class Solver {
       throws ContradictionException {
     boolean simplified = false;
     TIntArrayList propagated = graph.propagate(literals);
-    logger.info("propagating " + literals + " -> " + propagated);
+    // logger.info("propagating " + literals + " -> " + propagated);
     for (int i = 0; i < propagated.size(); i++) {
       int unit = propagated.getQuick(i);
       assert proxy(unit) == unit;
@@ -338,6 +307,10 @@ public final class Solver {
     }
 
     return simplified;
+  }
+
+  public String toString() {
+    return formulaToString(watchLists.formula()) + "\n" + graph.toString();
   }
 
   /** Finds equivalent literals and renames them */
@@ -364,10 +337,14 @@ public final class Solver {
     return graph.edges(-u).size();
   }
 
+  public int numClauses(final int u) {
+    return watchLists.get(u).size() + numBinaries(u);
+  }
+
   /** Renames from into to */
   private void renameLiteral(final int from, final int to)
       throws ContradictionException {
-    logger.info("Renaming " + from + " to " + to);
+    // logger.info("Renaming " + from + " to " + to);
     watchLists.merge(from, to);
     watchLists.merge(neg(from), neg(to));
 
@@ -395,5 +372,4 @@ public final class Solver {
       }
     }
   }
-
 }

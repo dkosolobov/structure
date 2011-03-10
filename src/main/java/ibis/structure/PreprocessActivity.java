@@ -46,13 +46,16 @@ public final class PreprocessActivity extends Activity {
         instance.formula.addAll(xorGates);
       }
 
-      solver = new Solver(instance);
-      solution = solver.solve(0);
+      solver = new Solver(instance, 0);
+      solution = solver.solve();
     } catch (ContradictionException e) {
       solution = Solution.unsatisfiable();
+    } catch (Throwable e) {
+      logger.error("Failed to solve instance", e);
     }
 
     if (!solution.isUnknown()) {
+      solution = VariableElimination.restore(solver.ve, solution);
       solution = DependentVariableElimination.restore(dve, solution);
       verify(solution, 0);
       reply(solution);
@@ -65,6 +68,10 @@ public final class PreprocessActivity extends Activity {
     }
 
     core = solver.core();
+    logger.info("Reduced from " + instance.size() + " to "
+         + core.instance().size() + " literals");
+    // System.out.println(core.instance());
+    // System.exit(1);
     executor.submit(new SplitActivity(identifier(), depth, core.instance()));
 
     gc();
@@ -73,8 +80,8 @@ public final class PreprocessActivity extends Activity {
 
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
-    response = core.merge(response);
     response = BlockedClauseElimination.restore(bce, response);
+    response = core.merge(response);
     response = DependentVariableElimination.restore(dve, response);
     verify(response);
     reply(response);
