@@ -125,7 +125,7 @@ public final class Reader {
           "Incomplete problem: " + numClauses + " clauses are missing");
     }
 
-    skeleton.formula.remove(skeleton.formula.size() - 1);
+    skeleton.formula.removeAt(skeleton.formula.size() - 1);
     return skeleton;
   }
 }
