@@ -242,7 +242,7 @@ public final class WatchLists {
         assert get(u).contains(clause)
             : "Missing clause " + clause + " from literal " + u;
         assert type == OR || u > 0
-            : clauseToString(formula, clause) + " contains negative literal " + u + " xxx " + clause;
+            : clauseToString(formula, clause) + " contains negative literal " + u;
       }
     }
 
@@ -256,7 +256,7 @@ public final class WatchLists {
         int literal = formula.get(i);
         assert !visited.contains(literal)
             : "Duplicate literal in " + clauseToString(formula, clause);
-        assert !visited.contains(-literal)
+        assert !visited.contains(neg(literal))
             : "Duplicate variable in " + clauseToString(formula, clause);
         visited.add(literal);
       }
