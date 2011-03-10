@@ -16,6 +16,8 @@ public class MissingLiterals {
         System.err.print("m" + numUnits + ".");
       }
     }
+
+    solver.propagateUnits();
     return numUnits > 0;
   }
 }
