@@ -55,7 +55,7 @@ public final class HyperBinaryResolution {
     return simplified;
   }
 
-  public boolean run() {
+  public boolean run() throws ContradictionException {
     long start = System.currentTimeMillis();
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
@@ -72,23 +72,9 @@ public final class HyperBinaryResolution {
     for (int i = 0; i < units.size(); i++) {
       solver.queueUnit(units.get(i));
     }
+    int numBinaries = binaries.size() / 3;
+    solver.watchLists.append(binaries);
 
-    // Adds discovered binary.
-    int[] last = new int[2 * numVariables + 1];
-    int numBinaries = 0;
-    for (int i = 0; i < binaries.size(); i += 2) {
-      int u = binaries.get(i);
-      int v = binaries.get(i + 1);
-      int u_ = u + numVariables;
-      int v_ = v + numVariables;
-
-      // last is a small cache to remove some duplicates
-      if (last[u_] != v && last[v_] != u) {
-        last[u_] = v;
-        solver.addBinary(u, v);
-        numBinaries++;
-      }
-    }
 
     if (Configure.verbose) {
       if (!units.isEmpty()) {
@@ -165,7 +151,7 @@ public final class HyperBinaryResolution {
       assert !solver.isLiteralAssigned(literal);
 
       if (counts[touch] == numLiterals) {
-        units.add(-literal);
+        units.add(neg(literal));
       } else if (counts[touch] + 1 == numLiterals) {
         // There is an edge from literal to all literals in clause except one.
         // New implication: literal -> missing
@@ -185,7 +171,8 @@ public final class HyperBinaryResolution {
           continue;
         }
 
-        binaries.add(-literal);
+        binaries.add(encode(2, OR));
+        binaries.add(neg(literal));
         binaries.add(missing);
       }
 
