@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.set.hash.TIntHashSet;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.context.UnitActivityContext;
 import ibis.constellation.Event;
@@ -45,9 +46,9 @@ public class Activity extends ibis.constellation.Activity {
           verifySatisfied(response.units());
         } catch (Exception e) {
           logger.error("Verification failed", e);
-          logger.error("Units are " + (new TIntArrayList(response.units())));
-          logger.error("Branch is " + branch);
-          logger.error("Formula is " + instance);
+          // logger.error("Units are " + (new TIntArrayList(response.units())));
+          // logger.error("Branch is " + branch);
+          // logger.error("Formula is " + instance);
           System.exit(1);  // TODO: exit gracefully
         }
       }
@@ -97,7 +98,7 @@ public class Activity extends ibis.constellation.Activity {
   /** Checks all CNF clauses are satisfied */
   public void verifySatisfied(final int[] units) throws Exception {
     TIntArrayList formula = instance.formula;
-    BitSet unitsSet = new BitSet();
+    TIntHashSet unitsSet = new TIntHashSet();
     unitsSet.addAll(units);
 
     ClauseIterator it = new ClauseIterator(formula);
