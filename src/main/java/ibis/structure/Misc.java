@@ -314,7 +314,7 @@ public final class Misc {
       int length = length(formula, clause);
       int type = type(formula, clause);
 
-      if (type != DELETED) {
+      if (type != DELETED && (type != NXOR || length != 0)) {
         formula.setQuick(p++, encode(length, type));
         for (int i = clause; i < clause + length; i++) {
           formula.setQuick(p++, formula.getQuick(i));
