@@ -18,19 +18,17 @@ public class Configure {
   /** Path to output file. */
   public static String outputFile = null;
   /** Number of executors to used. */
-  public static int numExecutors = 1; // Runtime.getRuntime().availableProcessors();
+  public static int numExecutors = Runtime.getRuntime().availableProcessors();
   /** True to enable expensive checks for debugging. */
-  public static boolean enableExpensiveChecks = true;
+  public static boolean enableExpensiveChecks = false;
   /** True to print more info. */
   public static boolean verbose = true;
   /** True to perform hidden tautology elimination. */
-  public static boolean hiddenTautologyElimination = false;
+  public static boolean hiddenTautologyElimination = true;
   /** True to perform pure literals. */
   public static boolean pureLiterals = true;
   /** True to perform binary (self) subsumming. */
   public static boolean selfSubsumming = true;
-  /** True to perform subsumming. */
-  public static boolean subsumming = true;
   /** True to split instances when possible. */
   public static boolean split = true;
   /** True to extract xor gates. */
