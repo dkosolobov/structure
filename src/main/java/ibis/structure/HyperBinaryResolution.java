@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.set.hash.TIntHashSet;
 import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
@@ -25,7 +26,7 @@ public final class HyperBinaryResolution {
   /** Formula. */
   private final TIntArrayList formula;
   /** Units discovered. */
-  private final TIntArrayList units = new TIntArrayList();
+  private final TIntHashSet units = new TIntHashSet();
   /** Binaries discovered */
   private final TIntArrayList binaries = new TIntArrayList();
   private final int[] counts;
@@ -66,15 +67,14 @@ public final class HyperBinaryResolution {
     }
 
     // Adds discovered units.
-    for (int i = 0; i < units.size(); i++) {
-      solver.queueUnit(units.get(i));
-    }
+    int numUnits = units.size();
+    solver.unitsQueue.addAll(units);
     int numBinaries = binaries.size() / 3;
     solver.watchLists.append(binaries);
 
     if (Configure.verbose) {
       if (!units.isEmpty()) {
-        System.err.print("hu" + units.size() + ".");
+        System.err.print("hu" + numUnits + ".");
       }
       if (!binaries.isEmpty()) {
         System.err.print("hb" + numBinaries + ".");
@@ -97,14 +97,17 @@ public final class HyperBinaryResolution {
 
     // If clause contains two literals with no
     // binaries then hbr is effective on it.
-    boolean bad = false;
+    int numEmpty = 0;
     for (int i = clause; i < clause + length; i++) {
       int literal = formula.getQuick(i);
+      if (units.contains(literal)) {
+        return;
+      }
       if (solver.graph.edges(literal).isEmpty()) {
-        if (bad) {
+        numEmpty++;
+        if (numEmpty >= 2) {
           return;
         }
-        bad = true;
       }
     }
 
@@ -117,9 +120,6 @@ public final class HyperBinaryResolution {
       for (int j = 0; j < edges.size(); j++) {
         int u = -edges.getQuick(j), u_ = u + numVariables;
         if (counts[u_] == 0) {
-          if (numLiterals > 2) {
-            continue;
-          }
           touched[numTouched++] = u_;
         }
         counts[u_] += 1;
@@ -144,8 +144,8 @@ public final class HyperBinaryResolution {
           continue;
         }
 
-        if (-literal == missing) {
-          units.add(-literal);
+        if (neg(literal) == missing) {
+          units.add(neg(literal));
           continue;
         }
         
