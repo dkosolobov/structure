@@ -156,119 +156,6 @@ public final class ImplicationsGraph {
     }
   }
 
-  public void findAllForcedLiterals(final TIntArrayList forced)
-      throws ContradictionException {
-    for (int u = -numVariables; u <= numVariables; u++) {
-      if (u == 0) {
-        continue;
-      }
-
-      visited.reset();
-      internalDFS(u, neg(u));
-      if (visited.contains(neg(u))) {
-        forced.add(neg(u));
-      }
-    }
-
-    visited.reset();
-    for (int i = 0; i < forced.size(); i++) {
-      int literal = forced.getQuick(i);
-      visited.add(literal);
-      if (visited.contains(neg(literal))) {
-        throw new ContradictionException();
-      }
-    }
-
-    remove(forced);
-  }
-
-  /**
-   * Finds forced literals and returns a list of assigned literals.
-   *
-   * Returned units are removed from the graph.
-   *
-   * This function is faster than findAllContradictions, but find
-   * less contradictions because it doesn't recurse.
-   *
-   * If the graph is transitive closed this is similar to findAllContradictions().
-   */
-  public void findForcedLiterals(final TIntArrayList forced)
-      throws ContradictionException {
-    assert forced.isEmpty();
-
-    TIntArrayList units = new TIntArrayList();
-    for (int u = -numVariables; u <= numVariables; u++) {
-      visited.reset();
-      visited.add(u);
-      for (int i = 0; i < edges(u).size(); i++) {
-        int v = edges(u).get(i);
-        if (visited.contains(-v)) {
-          // If u -> v and u -> -v then -u
-          units.add(neg(u));
-          break;
-        }
-        visited.add(v);
-      }
-    }
-
-    visited.reset();
-    for (int i = 0; i < units.size(); i++) {
-      internalBFS(units.get(i), forced);
-    }
-
-    for (int i = 0; i < forced.size(); i++) {
-      if (visited.contains(neg(forced.getQuick(i)))) {
-        throw new ContradictionException();
-      }
-    }
-
-    remove(forced);
-  }
-
-  /** For backwards compatibility and testing. */
-  public TIntArrayList findForcedLiterals() throws ContradictionException {
-    TIntArrayList forced = new TIntArrayList();
-    findForcedLiterals(forced);
-    return forced;
-  }
-
-  /**
-   * Performs transitive closure.
-   *
-   * Requires no strongly connected components.
-   */
-  public void transitiveClosure() {
-    topologicalSort();
-
-    // Nodes are visited in topological order therefore
-    // every node w in the subtree of child v is already a child of v.
-    for (int i = 0; i < topologicalSort.length; i++) {
-      int u = topologicalSort[i];
-      if (edges(u).isEmpty()) {
-        continue;
-      }
-
-      visited.reset();
-      visited.add(u);
-      TIntArrayList all = new TIntArrayList();
-      for (int j = 0; j < edges(u).size(); j++) {
-        int v = edges(u).get(j);
-        if (visited.containsOrAdd(v)) {
-          continue;
-        }
-        all.add(v);
-
-        for (int k = 0; k < edges(v).size(); k++) {
-          int w = edges(v).get(k);
-          if (!visited.containsOrAdd(w)) {
-            all.add(w);
-          }
-        }
-      }
-      edges[u + numVariables] = all;
-    }
-  }
-
   /**
    * Solves the 2-SAT encoded in the implication graph.
    *
@@ -421,35 +308,14 @@ public final class ImplicationsGraph {
       }
     }
 
-    // System.err.println("stackhead " + stackHead + " vs " + numVariables);
     seen.add(stack, 0, stackHead);
   }
 
-  /** DFS from u until stop is found.  */
-  private void internalDFS(final int u, int stop) {
-    if (visited.containsOrAdd(u)) {
-      return;
-    }
-
-    int stackTop = 0;
-    stack[stackTop++] = u;
-
-    while (stackTop > 0) {
-      final int w = stack[--stackTop];
-      final TIntArrayList edges = edges(w);
-      for (int i = 0; i < edges.size(); i++) {
-        int v = edges.getQuick(i);
-        if (!visited.containsOrAdd(v)) {
-          if (v == stop) {
-            break;
-          }
-          stack[stackTop++] = v;
-        }
-      }
-    }
-  }
-
-  /** Performs a depth first search keeping track of visited nodes. */
+  /**
+   * Performs a depth first search keeping track of visited nodes.
+   *
+   * TODO: Function was changed to do BFS so it should be renamed.
+   */
   public void dfs(final int start, final TIntArrayList seen) {
     if (seen.isEmpty()) {
       visited.reset();
@@ -544,111 +410,6 @@ public final class ImplicationsGraph {
     }
     buffer.append("}");
     return buffer.toString();
-  }
-
-  /**
-   * Performes transitive reduction on the graph.
-   *
-   * Mainly if a &rarr; b &rarr; c then a &rarr; c is reduntant and
-   * can be removed if it exists.
-   *
-   * The reduction is not complete but it is in O(N + M)
-   * and removes most of the redundant edges.
-   *
-   */
-  public void transitiveReduction(int steps) {
-    topologicalSort();
-
-    for (int i = 0; i < topologicalSort.length; i++) {
-      int u = topologicalSort[i];
-      if (u == 0) {
-        continue;
-      }
-
-      TIntArrayList edges;
-
-      // Removes duplicates starting from end.
-      visited.reset();
-      edges = edges(u);
-      // System.err.println("u = " + u + " edges are " + edges);
-      int p = edges.size() - 1;
-      for (int j = edges.size() - 1; j >= 0; j--) {
-        int v = edges.getQuick(j);
-        if (!visited.containsOrAdd(v)) {
-          edges.setQuick(p, v);
-          p--;
-        }
-      }
-      if (p >= 0) {
-        edges.remove(0, p + 1);
-      }
-
-      // Puts u at the end of parents.
-      // When duplicates in parents' lists are removed, the remaining nodes are in
-      // topological order.
-      visited.reset();
-      edges = edges(neg(u));
-      for (int j = 0; j < edges.size(); j++) {
-        int v = neg(edges.getQuick(j));
-        if (!visited.containsOrAdd(v)) {
-          edges(v).add(u);
-        }
-      }
-    }
-
-    for (int i = 0; i < topologicalSort.length; i++) {
-      int u = topologicalSort[i];
-      if (u == 0) {
-        continue;
-      }
-
-      visited.reset();
-
-      TIntArrayList edges = edges(u);
-      int remaining = steps;
-      int p = edges.size() - 1;
-      for (int j = edges.size() - 1; j >= 0; j--) {
-        int v = edges.getQuick(j);
-        if (visited.contains(v)) {
-          // Ignores v because it can be reached from u through another node
-          continue;
-        }
-
-        if (remaining > 0) {
-          remaining--;
-          visited.add(edges(v));
-        }
-        edges.setQuick(p, v);
-        p--;
-      }
-      if (p >= 0) {
-        edges.remove(0, p + 1);
-      }
-    }
-  }
-
-  /** Returns the graph as a SAT instance */
-  public TIntArrayList serialize() {
-    // transitiveReduction(3);
-
-    TIntArrayList bins = new TIntArrayList();
-    for (int i = 0; i < topologicalSort.length; i++) {
-      int u = topologicalSort[i];
-      if (u == 0) {
-        continue;
-      }
-
-      TIntArrayList edges = edges(u);
-      for (int j = 0; j < edges.size(); j++) {
-        int v = edges.getQuick(j);
-        assert u != v;
-
-        bins.add(neg(u));
-        bins.add(v);
-      }
-    }
-
-    return bins;
   }
 
   private int[] create() {

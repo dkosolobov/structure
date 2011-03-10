@@ -63,43 +63,6 @@ public class ImplicationsGraphTest {
   }
 
   @Test
-  public void transitiveClosure() throws ContradictionException {
-    create(8);
-    add(1, 2, 3);
-    add(2, 4);
-    add(3, 4);
-    graph.topologicalSort();
-    graph.transitiveClosure();
-    assertTrue(graph.contains(1, 4));
-    assertTrue(graph.contains(-4, -1));
-
-    add(5, 6);
-    add(6, 7);
-    add(7, 8);
-    graph.topologicalSort();
-    graph.transitiveClosure();
-    assertTrue(graph.contains(5, 8));
-    assertTrue(graph.contains(-8, -5));
-
-    add(8, 1);
-    graph.topologicalSort();
-    graph.transitiveClosure();
-    assertTrue(graph.contains(5, 1));
-    assertTrue(graph.contains(-1, -5));
-
-    add(4, 5);
-    graph.topologicalSort();
-    graph.removeStronglyConnectedComponents();
-    graph.transitiveClosure();
-    assertFalse(graph.contains(1, 4));
-    assertFalse(graph.contains(-4, -1));
-    assertFalse(graph.contains(5, 8));
-    assertFalse(graph.contains(-8, -5));
-    assertFalse(graph.contains(5, 1));
-    assertFalse(graph.contains(-1, -5));
-  }
-
-  @Test
   public void propagate() throws ContradictionException {
     int[] propagated;
 
@@ -159,48 +122,6 @@ public class ImplicationsGraphTest {
     add(3, 4);
     add(4, -1);
     graph.propagate(3);
-  }
-
-  @Test
-  public void findForcedLiterals() throws ContradictionException {
-    int[] contradictions;
-
-    create(6);
-    add(1, -1);
-    graph.topologicalSort();
-    graph.transitiveClosure();
-    contradictions = graph.findForcedLiterals().toArray();
-    compare(contradictions, -1);
-
-    create(6);
-    add(2, 3);
-    add(3, 4);
-    add(4, -2);
-    graph.topologicalSort();
-    graph.transitiveClosure();
-    contradictions = graph.findForcedLiterals().toArray();
-    compare(contradictions, -2);
-
-    create(6);
-    add(5, 1);
-    add(1, 2);
-    add(2, -1);
-    add(-1, -5);
-    graph.topologicalSort();
-    graph.transitiveClosure();
-    contradictions = graph.findForcedLiterals().toArray();
-    compare(contradictions, -1, -5);
-
-    create(6);
-    add(-5, 1, 2, 3, 5, -3);
-    add(-3, 1, 5, 2);
-    add(-2, 1, 5, -3, 2, 3);
-    add(-1, 2, 3, 1, 5, -3);
-    add(3, 1, 5, 2);
-    graph.topologicalSort();
-    graph.transitiveClosure();
-    contradictions = graph.findForcedLiterals().toArray();
-    compare(contradictions, 5, 2, 1);
   }
 
   private void create(int numVariables) {
