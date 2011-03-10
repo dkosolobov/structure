@@ -15,7 +15,7 @@ import static ibis.structure.Misc.*;
 public final class HyperBinaryResolution {
   private static final int BINARIES_LIMIT = 1 << 24;
   private static final int TIME_MILLIS_LIMIT = 20000;
-  private static final int CACHE_SIZE = 256;
+  private static final int CACHE_SIZE = 512;
 
   private static final Logger logger = Logger.getLogger(HyperBinaryResolution.class);
 
@@ -48,10 +48,7 @@ public final class HyperBinaryResolution {
   public static boolean run(final Solver solver) throws ContradictionException {
     boolean simplified = (new HyperBinaryResolution(solver)).run();
     solver.propagate();
-
     solver.renameEquivalentLiterals();
-    solver.propagate();
-
     return simplified;
   }
 
@@ -75,7 +72,6 @@ public final class HyperBinaryResolution {
     int numBinaries = binaries.size() / 3;
     solver.watchLists.append(binaries);
 
-
     if (Configure.verbose) {
       if (!units.isEmpty()) {
         System.err.print("hu" + units.size() + ".");
@@ -88,26 +84,8 @@ public final class HyperBinaryResolution {
     return !units.isEmpty() || !binaries.isEmpty();
   }
 
-
-  private final TIntArrayList cache(int literal) {
-    int hash = Hash.hash(literal) & (CACHE_SIZE - 1);
-
-    if (cacheLiterals[hash] == literal) {
-      return cacheEdges[hash];
-    }
-
-    if (cacheEdges[hash] == null) {
-      cacheEdges[hash] = new TIntArrayList();
-    } else {
-      cacheEdges[hash].reset();
-    }
-
-    cacheLiterals[hash] = literal;
-    solver.graph.dfs(literal, cacheEdges[hash]);
-    return cacheEdges[hash];
-  }
-
-  public void run(final int clause) {
+  /** Runs hyper binary resolution on clause. */
+  private void run(final int clause) {
     if (type(formula, clause) != OR) {
       return;
     }
@@ -117,11 +95,15 @@ public final class HyperBinaryResolution {
     int clauseSum = 0;
     int numTouched = 0;
 
+    // If clause contains two literals with no
+    // binaries then hbr is effective on it.
     boolean bad = false;
     for (int i = clause; i < clause + length; i++) {
       int literal = formula.getQuick(i);
       if (solver.graph.edges(literal).isEmpty()) {
-        if (bad) return;
+        if (bad) {
+          return;
+        }
         bad = true;
       }
     }
@@ -179,6 +161,27 @@ public final class HyperBinaryResolution {
       counts[touch] = 0;
       sums[touch] = 0;
     }
+  }
+
+  /**
+   * Returns dfs for a given literal caching the result.
+   */
+  private final TIntArrayList cache(final int literal) {
+    int hash = Hash.hash(literal) & (CACHE_SIZE - 1);
+
+    if (cacheLiterals[hash] == literal) {
+      return cacheEdges[hash];
+    }
+
+    if (cacheEdges[hash] == null) {
+      cacheEdges[hash] = new TIntArrayList();
+    } else {
+      cacheEdges[hash].reset();
+    }
+
+    cacheLiterals[hash] = literal;
+    solver.graph.dfs(literal, cacheEdges[hash]);
+    return cacheEdges[hash];
   }
 }
 
