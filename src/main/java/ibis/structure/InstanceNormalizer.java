@@ -51,8 +51,13 @@ public final class InstanceNormalizer {
     int rename = variableMap.get(literal);
     if (rename == 0) {
       rename = variableMap.size() / 2 + 1;
+      if (literal < 0) {
+        rename = neg(rename);
+      }
+
+      // logger.info("normalizing " + literal + " -> " + rename);
       variableMap.put(literal, rename);
-      variableMap.put(-literal, -rename);
+      variableMap.put(neg(literal), neg(rename));
     }
 
     return rename;
