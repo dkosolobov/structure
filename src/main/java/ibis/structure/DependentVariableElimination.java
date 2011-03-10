@@ -149,7 +149,8 @@ public final class DependentVariableElimination {
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
-      assert type(formula, clause) == OR;
+      assert type(formula, clause) == OR
+          : "Expected only OR clauses but got " + clauseToString(formula, clause);
 
       for (int i = clause; i < clause + length; i++) {
         independent.add(var(formula.getQuick(i)));
