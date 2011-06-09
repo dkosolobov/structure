@@ -26,9 +26,8 @@ public final class Solver {
   public WatchLists watchLists;
   /** Variable elimination. */
   public Object ve;
-
   /** Units queue. */
-  private TIntArrayList unitsQueue;
+  public TIntArrayList unitsQueue;
 
   /** Constructor. */
   public Solver(final Skeleton instance, final int branch)
@@ -57,8 +56,6 @@ public final class Solver {
       System.err.print(".");
       System.err.flush();
     }
-
-    // logger.info("Solving " + instance);
   }
 
   /** Returns true if literal u is already assigned. */
@@ -111,12 +108,21 @@ public final class Solver {
    *
    * @return solution or simplified instance.
    */
-  public Solution solve() {
+  public Solution solve(boolean top) {
     try {
+      if (top) {
+        if (Configure.pureLiterals) {
+          PureLiterals.run(this);
+        }
+        if (Configure.hyperBinaryResolution) {
+          HyperBinaryResolution.run(this);
+        }
+      }
+
       simplify();
 
       // If all clauses were removed solve the remaining 2SAT.
-      boolean empty = !(new ClauseIterator(watchLists.formula())).hasNext();
+      boolean empty = isEmptyFormula(watchLists.formula());
       return empty ? solve2SAT() : Solution.unknown();
     } catch (ContradictionException e) {
       // logger.info("found contradiction", e);
@@ -165,8 +171,7 @@ public final class Solver {
       }
     }
 
-    Solution solution = Solution.satisfiable(units.toArray());
-    return VariableElimination.restore(ve, solution);
+    return Solution.satisfiable(units.toArray());
   }
 
   /**
@@ -190,7 +195,6 @@ public final class Solver {
    * @throws ContradictionException if contradiction was found
    */
   public void simplify() throws ContradictionException {
-    VariableElimination.run(this);
     propagate();
 
     if (Configure.hyperBinaryResolution) {
@@ -317,15 +321,6 @@ public final class Solver {
       }
     }
     propagate();
-  }
-
-  /** Queues contradictions in the implication graph */
-  public void queueForcedLiterals() throws ContradictionException {
-    graph.findForcedLiterals(unitsQueue);
-  }
-
-  public void queueAllForcedLiterals() throws ContradictionException {
-    graph.findAllForcedLiterals(unitsQueue);
   }
 
   /** Returns number of binaries in implication graph containing u. */

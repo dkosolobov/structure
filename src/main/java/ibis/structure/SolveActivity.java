@@ -25,7 +25,7 @@ public final class SolveActivity extends Activity {
 
     try {
       solver = new Solver(instance, branch);
-      solution = solver.solve();
+      solution = solver.solve(false);
     } catch (Throwable e) {
       logger.error("Failed to solve instance", e);
       logger.error("Branch is " + branch);
