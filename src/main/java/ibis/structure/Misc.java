@@ -270,6 +270,10 @@ public final class Misc {
     formula.setQuick(clause - 1, encode(length, DELETED));
   }
 
+  public static boolean isEmptyFormula(final TIntArrayList formula) {
+    return !(new ClauseIterator(formula)).hasNext();
+  }
+
   /** Returns true if the clause was removed. */
   public static boolean isClauseRemoved(final TIntArrayList formula,
                                         final int clause) {
