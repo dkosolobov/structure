@@ -31,7 +31,7 @@
     <dependency>
       <groupId>trove</groupId>
       <artifactId>trove</artifactId>
-      <version>3.0.0rc1</version>
+      <version>3.0.0rc2</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
