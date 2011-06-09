@@ -345,7 +345,7 @@ public final class ImplicationsGraph {
   }
 
   /** Does a topological sort and stores it in topologicalSort array. */
-  public void topologicalSort() {
+  public int[] topologicalSort() {
     visited.reset();
     for (int time = 0, u = -numVariables; u <= numVariables; u++) {
       time = topologicalSort(u, time);
@@ -356,6 +356,8 @@ public final class ImplicationsGraph {
       topologicalSort[i] = topologicalSort[topologicalSort.length - i - 1];
       topologicalSort[topologicalSort.length - i - 1] = temp;
     }
+
+    return topologicalSort;
   }
 
   /** Orders nodes by exit times in reversed graph. */
