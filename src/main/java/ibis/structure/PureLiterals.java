@@ -28,14 +28,14 @@ public class PureLiterals {
       }
 
       // Checks if -u is a pure literal
-      if (solver.numBinaries(u) == 0 && wl.get(u).isEmpty()) {
+      if (wl.get(u).isEmpty()) {
         solver.queueUnit(-u);
         numUnits++;
         continue;
       }
 
       // Checks if u is a pure literal
-      if (solver.numBinaries(-u) == 0 && wl.get(-u).isEmpty()) {
+      if (wl.get(neg(u)).isEmpty()) {
         solver.queueUnit(u);
         numUnits++;
         continue;
