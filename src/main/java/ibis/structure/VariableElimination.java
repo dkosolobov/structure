@@ -12,6 +12,7 @@ import static ibis.structure.Misc.*;
 
 public class VariableElimination {
   private static final Logger logger = Logger.getLogger(VariableElimination.class);
+  private static int MAX_SCORE = 36;
 
   private static class Data {
     public int literal;
@@ -35,13 +36,11 @@ public class VariableElimination {
     touched = new TouchSet(numVariables);
   }
 
-  public static void run(final Solver solver) throws ContradictionException {
-    (new VariableElimination(solver)).run();
+  public static Object run(final Solver solver) throws ContradictionException {
+    return (new VariableElimination(solver)).run();
   }
 
   public static Solution restore(final Object ve_, final Solution solution) {
-    // logger.info("Restoring on " + ve_);
-
     if (!solution.isSatisfiable() || ve_ == null) {
       return solution;
     }
@@ -68,13 +67,13 @@ public class VariableElimination {
     return Solution.satisfiable(units.toArray());
   }
 
-  private void run() throws ContradictionException {
+  private Object run() throws ContradictionException {
     Vector<Data> ve = new Vector<Data>();
 
     TLongArrayList all = new TLongArrayList();
     for (int literal = 1; literal <= numVariables; literal++) {
-      int score = watchLists.get(literal).size() * watchLists.get(neg(literal)).size();
-      if (0 < score && score <= 25) {
+      int score = score(literal);
+      if (0 < score && score <= MAX_SCORE) {
         all.add((((long) score) << 32) + literal);
       }
     }
@@ -88,22 +87,26 @@ public class VariableElimination {
       }
     }
 
-    solver.ve = ve;
-
     if (Configure.verbose) {
       if (!ve.isEmpty()) {
         System.err.print("ve" + ve.size() + ".");
       }
     }
+
+    return ve;
+  }
+
+  /**
+   * Scores a given literal.
+   */
+  private int score(int literal) {
+    return solver.numClauses(literal) * solver.numClauses(neg(literal));
   }
 
   private Data eliminate(final int literal)
       throws ContradictionException {
     // Checks that variable is suitable for elimination.
-    if (solver.isLiteralAssigned(literal)
-        || solver.numClauses(literal) * solver.numClauses(neg(literal)) > 36
-        || solver.numClauses(literal) == 0
-        || solver.numClauses(neg(literal)) == 0) {
+    if (solver.isLiteralAssigned(literal) || score(literal) > MAX_SCORE) {
       return null;
     }
 
@@ -120,7 +123,6 @@ public class VariableElimination {
         return null;
       }
     }
-
 
     TIntArrayList store = resolution(literal, p, n);
     watchLists.append(store);

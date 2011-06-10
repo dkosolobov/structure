@@ -24,8 +24,6 @@ public final class Solver {
   public ImplicationsGraph graph;
   /** Watchlists. */
   public WatchLists watchLists;
-  /** Variable elimination. */
-  public Object ve;
   /** Units queue. */
   public TIntArrayList unitsQueue;
 
@@ -134,8 +132,6 @@ public final class Solver {
    * Solves the remaining 2SAT encoded in the implication graph
    */
   private Solution solve2SAT() throws ContradictionException {
-    // logger.info("Solving 2SAT " + graph);
-
     try {
       // Collapses strongly connected components and removes contradictions.
       // No new binary clause is created because there are no clauses
@@ -186,7 +182,7 @@ public final class Solver {
     watchLists = null;
     compact(formula);
 
-    return new Core(numVariables, units.toArray(), proxies, ve, formula);
+    return new Core(numVariables, units.toArray(), proxies, formula);
   }
 
   /**

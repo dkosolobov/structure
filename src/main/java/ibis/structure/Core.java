@@ -11,20 +11,16 @@ public final class Core {
   private TIntHashSet units = new TIntHashSet();
   /** Proxies for equivalent literals. */
   private int[] proxies;
-  /** Variable elimination. */
-  private Object ve;
   /** Core instance without units and equivalent literals. */
   private Skeleton instance;
 
   public Core(final int numVariables,
               final int[] units,
               final int[] proxies,
-              final Object ve,
               final TIntArrayList formula) {
     this.numVariables = numVariables;
     this.units.addAll(units);
     this.proxies = proxies;
-    this.ve = ve;
 
     assert !formula.isEmpty();
     instance = new Skeleton(numVariables, formula);
@@ -46,28 +42,21 @@ public final class Core {
       return solution;
     }
 
-    // System.err.println("merging  ***************");
-    // System.err.println("old units " + units);
-
     // Adds instance's units
     units.addAll(solution.units());
-    // System.err.println("new units " + units);
 
     // Adds equivalent literals
     // XXX A bug prevents from iterating from -numVariables to +numVariables
     for (int literal = 1; literal <= numVariables; ++literal) {
       if (literal != proxies[literal + numVariables]) {
-        // System.err.println(literal + " <- " + proxies[literal + numVariables]);
-
         if (units.contains(proxies[literal + numVariables])) {
           units.add(literal);
-        } else if (units.contains(proxies[-literal + numVariables])) {
-          units.add(-literal);
+        } else if (units.contains(proxies[neg(literal) + numVariables])) {
+          units.add(neg(literal));
         }
       }
     }
 
-    Solution tmp = Solution.satisfiable(units.toArray());
-    return VariableElimination.restore(ve, tmp);
+    return Solution.satisfiable(units.toArray());
   }
 }
