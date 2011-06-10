@@ -3,10 +3,27 @@
 import sys
 import random
 
-n = int(sys.argv[1])
-r = int(sys.argv[2])
+if len(sys.argv) < 2:
+  print "Usage: %s num_variables num_xorgates\n"
+  exit(1)
 
+n = int(sys.argv[1])
+m = int(sys.argv[2])
+
+values = [random.randrange(2) for i in xrange(n)]
 clauses = []
+
+for i in xrange(m):
+  lengh = random.randrange(1, 6)
+  which = random.sample(range(n), l)
+  sum = reduce(lambda x, y: x ^ y, values[j] for j in which)
+
+  for j in xrange(1 << l):
+    for k in xrange(l):
+      result ^= ((j & (1 << k)) != 0) ^ values[which[k]]
+
+
+
 for i in xrange(1 << n):
   result = 0
   for j in xrange(n):
