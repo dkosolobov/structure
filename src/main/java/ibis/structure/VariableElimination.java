@@ -49,10 +49,8 @@ public class VariableElimination {
     Vector<Data> ve = (Vector<Data>) ve_;
     TIntHashSet units = new TIntHashSet(solution.units());
 
-
     for (int i = ve.size() - 1; i >= 0; i--) {
       Data data = ve.get(i);
-
       units.remove(neg(data.literal));
       units.add(data.literal);
 
@@ -103,7 +101,7 @@ public class VariableElimination {
       throws ContradictionException {
     // Checks that variable is suitable for elimination.
     if (solver.isLiteralAssigned(literal)
-        || solver.numClauses(literal) * solver.numClauses(neg(literal)) > 16
+        || solver.numClauses(literal) * solver.numClauses(neg(literal)) > 36
         || solver.numClauses(literal) == 0
         || solver.numClauses(neg(literal)) == 0) {
       return null;
@@ -122,6 +120,7 @@ public class VariableElimination {
         return null;
       }
     }
+
 
     TIntArrayList store = resolution(literal, p, n);
     watchLists.append(store);
@@ -244,17 +243,6 @@ public class VariableElimination {
     length = store.size() - storeClause;
     store.setQuick(storeClause - 1, encode(length, OR));
     cleanLastClause(store, storeClause);
-
-    /*
-    if (numVariables < 16) {
-      logger.info("Resolution on " + literal);
-      logger.info("first is " + clauseToString(formula, first));
-      logger.info("second is " + clauseToString(formula, first));
-      if (!isClauseRemoved(store, storeClause)) {
-        logger.info("result is " + clauseToString(store, storeClause));
-      }
-    }
-    */
   }
 
   /**
@@ -266,13 +254,6 @@ public class VariableElimination {
                                 final int clause,
                                 final int first,
                                 final int second) {
-    /*
-    if (numVariables < 16) {
-      logger.info("binary resolution " + clauseToString(formula, clause));
-      logger.info("with " + first + " or " + second);
-    }
-    */
-
     if (first == neg(second)) {
       // Ignores binary tautologies.
       return;
