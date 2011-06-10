@@ -37,17 +37,17 @@ public final class PreprocessActivity extends Activity {
     try {
       if (Configure.xor) {
         xorGates = XOR.extractGates(instance.formula);
-        logger.info("After XOR there are " + xorGates.size() + " literals in xorGates");
+        logger.info("After XOR: " + xorGates.size() + " literals in xorGates");
         if (Configure.dve) {
           dve = DependentVariableElimination.run(
               instance.numVariables, instance.formula, xorGates);
-          logger.info("After DVE there are " + xorGates.size() + " literals in xorGates");
+          logger.info("After DVE: " + xorGates.size() + " literals in xorGates");
         }
         instance.formula.addAll(xorGates);
       }
 
       solver = new Solver(instance, 0);
-      solution = solver.solve();
+      solution = solver.solve(true);
     } catch (ContradictionException e) {
       solution = Solution.unsatisfiable();
     } catch (Throwable e) {
@@ -55,7 +55,6 @@ public final class PreprocessActivity extends Activity {
     }
 
     if (!solution.isUnknown()) {
-      solution = VariableElimination.restore(solver.ve, solution);
       solution = DependentVariableElimination.restore(dve, solution);
       verify(solution, 0);
       reply(solution);
@@ -70,9 +69,9 @@ public final class PreprocessActivity extends Activity {
     core = solver.core();
     logger.info("Reduced from " + instance.size() + " to "
          + core.instance().size() + " literals");
-    // System.out.println(core.instance());
-    // System.exit(1);
-    executor.submit(new SplitActivity(identifier(), depth, core.instance()));
+
+    executor.submit(new VariableEliminationActivity(
+          identifier(), depth, core.instance()));
 
     gc();
     suspend();
