@@ -36,7 +36,7 @@ public class Configure {
   /** True to enable dependent variable elimination */
   public static boolean dve = true;
   /** True to run blocked clause elimination. */
-  public static boolean bce = true;
+  public static boolean bce = false;
   /** Number of hyper binary resolutions to perform. 0 to disable. */
   public static boolean hyperBinaryResolution = true;
   /** Threshold for transitive closure. */
