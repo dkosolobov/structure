@@ -12,7 +12,7 @@ import static ibis.structure.Misc.*;
 
 public class VariableElimination {
   private static final Logger logger = Logger.getLogger(VariableElimination.class);
-  // private static int MAX_SCORE = 36;
+  private static final int MAX_SCORE = 64;
 
   private static class Data {
     public int literal;
@@ -20,28 +20,20 @@ public class VariableElimination {
   }
 
   private final Solver solver;
-  private final int numVariables;
-  private final WatchLists watchLists;
-  private final TIntArrayList formula;
-  private final ImplicationsGraph graph;
   private final TouchSet touched;
-  private final int MAX_SCORE;
 
   private VariableElimination(final Solver solver) {
     this.solver = solver;
-
-    numVariables = solver.numVariables;
-    watchLists = solver.watchLists;
-    formula = solver.formula;
-    graph = solver.graph;
-    touched = new TouchSet(numVariables);
-    MAX_SCORE = (int) Configure.ttc[0];
+    touched = new TouchSet(solver.numVariables);
   }
 
   public static Object run(final Solver solver) throws ContradictionException {
     return (new VariableElimination(solver)).run();
   }
 
+  /**
+   * Computes the value of eliminated variables.
+   */
   public static Solution restore(final Object ve_, final Solution solution) {
     if (!solution.isSatisfiable() || ve_ == null) {
       return solution;
@@ -69,11 +61,17 @@ public class VariableElimination {
     return Solution.satisfiable(units.toArray());
   }
 
+  /**
+   * Runs VariableElimination on a given instance.
+   *
+   * @return an object storing information to compute
+   * the values of the original instance.
+   */
   private Object run() throws ContradictionException {
     Vector<Data> ve = new Vector<Data>();
 
     TLongArrayList all = new TLongArrayList();
-    for (int literal = 1; literal <= numVariables; literal++) {
+    for (int literal = 1; literal <= solver.numVariables; literal++) {
       int score = score(literal);
       if (0 < score && score <= MAX_SCORE) {
         all.add((((long) score) << 32) + literal);
@@ -113,21 +111,21 @@ public class VariableElimination {
     }
 
     // Clauses must be short enough and not XORs.
-    int[] p = watchLists.get(literal).toArray();
-    int[] n = watchLists.get(neg(literal)).toArray();
+    int[] p = solver.watchLists.get(literal).toArray();
+    int[] n = solver.watchLists.get(neg(literal)).toArray();
     for (int i = 0; i < p.length; i++) {
-      if (length(formula, p[i]) > 16 || type(formula, p[i]) != OR) {
+      if (length(solver.formula, p[i]) > 16 || type(solver.formula, p[i]) != OR) {
         return null;
       }
     }
     for (int i = 0; i < n.length; i++) {
-      if (length(formula, n[i]) > 16 || type(formula, n[i]) != OR) {
+      if (length(solver.formula, n[i]) > 16 || type(solver.formula, n[i]) != OR) {
         return null;
       }
     }
 
     TIntArrayList store = resolution(literal, p, n);
-    watchLists.append(store);
+    solver.watchLists.append(store);
 
     Data data = new Data();
     data.literal = literal;
@@ -140,30 +138,30 @@ public class VariableElimination {
     TIntArrayList clauses = new TIntArrayList();
 
     for (int i = 0; i < p.length; i++) {
-      copy(clauses, formula, p[i]);
-      watchLists.removeClause(p[i]);
+      copy(clauses, solver.formula, p[i]);
+      solver.watchLists.removeClause(p[i]);
     }
     for (int i = 0; i < n.length; i++) {
-      copy(clauses, formula, n[i]);
-      watchLists.removeClause(n[i]);
+      copy(clauses, solver.formula, n[i]);
+      solver.watchLists.removeClause(n[i]);
     }
 
     TIntArrayList edges;
-    edges = graph.edges(literal);
+    edges = solver.graph.edges(literal);
     for (int j = 0; j < edges.size(); j++) {
       clauses.add(encode(2, OR));
       clauses.add(neg(literal));
       clauses.add(edges.getQuick(j));
     }
 
-    edges = graph.edges(neg(literal));
+    edges = solver.graph.edges(neg(literal));
     for (int j = 0; j < edges.size(); j++) {
       clauses.add(encode(2, OR));
       clauses.add(literal);
       clauses.add(edges.getQuick(j));
     }
 
-    graph.remove(literal);
+    solver.graph.remove(literal);
 
     return clauses;
   }
@@ -179,7 +177,7 @@ public class VariableElimination {
     }
 
     // clause - binary
-    TIntArrayList pEdges = graph.edges(literal);
+    TIntArrayList pEdges = solver.graph.edges(literal);
     for (int i = 0; i < p.length; i++) {
       for (int j = 0; j < pEdges.size(); j++) {
         binaryResolution(store, p[i], neg(literal), pEdges.getQuick(j));
@@ -187,7 +185,7 @@ public class VariableElimination {
     }
 
     // binary - clause
-    TIntArrayList nEdges = graph.edges(neg(literal));
+    TIntArrayList nEdges = solver.graph.edges(neg(literal));
     for (int i = 0; i < n.length; i++) {
       for (int j = 0; j < nEdges.size(); j++) {
         binaryResolution(store, n[i], literal, nEdges.getQuick(j));
@@ -226,18 +224,18 @@ public class VariableElimination {
     int storeClause = store.size();
 
     // Adds literals from the first storeClause.
-    int length = length(formula, first);
+    int length = length(solver.formula, first);
     for (int i = first; i < first + length; i++) {
-      int u = formula.getQuick(i);
+      int u = solver.formula.getQuick(i);
       if (u != literal) {
         store.add(u);
       }
     }
 
     // Adds literals from the second storeClause.
-    length = length(formula, second);
+    length = length(solver.formula, second);
     for (int i = second; i < second + length; i++) {
-      int u = formula.getQuick(i);
+      int u = solver.formula.getQuick(i);
       if (u != neg(literal)) {
         store.add(u);
       }
@@ -267,9 +265,9 @@ public class VariableElimination {
     int storeClause = store.size();
 
     // Adds literals from the first clause.
-    int length = length(formula, clause);
+    int length = length(solver.formula, clause);
     for (int i = clause; i < clause + length; i++) {
-      int u = formula.getQuick(i);
+      int u = solver.formula.getQuick(i);
       if (u == neg(first)) {
         if (first != second) {
           store.add(second);
