@@ -97,35 +97,50 @@ public final class Reader {
 
     // Reads clauses
     Skeleton skeleton = new Skeleton(numVariables);
-    int pos = skeleton.formula.size();
     TouchSet seen = new TouchSet(numVariables);
-    int length = 0;
-    skeleton.formula.add(0);
 
     try {
-      while (numClauses > 0) {
-        int literal = scanner.nextInt();
-        if (literal == 0) {
-          numClauses--;
+      for (; numClauses > 0; numClauses--) {
+        int pos = skeleton.formula.size();
+        skeleton.formula.add(0);  // placeholder for header
 
-          skeleton.formula.set(pos, encode(length, OR));
-          pos = skeleton.formula.size();
-          seen.reset();
-          length = 0;
-          skeleton.formula.add(0);
+        String first = scanner.next();
+        boolean isXOR = first.equals("x");
+        boolean sign = false;
+
+        int length = 0;
+        int literal;
+
+        if (isXOR) {
+          literal = scanner.nextInt();
         } else {
-          if (!seen.containsOrAdd(literal)) {
-            skeleton.formula.add(literal);
-            length++;
-          }
+          literal = Integer.parseInt(first);
         }
+
+        seen.reset();
+        while (literal != 0) {
+          if (isXOR && literal != var(literal)) {
+            sign = !sign;
+            literal = var(literal);
+          }
+
+          if (seen.containsOrAdd(literal)) {
+            throw new ParseException("Duplicate literal " + literal);
+          }
+
+          length++;
+          skeleton.formula.add(literal);
+          literal = scanner.nextInt();
+        }
+
+        skeleton.formula.set(pos, encode(
+              length, isXOR ? sign ? NXOR : XOR : OR));
       }
     } catch (NoSuchElementException e) {
       throw new ParseException(
           "Incomplete problem: " + numClauses + " clauses are missing");
     }
 
-    skeleton.formula.removeAt(skeleton.formula.size() - 1);
     return skeleton;
   }
 }
