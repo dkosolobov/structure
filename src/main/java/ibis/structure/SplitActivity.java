@@ -11,7 +11,6 @@ import static ibis.structure.Misc.*;
 
 
 public final class SplitActivity extends Activity {
-  private static final int BACKTRACK_THRESHOLD = 64;
   private static final Logger logger = Logger.getLogger(SplitActivity.class);
 
   /** Representants in disjoint set  */

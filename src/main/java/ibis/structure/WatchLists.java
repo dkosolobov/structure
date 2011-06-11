@@ -34,13 +34,6 @@ public final class WatchLists {
     binaries = new TIntArrayList();
   }
 
-  /** Returns formula */
-  /*
-  public TIntArrayList formula() {
-    return formula;
-  }
-  */
-
   /** Builds the watch lists */
   public void build() throws ContradictionException {
     build(0);
@@ -77,6 +70,7 @@ public final class WatchLists {
     return watchLists[temp];
   }
 
+  /** Merges two variables. */
   public void merge(final int from, final int to)
       throws ContradictionException {
     TIntArrayList tautologies = new TIntArrayList();
@@ -200,7 +194,8 @@ public final class WatchLists {
   }
 
   /** Enqueues short clauses. */
-  private void clauseLengthChanged(final int clause) throws ContradictionException {
+  private void clauseLengthChanged(final int clause)
+      throws ContradictionException {
     int length = length(formula, clause);
     if (length == 0) {
       if (type(formula, clause) != NXOR) {
@@ -226,7 +221,8 @@ public final class WatchLists {
       for (int size = get(u).size(); size > 0; size--) {
         int clause = it.next();
         assert formula.subList(clause, clause + length(formula, clause)).contains(u)
-            : "Clause " + clauseToString(formula, clause) + " does not contains literal " + u;
+            : "Clause " + clauseToString(formula, clause)
+              + " does not contains literal " + u;
       }
     }
 
@@ -244,7 +240,8 @@ public final class WatchLists {
         assert get(u).contains(clause)
             : "Missing clause " + clause + " from literal " + u;
         assert type == OR || u > 0
-            : clauseToString(formula, clause) + " contains negative literal " + u;
+            : clauseToString(formula, clause)
+              + " contains negative literal " + u;
       }
     }
 
