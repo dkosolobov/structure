@@ -70,7 +70,6 @@ public final class Solver {
     assert var(u) == u;
     return proxy(u) == u
         && !units.contains(u) && !units.contains(-u)
-        && graph.edges(u).isEmpty() && graph.edges(-u).isEmpty()
         && watchLists.get(u).isEmpty() && watchLists.get(-u).isEmpty();
   }
 
@@ -99,9 +98,9 @@ public final class Solver {
 
     if (u == v) {
       queueUnit(u);
+    } else {
+      graph.add(neg(u), v);
     }
-
-    graph.add(neg(u), v);
   }
 
   /**
@@ -118,13 +117,27 @@ public final class Solver {
         if (Configure.hyperBinaryResolution) {
           HyperBinaryResolution.run(this);
         }
+        if (Configure.selfSubsumming) {
+          SelfSubsumming.run(this);
+        }
       }
 
       simplify();
 
       // If all clauses were removed solve the remaining 2SAT.
-      boolean empty = isEmptyFormula(formula);
-      return empty ? solve2SAT() : Solution.unknown();
+      // boolean empty = isEmptyFormula(formula);
+      boolean _2SAT = true;
+      ClauseIterator it = new ClauseIterator(formula);
+      while (it.hasNext()) {
+        int clause = it.next();
+        int length = length(formula, clause);
+        if (length > 2) {
+          _2SAT = false;
+          break;
+        }
+      }
+
+      return _2SAT ? solve2SAT() : Solution.unknown();
     } catch (ContradictionException e) {
       // logger.info("found contradiction", e);
       return Solution.unsatisfiable();
@@ -136,6 +149,9 @@ public final class Solver {
    */
   private Solution solve2SAT() throws ContradictionException {
     try {
+      // Makes sure that all binaries are in the graph
+      propagateBinaries();
+
       // Collapses strongly connected components and removes contradictions.
       // No new binary clause is created because there are no clauses
       // of longer length.
@@ -216,8 +232,20 @@ public final class Solver {
 
   /** Propagates units and binaries */
   public boolean propagate() throws ContradictionException {
+    boolean simplified = false;
+    
+    simplified = propagateUnits() || simplified;
+    simplified = propagateBinaries() || simplified;
+    return simplified;
+  }
+
+  /**
+   * Putes discovered binaries in the graph.
+   * Formula is not modified.
+   */
+  private boolean propagateBinaries() {
     TIntArrayList clauses = watchLists.binaries;
-    boolean simplified = propagateUnits() || !clauses.isEmpty();
+    boolean simplified = false;
 
     for (int i = 0; i < clauses.size(); i++) {
       int clause = clauses.getQuick(i);
@@ -227,17 +255,21 @@ public final class Solver {
 
       int length = length(formula, clause);
       int type = type(formula, clause);
+      simplified = true;
+
       assert length == 2: "Length should be 2 not " + length;
+      int l0 = formula.getQuick(clause);
+      int l1 = formula.getQuick(clause + 1);
 
       if (type == OR) {
-        addBinary(formula.get(clause), formula.get(clause + 1));
+        addBinary(l0, l1);
       } else if (type == XOR) {
-        addBinary(formula.get(clause), formula.get(clause + 1));
-        addBinary(-formula.get(clause), -formula.get(clause + 1));
+        addBinary(l0, l1);
+        addBinary(neg(l0), neg(l1));
       } else {
         assert type == NXOR;
-        addBinary(formula.get(clause), -formula.get(clause + 1));
-        addBinary(-formula.get(clause), formula.get(clause + 1));
+        addBinary(l0, neg(l1));
+        addBinary(neg(l0), l1);
       }
     }
 
@@ -247,23 +279,19 @@ public final class Solver {
 
   /** Propagates all discovered units. */
   public boolean propagateUnits() throws ContradictionException {
-    // logger.info("from unitsQueue");
     boolean simplified = propagateLiterals(unitsQueue);
     unitsQueue.reset();
 
     TIntArrayList clauses = watchLists.units;
     TIntArrayList literals = new TIntArrayList(1);
 
-    // TODO: all available units can be propagated simulatneously
-    // logger.info("from watchLists");
     while (!clauses.isEmpty()) {
       literals.reset();
       for (int i = 0; i < clauses.size(); i++) {
         int clause = clauses.getQuick(i);
         if (!isClauseRemoved(formula, clause)) {
-          int type = type(formula, clause);
           int unit = formula.get(clause);
-          if (type == NXOR) {
+          if (type(formula, clause) == NXOR) {
             unit = neg(unit);
           }
           literals.add(unit);
@@ -281,8 +309,8 @@ public final class Solver {
   private boolean propagateLiterals(final TIntArrayList literals) 
       throws ContradictionException {
     boolean simplified = false;
+
     TIntArrayList propagated = graph.propagate(literals);
-    // logger.info("propagating " + literals + " -> " + propagated);
     for (int i = 0; i < propagated.size(); i++) {
       int unit = propagated.getQuick(i);
       assert proxy(unit) == unit;
@@ -323,7 +351,7 @@ public final class Solver {
   }
 
   public int numClauses(final int u) {
-    return watchLists.get(u).size() + numBinaries(u);
+    return watchLists.get(u).size();
   }
 
   /** Renames from into to */
