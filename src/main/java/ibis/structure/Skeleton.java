@@ -26,6 +26,11 @@ public final class Skeleton implements java.io.Serializable {
     return formula.size();
   }
 
+  /** Returns a copy of this instance. */
+  public Skeleton clone() {
+    return new Skeleton(numVariables, new TIntArrayList(formula));
+  }
+
   /** Expands small XOR gates. */
   public void expandSmallXOR() {
     ClauseIterator it = new ClauseIterator(formula);

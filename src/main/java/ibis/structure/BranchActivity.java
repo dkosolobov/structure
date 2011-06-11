@@ -33,8 +33,7 @@ public final class BranchActivity extends Activity {
 
   public void initialize() {
     Skeleton copy1 = instance;
-    Skeleton copy2 = new Skeleton(instance.numVariables,
-                                  new TIntArrayList(instance.formula));
+    Skeleton copy2 = instance.clone();
 
     executor.submit(
         new SolveActivity(identifier(), depth - 1, copy1, branch));

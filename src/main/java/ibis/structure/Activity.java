@@ -31,8 +31,7 @@ public class Activity extends ibis.constellation.Activity {
     this.instance = instance;
 
     if (Configure.enableExpensiveChecks) {
-      original = new Skeleton(instance.numVariables,
-                              new TIntArrayList(instance.formula));
+      original = instance.clone();
     } else {
       original = null;
     }
@@ -52,6 +51,7 @@ public class Activity extends ibis.constellation.Activity {
           verifySatisfied(response.units());
         } catch (Exception e) {
           logger.error("Verification failed", e);
+          logger.info("Failed instance is\n" + original);
           System.exit(1);  // TODO: exit gracefully
         }
       }
