@@ -26,22 +26,65 @@ public final class Skeleton implements java.io.Serializable {
     return formula.size();
   }
 
+  /** Expands small XOR gates. */
+  public void expandSmallXOR() {
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+      int type = type(formula, clause);
+
+      if (type != OR && length <= 3) {
+        for (int i = 0; i < (1 << length); i++) {
+          boolean sign = false;
+          for (int j = 0; j < length; j++) {
+            if ((i & (1 << j)) != 0) {
+              sign = !sign;
+            }
+          }
+
+          if ((type == XOR && !sign) || (type == NXOR && sign)) {
+            formula.add(encode(length, OR));
+            for (int j = 0; j < length; j++) {
+              int literal = formula.getQuick(clause + j);
+              if ((i & (1 << j)) != 0) {
+                formula.add(neg(literal));
+              } else {
+                formula.add(literal);
+              }
+            }
+          }
+        }
+
+        removeClause(formula, clause);
+      }
+    }
+  }
+
   /**
    * Computes scores for every literal.
    *
    * Idea for evaluating literals was adapted from:
-   * Building a Hybrid SAT Solver via Conflict Driven, Look Ahead and XOR Reasoning Techniques
+   * Building a Hybrid SAT Solver via Conflict Driven,
+   * Look Ahead and XOR Reasoning Techniques
    *
    * The propagation is aproximated estimated.
    */
   public double[] evaluateLiterals() {
     double[] scores = new double[2 * numVariables + 1];
+    ImplicationsGraph graph = new ImplicationsGraph(numVariables);
 
     // These values were fine tuned for easy instances from
     // SAT Competition 2011.
-    final double alpha = 0.54;
-    final double beta = 0.55;
-    final double gamma = 0.38;
+    // final double alpha = 0.29;
+    // final double beta = 0.55;
+    // final double gamma = 0.19;
+    final double alpha = Configure.ttc[0];
+    final double beta = 0.5;
+    final double gamma = Configure.ttc[1];
+    // final double alpha = 0.86;
+    // final double beta = 0.55;
+    // final double gamma = 0.28;
 
     // First scores are computed based on clauses length
     ClauseIterator it = new ClauseIterator(formula);
@@ -68,17 +111,25 @@ public final class Skeleton implements java.io.Serializable {
           scores[neg(literal) + numVariables] += delta;
         }
       } 
-    }
-
-    it = new ClauseIterator(formula);
-    while (it.hasNext()) {
-      int clause = it.next();
-      int length = length(formula, clause);
 
       if (length == 2) {
         int u = formula.getQuick(clause);
         int v = formula.getQuick(clause + 1);
-        scores[neg(u) + numVariables] += gamma * scores[v + numVariables];
+        graph.add(neg(u), v);
+      }
+    }
+
+    int[] sort = graph.topologicalSort();
+    for (int i = 0; i < sort.length; i++) {
+      int u = sort[i];
+      if (u == 0) {
+        continue;
+      }
+
+      TIntArrayList edges = graph.edges(u);
+      for (int j = 0; j < edges.size(); j++) {
+        int v = edges.getQuick(j);
+        scores[u + numVariables] += gamma * scores[v + numVariables];
       }
     }
     

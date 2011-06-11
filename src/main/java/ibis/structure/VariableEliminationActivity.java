@@ -10,8 +10,12 @@ import org.apache.log4j.Logger;
 import static ibis.structure.Misc.*;
 
 
+/**
+ * TODO: Handle case when all variables are eliminated.
+ */
 public final class VariableEliminationActivity extends Activity {
-  private static final Logger logger = Logger.getLogger(VariableEliminationActivity.class);
+  private static final Logger logger = Logger.getLogger(
+      VariableEliminationActivity.class);
   private static final Random random = new Random(1);
 
   private InstanceNormalizer normalizer = new InstanceNormalizer();
@@ -27,6 +31,7 @@ public final class VariableEliminationActivity extends Activity {
 
   public void initialize() {
     try {
+      instance.expandSmallXOR();
       normalizer.normalize(instance);
 
       Solver solver = new Solver(instance, 0);

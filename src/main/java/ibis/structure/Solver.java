@@ -32,6 +32,8 @@ public final class Solver {
   /** Constructor. */
   public Solver(final Skeleton instance, final int branch)
       throws ContradictionException {
+    instance.expandSmallXOR();
+
     numVariables = instance.numVariables;
     formula = instance.formula;
     units = new TouchSet(numVariables);
@@ -44,7 +46,6 @@ public final class Solver {
       proxies[u + numVariables] = u;
     }
 
-    // Builds the watch lists.
     watchLists.build();
     if (branch != 0) {
       watchLists.addBranch(branch);
