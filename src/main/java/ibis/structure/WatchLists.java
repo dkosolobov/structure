@@ -27,7 +27,7 @@ public final class WatchLists {
   /** Constructor */
   public WatchLists(final int numVariables, final TIntArrayList formula) {
     this.numVariables = numVariables;
-    this.formula = new TIntArrayList(formula);
+    this.formula = formula;
 
     watchLists = new TIntHashSet[2 * numVariables + 1];
     units = new TIntArrayList();
@@ -35,9 +35,11 @@ public final class WatchLists {
   }
 
   /** Returns formula */
+  /*
   public TIntArrayList formula() {
     return formula;
   }
+  */
 
   /** Builds the watch lists */
   public void build() throws ContradictionException {

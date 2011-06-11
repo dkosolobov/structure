@@ -16,6 +16,8 @@ public final class Solver {
 
   /** Number of variables. */
   public int numVariables;
+  /** Formula */
+  public TIntArrayList formula;
   /** Set of true literals discovered. */
   public TouchSet units;
   /** Equalities between literals. */
@@ -31,9 +33,10 @@ public final class Solver {
   public Solver(final Skeleton instance, final int branch)
       throws ContradictionException {
     numVariables = instance.numVariables;
+    formula = new TIntArrayList(instance.formula);
     units = new TouchSet(numVariables);
     graph = new ImplicationsGraph(numVariables);
-    watchLists = new WatchLists(numVariables, instance.formula);
+    watchLists = new WatchLists(numVariables, formula);
     unitsQueue = new TIntArrayList();
 
     proxies = new int[2 * numVariables + 1];
@@ -120,7 +123,7 @@ public final class Solver {
       simplify();
 
       // If all clauses were removed solve the remaining 2SAT.
-      boolean empty = isEmptyFormula(watchLists.formula());
+      boolean empty = isEmptyFormula(formula);
       return empty ? solve2SAT() : Solution.unknown();
     } catch (ContradictionException e) {
       // logger.info("found contradiction", e);
@@ -176,12 +179,8 @@ public final class Solver {
   public Core core() {
     assert unitsQueue.isEmpty();
 
-    TIntArrayList formula = watchLists.formula();
-    // TIntArrayList bins = graph.serialize();
-
     watchLists = null;
     compact(formula);
-
     return new Core(numVariables, units.toArray(), proxies, formula);
   }
 
@@ -217,7 +216,6 @@ public final class Solver {
 
   /** Propagates units and binaries */
   public boolean propagate() throws ContradictionException {
-    TIntArrayList formula = watchLists.formula();
     TIntArrayList clauses = watchLists.binaries;
     boolean simplified = propagateUnits() || !clauses.isEmpty();
 
@@ -262,9 +260,9 @@ public final class Solver {
       literals.reset();
       for (int i = 0; i < clauses.size(); i++) {
         int clause = clauses.getQuick(i);
-        if (!isClauseRemoved(watchLists.formula(), clause)) {
-          int type = type(watchLists.formula(), clause);
-          int unit = watchLists.formula().get(clause);
+        if (!isClauseRemoved(formula, clause)) {
+          int type = type(formula, clause);
+          int unit = formula.get(clause);
           if (type == NXOR) {
             unit = neg(unit);
           }
@@ -305,7 +303,7 @@ public final class Solver {
   }
 
   public String toString() {
-    return formulaToString(watchLists.formula()) + "\n" + graph.toString();
+    return formulaToString(formula) + "\n" + graph.toString();
   }
 
   /** Finds equivalent literals and renames them */

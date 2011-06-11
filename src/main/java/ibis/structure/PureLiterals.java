@@ -21,7 +21,7 @@ public class PureLiterals {
       TIntIterator it = wl.get(u).iterator();
       for  (int size = wl.get(u).size(); size > 0; size--) {
         int clause = it.next();
-        int type = type(wl.formula(), clause);
+        int type = type(solver.formula, clause);
         if (type != OR) {
           continue loop_variables;
         }

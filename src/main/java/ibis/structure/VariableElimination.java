@@ -12,7 +12,7 @@ import static ibis.structure.Misc.*;
 
 public class VariableElimination {
   private static final Logger logger = Logger.getLogger(VariableElimination.class);
-  private static int MAX_SCORE = 36;
+  // private static int MAX_SCORE = 36;
 
   private static class Data {
     public int literal;
@@ -25,15 +25,17 @@ public class VariableElimination {
   private final TIntArrayList formula;
   private final ImplicationsGraph graph;
   private final TouchSet touched;
+  private final int MAX_SCORE;
 
   private VariableElimination(final Solver solver) {
     this.solver = solver;
 
     numVariables = solver.numVariables;
     watchLists = solver.watchLists;
-    formula = solver.watchLists.formula();
+    formula = solver.formula;
     graph = solver.graph;
     touched = new TouchSet(numVariables);
+    MAX_SCORE = (int) Configure.ttc[0];
   }
 
   public static Object run(final Solver solver) throws ContradictionException {

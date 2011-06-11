@@ -40,7 +40,7 @@ public final class HyperBinaryResolution {
     this.solver = solver;
 
     numVariables = solver.numVariables;
-    formula = solver.watchLists.formula();
+    formula = solver.formula;
     counts = new int[2 * numVariables + 1];
     sums = new int[2 * numVariables + 1];
     touched = new int[2 * numVariables + 1];

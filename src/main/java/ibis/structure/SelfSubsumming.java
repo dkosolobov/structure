@@ -37,7 +37,7 @@ public final class SelfSubsumming {
 
     numVariables = solver.numVariables;
     watchLists = solver.watchLists;
-    formula = watchLists.formula();
+    formula = solver.formula;
     visited = new TouchSet(numVariables);
   }
 

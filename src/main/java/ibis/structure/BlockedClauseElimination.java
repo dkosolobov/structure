@@ -23,7 +23,7 @@ public final class BlockedClauseElimination {
     this.solver = solver;
     
     numVariables = solver.numVariables;
-    formula = solver.watchLists.formula();
+    formula = solver.formula;
     seen = new TouchSet(numVariables);
   }
 

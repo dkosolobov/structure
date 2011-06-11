@@ -31,7 +31,7 @@ public class HiddenTautologyElimination {
     this.solver = solver;
 
     numVariables = solver.numVariables;
-    formula = solver.watchLists.formula();
+    formula = solver.formula;
     touched = new TouchSet(numVariables);
     tautologies = new TIntArrayList();
   }
