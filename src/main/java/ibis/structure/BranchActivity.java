@@ -32,10 +32,14 @@ public final class BranchActivity extends Activity {
   }
 
   public void initialize() {
+    Skeleton copy1 = instance;
+    Skeleton copy2 = new Skeleton(instance.numVariables,
+                                  new TIntArrayList(instance.formula));
+
     executor.submit(
-        new SolveActivity(identifier(), depth - 1, instance, branch));
+        new SolveActivity(identifier(), depth - 1, copy1, branch));
     executor.submit(
-        new SolveActivity(identifier(), depth - 1, instance, -branch));
+        new SolveActivity(identifier(), depth - 1, copy2, neg(branch)));
 
     gc();
     suspend();
@@ -46,7 +50,6 @@ public final class BranchActivity extends Activity {
     if (response.isSatisfiable()) {
       if (numReplies == 0 || !responses[0].isSatisfiable()) {
         // Sends the solution to parent.
-        verify(response);
         reply(response);
       }
     }

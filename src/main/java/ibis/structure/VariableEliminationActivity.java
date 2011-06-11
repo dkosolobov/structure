@@ -52,7 +52,6 @@ public final class VariableEliminationActivity extends Activity {
     if (response.isSatisfiable()) {
       response = core.merge(response);
       response = VariableElimination.restore(ve, response);
-      verify(response);
       normalizer.denormalize(response);
     }
 

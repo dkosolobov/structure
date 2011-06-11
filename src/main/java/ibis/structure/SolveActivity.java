@@ -42,7 +42,6 @@ public final class SolveActivity extends Activity {
       gc();
       suspend();
     } else {
-      verify(solution, branch);
       reply(solution);
       finish();
     }
@@ -53,7 +52,6 @@ public final class SolveActivity extends Activity {
     if (response.isSatisfiable()) {
       response = core.merge(response);
     }
-    verify(response, branch);
     reply(response);
     finish();
   }

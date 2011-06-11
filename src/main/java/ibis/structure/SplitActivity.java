@@ -98,7 +98,6 @@ public final class SplitActivity extends Activity {
       } else {
         units = java.util.Arrays.copyOf(units, numUnits);
         Solution solution = Solution.satisfiable(units);
-        verify(solution);
         reply(solution);
       }
       finish();

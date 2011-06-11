@@ -36,7 +36,6 @@ public final class SelectBranchActivity extends Activity {
   public void process(Event e) throws Exception {
     Solution response = (Solution) e.data;
     if (response.isSatisfiable()) {
-      verify(response);
       normalizer.denormalize(response);
     }
 

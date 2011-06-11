@@ -19,6 +19,8 @@ public class Activity extends ibis.constellation.Activity {
   protected int depth;
   /** Instance to be solved. */
   protected Skeleton instance;
+  /** Original instance to be solved. */
+  protected Skeleton original;
 
   protected Activity(final ActivityIdentifier parent,
                      final int depth,
@@ -27,60 +29,32 @@ public class Activity extends ibis.constellation.Activity {
     this.parent = parent;
     this.depth = depth;
     this.instance = instance;
+
+    if (Configure.enableExpensiveChecks) {
+      original = new Skeleton(instance.numVariables,
+                              new TIntArrayList(instance.formula));
+    } else {
+      original = null;
+    }
   }
 
   protected void reply(final Solution response) {
+    verify(response);
     executor.send(new Event(identifier(), parent, response));
   }
 
-  protected void verify(final Solution response) {
-    verify(response, 0);
-  }
-
-  public void verify(final Solution response, int branch) {
+  public void verify(final Solution response) {
     if (Configure.enableExpensiveChecks) {
       if (response.isSatisfiable()) {
-        // For satisfiable instances reponse contains a proof.
+        // For satisfiable originals reponse contains a proof.
         try {
           verifyUnits(response.units());
           verifySatisfied(response.units());
         } catch (Exception e) {
           logger.error("Verification failed", e);
-          // logger.error("Units are " + (new TIntArrayList(response.units())));
-          // logger.error("Branch is " + branch);
-          // logger.error("Formula is " + instance);
           System.exit(1);  // TODO: exit gracefully
         }
       }
-
-      /*
-      if (response.isUnsatisfiable()) {
-        // For unsatisfiable invoke cryptominisat.
-        Skeleton i = new Skeleton(instance.numVariables);
-        i.formula = new TIntArrayList(instance.formula);
-        if (branch != 0) {
-          i.formula.add(encode(1, OR));
-          i.formula.add(branch);
-        }
-
-        String cnf = i.toString();
-        int r = 0;
-
-        try {
-          Process p = Runtime.getRuntime().exec("./cryptominisat");
-          p.getOutputStream().write(cnf.getBytes());
-          p.getOutputStream().close();
-          r = p.waitFor();
-        } catch (Exception e) {
-          // ignored
-        }
-
-        if (r == 10) {
-          logger.info("Satisfiable instance\n" + cnf);
-          System.exit(1);
-        }
-      }
-      */
     }
   }
 
@@ -97,7 +71,7 @@ public class Activity extends ibis.constellation.Activity {
 
   /** Checks all CNF clauses are satisfied */
   public void verifySatisfied(final int[] units) throws Exception {
-    TIntArrayList formula = instance.formula;
+    TIntArrayList formula = original.formula;
     TIntHashSet unitsSet = new TIntHashSet();
     unitsSet.addAll(units);
 

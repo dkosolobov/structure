@@ -33,7 +33,7 @@ public final class Solver {
   public Solver(final Skeleton instance, final int branch)
       throws ContradictionException {
     numVariables = instance.numVariables;
-    formula = new TIntArrayList(instance.formula);
+    formula = instance.formula;
     units = new TouchSet(numVariables);
     graph = new ImplicationsGraph(numVariables);
     watchLists = new WatchLists(numVariables, formula);

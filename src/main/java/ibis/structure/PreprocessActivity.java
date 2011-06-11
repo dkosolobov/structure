@@ -56,7 +56,6 @@ public final class PreprocessActivity extends Activity {
 
     if (!solution.isUnknown()) {
       solution = DependentVariableElimination.restore(dve, solution);
-      verify(solution, 0);
       reply(solution);
       finish();
       return;
@@ -82,7 +81,6 @@ public final class PreprocessActivity extends Activity {
     response = BlockedClauseElimination.restore(bce, response);
     response = core.merge(response);
     response = DependentVariableElimination.restore(dve, response);
-    verify(response);
     reply(response);
     finish();
   }
