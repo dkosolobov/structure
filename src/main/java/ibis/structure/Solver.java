@@ -47,10 +47,7 @@ public final class Solver {
     // Builds the watch lists.
     watchLists.build();
     if (branch != 0) {
-      TIntArrayList temp = new TIntArrayList();
-      temp.add(encode(1, OR));
-      temp.add(branch);
-      watchLists.append(temp);
+      watchLists.addBranch(branch);
     }
 
     if (Configure.verbose) {
@@ -106,6 +103,7 @@ public final class Solver {
   /**
    * Returns a literal to branch on.
    *
+   * @param top true to enable more algs.
    * @return solution or simplified instance.
    */
   public Solution solve(boolean top) {

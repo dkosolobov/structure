@@ -39,14 +39,8 @@ public final class WatchLists {
     build(0);
   }
 
-  public void append(final TIntArrayList clauses)
-      throws ContradictionException {
-    int start = formula.size();
-    formula.addAll(clauses);
-    build(start);
-  }
-
-  private void build(final int start) throws ContradictionException {
+  /** Builds the watch lists starting from start */
+  public void build(final int start) throws ContradictionException {
     ClauseIterator it = new ClauseIterator(formula, start);
     while (it.hasNext()) {
       int clause = it.next();
@@ -59,6 +53,22 @@ public final class WatchLists {
 
       clauseLengthChanged(clause);
     }
+  }
+
+  /** Appends new clauses. */
+  public void append(final TIntArrayList clauses)
+      throws ContradictionException {
+    int start = formula.size();
+    formula.addAll(clauses);
+    build(start);
+  }
+
+  /** Adds an extra unit. */
+  public void addBranch(final int branch) throws ContradictionException {
+    int start = formula.size();
+    formula.add(encode(1, OR));
+    formula.add(branch);
+    build(start);
   }
 
   /** Returns the watch list for literal. */
