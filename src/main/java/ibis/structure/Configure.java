@@ -18,7 +18,7 @@ public class Configure {
   /** Path to output file. */
   public static String outputFile = null;
   /** Number of executors to used. */
-  public static int numExecutors = Runtime.getRuntime().availableProcessors();
+  public static int numExecutors = 1; // Runtime.getRuntime().availableProcessors();
   /** True to enable expensive checks for debugging. */
   public static boolean enableExpensiveChecks = false;
   /** True to print more info. */
@@ -31,10 +31,8 @@ public class Configure {
   public static boolean selfSubsumming = true;
   /** True to split instances when possible. */
   public static boolean split = true;
-  /** True to extract xor gates. */
+  /** True to extract xor gates and enable dependent variable elimination. */
   public static boolean xor = true;
-  /** True to enable dependent variable elimination */
-  public static boolean dve = true;
   /** True to run blocked clause elimination. */
   public static boolean bce = false;
   /** Number of hyper binary resolutions to perform. 0 to disable. */
@@ -55,7 +53,6 @@ public class Configure {
     options.addOption("nosss", false, "disable self-subsumming");
     options.addOption("nosplit", false, "disable splitting");
     options.addOption("noxor", false, "disable xor gates extraction");
-    options.addOption("nodve", false, "disable dependent variable elimination");
     options.addOption("nobce", false, "disable blocked clause elimination");
     options.addOption("nohbr", false, "disable hyper binary resolutions");
     options.addOption("ttc", true, "some coefficients");
@@ -108,9 +105,6 @@ public class Configure {
     }
     if (cl.hasOption("noxor")) {
       xor = false;
-    }
-    if (cl.hasOption("nodve")) {
-      dve = false;
     }
     if (cl.hasOption("nobce")) {
       bce = false;

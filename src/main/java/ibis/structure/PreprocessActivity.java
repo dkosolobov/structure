@@ -36,13 +36,10 @@ public final class PreprocessActivity extends Activity {
     
     try {
       if (Configure.xor) {
-        xorGates = XOR.extractGates(instance.formula);
-        logger.info("After XOR: " + xorGates.size() + " literals in xorGates");
-        if (Configure.dve) {
-          dve = DependentVariableElimination.run(
-              instance.numVariables, instance.formula, xorGates);
-          logger.info("After DVE: " + xorGates.size() + " literals in xorGates");
-        }
+        TIntArrayList xorGates = XOR.extractGates(instance.formula);
+        dve = DependentVariableElimination.run(
+            instance.numVariables, instance.formula, xorGates);
+        logger.info("After DVE: " + xorGates.size() + " literals in xorGates");
         instance.formula.addAll(xorGates);
       }
 
