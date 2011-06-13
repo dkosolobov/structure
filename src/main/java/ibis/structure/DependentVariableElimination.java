@@ -15,7 +15,8 @@ import static ibis.structure.Misc.*;
  * A variable is dependent if it appears only in XOR gates.
  */
 public final class DependentVariableElimination {
-  private static final Logger logger = Logger.getLogger(DependentVariableElimination.class);
+  private static final Logger logger = Logger.getLogger(
+      DependentVariableElimination.class);
 
   /**
    * Performs dependent variable elimination on formula with xorGates.
