@@ -23,21 +23,30 @@ $ cd contellation/
 $ ant
 $ mvn install:install-file -Dfile=lib/constellation-0.7.0.jar -Dpackaging=jar -DgroupId=ibis -DartifactId=constellation -Dversion=0.7.0
 
-2. Trove
+or
 
-$ wget http://sourceforge.net/projects/trove4j/files/trove/2.1.0/trove-2.1.0.tar.gz/download
-$ tar xzvf trove-2.1.0.tar.gz
-$ cd trove-2.1.0
-$ ant
-$ mvn install:install-file -Dfile=lib/trove-2.1.0.jar -Dpackaging=jar -DgroupId=trove -DartifactId=trove -Dversion=2.1.0
+$ wget https://github.com/downloads/brtzsnr/structure/constellation-0.7.0.jar
+$ mvn install:install-file -Dfile=lib/constellation-0.7.0.jar -Dpackaging=jar -DgroupId=ibis -DartifactId=constellation -Dversion=0.7.0
 
-3. IPL
+2. IPL (optional)
+
+If you chose to compile Constellation yourself you will need to install IPL.
+The Constellation version on GitHub was modified to run without IPL.
 
 $ wget http://gforge.cs.vu.nl/gf/download/frsrelease/135/719/ipl-2.2.zip
 $ unzip ipl-2.2.zip
 $ cd ipl-2.2
 $ vim ibis.properties 
 $ bin/ipl-server
+
+3. Trove
+
+$ mkdir trove-3.0.0rc2/
+$ cd trove-3.0.0rc2/
+$ wget http://sourceforge.net/projects/trove4j/files/trove/3.0.0rc2/trove-3.0.0rc2.tar.gz
+$ tar xzvf trove-3.0.0rc2.tar.gz
+$ ant
+$ mvn install:install-file -Dfile=lib/trove-3.0.0rc2.jar -Dpackaging=jar -DgroupId=trove -DartifactId=trove -Dversion=3.0.0rc2
 
 4. Structure
 
