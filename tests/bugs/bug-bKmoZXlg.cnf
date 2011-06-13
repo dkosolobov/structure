@@ -1,0 +1,36 @@
+./bin/stratimprsat.ml: option `-i' needs an argument.
+
+Strategy Improvement Iteration Bound Satisfier
+Author: Oliver Friedmann, 2008
+
+Usage: itersat -n [nodes] -i [iterations]
+Searches for a parity game with [nodes] nodes enforcing at least [iterations] iterations of the strategy improvement algorithm.
+
+Options are
+  --nodes, -n 
+     number of nodes in the game (mandatory)
+  --iteration, -i 
+     lower bound on the number of iterations (mandatory)
+  --playeronenodes, -po 
+     lower bound on the number of nodes of player 1
+  --outdegree, -od 
+     upper bound on the node outdegree
+  --indegree, -id 
+     upper bound on the node indegree
+  --scc, -sc 
+     game needs to be an scc
+  --alternating, -al 
+     enforce alternating playing positions
+  --alternatingprios, -ap 
+     enforce alternating priorities
+  --cycleinvariant, -ci 
+     enforce cycle invariant valuations
+  --centered, -ce 
+     enforce centered valuations
+  --nosingleplayer, -ns 
+     enforce proper game
+  --lastvalchange, -lv 
+     enforce change of last valuation
+  --preprocess, -pp 
+     preprocess sat formula
+
