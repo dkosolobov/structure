@@ -1,8 +1,5 @@
 package ibis.structure;
 
-import java.util.Random;
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.set.hash.TIntHashSet;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
@@ -11,21 +8,23 @@ import static ibis.structure.Misc.*;
 
 
 /**
+ * Performs variable elimination.
+ *
  * TODO: Handle case when all variables are eliminated.
+ * TODO: Add disable option.
  */
 public final class VariableEliminationActivity extends Activity {
   private static final Logger logger = Logger.getLogger(
       VariableEliminationActivity.class);
-  private static final Random random = new Random(1);
 
   private InstanceNormalizer normalizer = new InstanceNormalizer();
   private Object ve = null;
   private Core core = null;
 
   public VariableEliminationActivity(final ActivityIdentifier parent,
-                              final int depth,
-                              final Skeleton instance) {
-    super(parent, depth, instance);
+                                     final int depth,
+                                     final Skeleton instance) {
+    super(parent, depth, 0, instance);
     assert instance.size() > 0;
   }
 
@@ -41,7 +40,8 @@ public final class VariableEliminationActivity extends Activity {
       solver.verifyIntegrity();
 
       core = solver.core();
-      executor.submit(new SplitActivity(identifier(), depth, core.instance()));
+      executor.submit(new RestartActivity(
+            identifier(), depth, core.instance()));
 
       gc();
       suspend();

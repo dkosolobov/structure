@@ -17,8 +17,9 @@ public final class SelectBranchActivity extends Activity {
 
   public SelectBranchActivity(final ActivityIdentifier parent,
                               final int depth,
+                              final long generation,
                               final Skeleton instance) {
-    super(parent, depth, instance);
+    super(parent, depth, generation, instance);
     assert instance.size() > 0;
   }
 
@@ -27,7 +28,7 @@ public final class SelectBranchActivity extends Activity {
     int branch = chooseBranch();
     
     executor.submit(new BranchActivity(
-          identifier(), depth, instance, branch));
+          identifier(), depth, generation, instance, branch));
 
     gc();
     suspend();

@@ -27,7 +27,7 @@ public final class PreprocessActivity extends Activity {
   public PreprocessActivity(final ActivityIdentifier parent,
                             final int depth,
                             final Skeleton instance) {
-    super(parent, depth, instance);
+    super(parent, depth, 0, instance);
   }
 
   public void initialize() throws Exception {

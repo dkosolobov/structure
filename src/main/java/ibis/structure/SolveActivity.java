@@ -13,9 +13,10 @@ public final class SolveActivity extends Activity {
 
   public SolveActivity(final ActivityIdentifier parent,
                        final int depth,
+                       final long generation,
                        final Skeleton instance,
                        final int branch) {
-    super(parent, depth, instance);
+    super(parent, depth, generation, instance);
     this.branch = branch;
   }
 
@@ -38,8 +39,8 @@ public final class SolveActivity extends Activity {
 
     if (solution.isUnknown() && depth > 0) {
       core = solver.core();
-      executor.submit(new SplitActivity(identifier(), depth, core.instance()));
-      gc();
+      executor.submit(new BlackHoleActivity(
+            identifier(), depth, generation, core.instance()));
       suspend();
     } else {
       reply(solution);
@@ -58,8 +59,6 @@ public final class SolveActivity extends Activity {
 
   protected void gc() {
     super.gc();
-    if (!Configure.enableExpensiveChecks) {
-      core.gc();
-    }
+    core.gc();
   }
 }

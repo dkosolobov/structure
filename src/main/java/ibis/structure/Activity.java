@@ -14,26 +14,32 @@ public class Activity extends ibis.constellation.Activity {
   private static final Logger logger = Logger.getLogger(Activity.class);
 
   /** Parent of this activity. */
-  protected ActivityIdentifier parent;
+  protected ActivityIdentifier parent = null;
   /** Depth of the search. */
-  protected int depth;
+  protected int depth = Integer.MAX_VALUE;
+  /** Instance generation. */
+  protected long generation = 0;
   /** Instance to be solved. */
-  protected Skeleton instance;
+  protected Skeleton instance = null;
   /** Original instance to be solved. */
-  protected Skeleton original;
+  protected Skeleton original = null;
+
+  protected Activity() {
+    super(UnitActivityContext.DEFAULT, true);
+  }
 
   protected Activity(final ActivityIdentifier parent,
                      final int depth,
+                     final long generation,
                      final Skeleton instance) {
     super(UnitActivityContext.DEFAULT, true);
     this.parent = parent;
     this.depth = depth;
+    this.generation = generation;
     this.instance = instance;
 
     if (Configure.enableExpensiveChecks) {
       original = instance.clone();
-    } else {
-      original = null;
     }
   }
 
@@ -43,7 +49,7 @@ public class Activity extends ibis.constellation.Activity {
   }
 
   public void verify(final Solution response) {
-    if (Configure.enableExpensiveChecks) {
+    if (Configure.enableExpensiveChecks && original != null) {
       if (response.isSatisfiable()) {
         // For satisfiable originals reponse contains a proof.
         try {
@@ -113,9 +119,13 @@ public class Activity extends ibis.constellation.Activity {
   }
   
   protected void gc() {
-    if (!Configure.enableExpensiveChecks) {
-      instance = null;  // Helps GC
-    }
+    instance = null;
+  }
+
+  @Override
+  public void suspend() {
+    gc();
+    super.suspend();
   }
 
   @Override

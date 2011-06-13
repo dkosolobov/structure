@@ -23,9 +23,10 @@ public final class BranchActivity extends Activity {
 
   public BranchActivity(final ActivityIdentifier parent,
                         final int depth,
+                        final long generation,
                         final Skeleton instance,
                         final int branch) {
-    super(parent, depth, instance);
+    super(parent, depth, generation, instance);
     this.branch = branch;
 
     assert instance.size() > 0;
@@ -35,12 +36,11 @@ public final class BranchActivity extends Activity {
     Skeleton copy1 = instance;
     Skeleton copy2 = instance.clone();
 
-    executor.submit(
-        new SolveActivity(identifier(), depth - 1, copy1, branch));
-    executor.submit(
-        new SolveActivity(identifier(), depth - 1, copy2, neg(branch)));
+    executor.submit(new SolveActivity(
+          identifier(), depth - 1, generation, copy1, branch));
+    executor.submit(new SolveActivity(
+          identifier(), depth - 1, generation, copy2, neg(branch)));
 
-    gc();
     suspend();
   }
 

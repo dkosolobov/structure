@@ -32,13 +32,15 @@ public final class SplitActivity extends Activity {
 
   public SplitActivity(final ActivityIdentifier parent,
                        final int depth,
+                       final long generation,
                        final Skeleton instance) {
-    super(parent, depth, instance);
+    super(parent, depth, generation, instance);
   }
 
   public void initialize() {
     if (!Configure.split) {
-      executor.submit(new SelectBranchActivity(parent, depth, instance));
+      executor.submit(new SelectBranchActivity(
+            parent, depth, generation, instance));
       finish();
       return;
     }
@@ -51,7 +53,8 @@ public final class SplitActivity extends Activity {
     joinVariablesInClauses(instance.formula);
 
     if (!isSplit()) {
-      executor.submit(new SelectBranchActivity(parent, depth, instance));
+      executor.submit(new SelectBranchActivity(
+            parent, depth, generation, instance));
       finish();
       return;
     }
@@ -63,10 +66,10 @@ public final class SplitActivity extends Activity {
     TIntObjectIterator<Skeleton> it = subInstances.iterator();
     for (int size = subInstances.size(); size > 0; size--) {
       it.advance();
-      executor.submit(new SelectBranchActivity(identifier(), depth, it.value()));
+      executor.submit(new SelectBranchActivity(
+            identifier(), depth, generation, it.value()));
     }
 
-    gc();
     suspend();
   }
 

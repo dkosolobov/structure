@@ -33,7 +33,9 @@ public final class Core {
 
   /** Frees any memory unnecessary to merge solution. */
   public void gc() {
-    instance = null;
+    if (!Configure.enableExpensiveChecks) {
+      instance = null;
+    }
   }
 
   /** Merges solution. */
