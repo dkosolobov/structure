@@ -22,13 +22,11 @@ public final class HyperBinaryResolution {
 
   /** The solver. */
   private final Solver solver;
-  private final int numVariables;
-  /** Formula. */
-  private final TIntArrayList formula;
   /** Units discovered. */
   private final TIntHashSet units = new TIntHashSet();
   /** Binaries discovered */
   private final TIntArrayList binaries = new TIntArrayList();
+  /** How many times each variables was seen */
   private final int[] counts;
   private final int[] sums;
   private final int[] touched;
@@ -39,11 +37,9 @@ public final class HyperBinaryResolution {
   private HyperBinaryResolution(final Solver solver) {
     this.solver = solver;
 
-    numVariables = solver.numVariables;
-    formula = solver.formula;
-    counts = new int[2 * numVariables + 1];
-    sums = new int[2 * numVariables + 1];
-    touched = new int[2 * numVariables + 1];
+    counts = new int[2 * solver.numVariables + 1];
+    sums = new int[2 * solver.numVariables + 1];
+    touched = new int[2 * solver.numVariables + 1];
   }
 
   public static boolean run(final Solver solver) throws ContradictionException {
@@ -55,7 +51,7 @@ public final class HyperBinaryResolution {
 
   public boolean run() throws ContradictionException {
     long start = System.currentTimeMillis();
-    ClauseIterator it = new ClauseIterator(formula);
+    ClauseIterator it = new ClauseIterator(solver.formula);
     while (it.hasNext()) {
       int clause = it.next();
       run(clause);
@@ -69,6 +65,7 @@ public final class HyperBinaryResolution {
     // Adds discovered units.
     int numUnits = units.size();
     solver.unitsQueue.addAll(units);
+
     int numBinaries = binaries.size() / 3;
     solver.watchLists.append(binaries);
 
@@ -86,11 +83,11 @@ public final class HyperBinaryResolution {
 
   /** Runs hyper binary resolution on clause. */
   private void run(final int clause) {
-    if (type(formula, clause) != OR) {
+    if (type(solver.formula, clause) != OR) {
       return;
     }
 
-    int length = length(formula, clause);
+    int length = length(solver.formula, clause);
     int numLiterals = 0;
     int clauseSum = 0;
     int numTouched = 0;
@@ -99,7 +96,7 @@ public final class HyperBinaryResolution {
     // binaries then hbr is effective on it.
     int numEmpty = 0;
     for (int i = clause; i < clause + length; i++) {
-      int literal = formula.getQuick(i);
+      int literal = solver.formula.getQuick(i);
       if (units.contains(literal)) {
         return;
       }
@@ -112,13 +109,13 @@ public final class HyperBinaryResolution {
     }
 
     for (int i = clause; i < clause + length; i++) {
-      int literal = formula.getQuick(i);
+      int literal = solver.formula.getQuick(i);
       TIntArrayList edges = cache(literal);
 
       numLiterals++;
       clauseSum += literal;
       for (int j = 0; j < edges.size(); j++) {
-        int u = -edges.getQuick(j), u_ = u + numVariables;
+        int u = -edges.getQuick(j), u_ = u + solver.numVariables;
         if (counts[u_] == 0) {
           touched[numTouched++] = u_;
         }
@@ -129,7 +126,7 @@ public final class HyperBinaryResolution {
 
     for (int i = 0; i < numTouched; ++i) {
       int touch = touched[i];
-      int literal = touch - numVariables;
+      int literal = touch - solver.numVariables;
       assert !solver.isLiteralAssigned(literal);
 
       if (counts[touch] == numLiterals) {
