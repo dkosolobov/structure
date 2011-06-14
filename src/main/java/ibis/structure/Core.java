@@ -26,6 +26,21 @@ public final class Core {
     instance = new Skeleton(numVariables, formula);
   }
 
+  /** Returns number of variables. */
+  public int numVariables() {
+    return numVariables;
+  }
+
+  /** Returns units. */
+  public TIntHashSet units() {
+    return units;
+  }
+
+  /** Returns proxies. */
+  public int[] proxies() {
+    return proxies;
+  }
+
   /** Returns core's instance. */
   public Skeleton instance() {
     return instance;
