@@ -47,6 +47,7 @@ public final class InstanceNormalizer {
     instance.numVariables = variableMap.size() / 2;
   }
 
+  /** Renames a literal under current variable map. */
   public int rename(final int literal) {
     int rename = variableMap.get(literal);
     if (rename == 0) {
@@ -55,7 +56,6 @@ public final class InstanceNormalizer {
         rename = neg(rename);
       }
 
-      // logger.info("normalizing " + literal + " -> " + rename);
       variableMap.put(literal, rename);
       variableMap.put(neg(literal), neg(rename));
     }
