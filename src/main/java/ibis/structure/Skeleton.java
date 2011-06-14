@@ -31,6 +31,24 @@ public final class Skeleton implements java.io.Serializable {
     return new Skeleton(numVariables, new TIntArrayList(formula));
   }
 
+  /** Prints all clauses containing given literal. */
+  public void printClauses(final int literal) {
+    System.err.println(">>> <<<");
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+
+      int p = formula.indexOf(clause, literal);
+      int n = formula.indexOf(clause, neg(literal));
+      
+      if ((p != -1 && p < clause + length)
+          || (n != -1 && n < clause + length)) {
+        System.err.println(">>> " + clauseToString(formula, clause));
+      }
+    }
+  }
+
   /** Expands small XOR gates. */
   public void expandSmallXOR() {
     ClauseIterator it = new ClauseIterator(formula);

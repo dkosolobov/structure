@@ -47,7 +47,7 @@ public final class InstanceNormalizer {
     instance.numVariables = variableMap.size() / 2;
   }
 
-  private int rename(final int literal) {
+  public int rename(final int literal) {
     int rename = variableMap.get(literal);
     if (rename == 0) {
       rename = variableMap.size() / 2 + 1;
@@ -73,9 +73,16 @@ public final class InstanceNormalizer {
       inverseMap.put(it.value(), it.key());
     }
 
-    int[] array = solution.units();
-    for (int i = 0; i < array.length; ++i) {
-      array[i] = inverseMap.get(array[i]);
+    if (solution.isSatisfiable()) {
+      int[] array = solution.units();
+      for (int i = 0; i < array.length; ++i) {
+        array[i] = inverseMap.get(array[i]);
+      }
+    } else {
+      TIntArrayList array = solution.learned();
+      for (int i = 0; i < array.size(); ++i) {
+        array.set(i, inverseMap.get(array.get(i)));
+      }
     }
   }
 }

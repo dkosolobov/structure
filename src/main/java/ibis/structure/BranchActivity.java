@@ -62,7 +62,7 @@ public final class BranchActivity extends Activity {
       return;
     }
 
-    // Both branches finished
+    // Both branches finished.
     assert numReplies == 2;
     if (responses[0].isSatisfiable() || responses[1].isSatisfiable()) {
       // A solution was already found and sent to parent.
@@ -70,7 +70,7 @@ public final class BranchActivity extends Activity {
       // Both braches returned UNSATISFIABLE so the instance is unsatifiable
       reply(Solution.unsatisfiable());
     } else {
-      reply(Solution.unknown());
+      reply(Solution.unknown(responses[0], responses[1]));
     }
     finish();
   }

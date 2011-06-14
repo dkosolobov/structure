@@ -15,9 +15,9 @@ import static ibis.structure.Misc.*;
 public final class RestartActivity extends Activity {
   private static final Logger logger = Logger.getLogger(RestartActivity.class);
 
-  private Random random = new Random();
+  private Random random = new Random(1);
   private Timer timer = new Timer();
-  private int delay = 10;
+  private static int delay = 10;
 
   public RestartActivity(final ActivityIdentifier parent,
                          final int depth,
@@ -36,9 +36,11 @@ public final class RestartActivity extends Activity {
 
   private void startNewGeneration() {
     final long generation = guid();
-    
-    logger.info("Spawining generation " + generation
+
+    logger.info("Spawning generation " + generation
                 + " for " + delay + " seconds");
+    logger.info("Instance has " + instance.numVariables + " / "
+                + instance.formula.size());
     executor.submit(new BlackHoleActivity(
           identifier(), depth, generation, instance.clone()));
 
@@ -50,28 +52,34 @@ public final class RestartActivity extends Activity {
       };
 
       timer.schedule(task, delay * 1000L);
-      delay = delay + random.nextInt(delay);
+      delay += random.nextInt(delay);
     }
   }
 
+  @Override
   public void gc() {
     
   }
 
+  @Override
   public void initialize() {
     startNewGeneration();
     suspend();
   }
 
+  @Override
   public void process(Event e) throws Exception {
     Solution response = (Solution) e.data;
 
-    if (response.isUnknown()) {
-      startNewGeneration();
-      suspend();
-    } else {
+    if (!response.isUnknown()) {
       reply(response);
       finish();
+      return;
     }
+
+    // response.show(">> ", 0, 0);
+    response.addLearnedClauses(instance.formula);
+    executor.submit(new SimplifyActivity(identifier(), depth, instance));
+    suspend();
   }
 }

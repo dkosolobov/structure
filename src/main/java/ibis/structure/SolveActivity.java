@@ -23,18 +23,12 @@ public final class SolveActivity extends Activity {
   public void initialize() {
     Solver solver = null;
     Solution solution = null;
-
+    
     try {
       solver = new Solver(instance, branch);
       solution = solver.solve(false);
-    } catch (Throwable e) {
-      logger.error("Failed to solve instance", e);
-      logger.error("Branch is " + branch);
-      logger.error("Formula is " + instance);
-      System.exit(1);
-      reply(Solution.unknown());
-      finish();
-      return;
+    } catch (ContradictionException e) {
+      solution = Solution.unsatisfiable(branch);
     }
 
     if (solution.isUnknown() && depth > 0) {
@@ -52,6 +46,10 @@ public final class SolveActivity extends Activity {
     Solution response = (Solution) e.data;
     if (response.isSatisfiable()) {
       response = core.merge(response);
+    } else if (response.isUnsatisfiable()) {
+      response = Solution.unsatisfiable(branch);
+    } else if (response.isUnknown()) {
+      response = Solution.unknown(branch, response, core);
     }
     reply(response);
     finish();

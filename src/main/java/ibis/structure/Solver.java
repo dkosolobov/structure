@@ -18,6 +18,8 @@ public final class Solver {
   public int numVariables;
   /** Formula */
   public TIntArrayList formula;
+  /** Literal to branch on. */
+  public int branched;
   /** Set of true literals discovered. */
   public TouchSet units;
   /** Equalities between literals. */
@@ -36,6 +38,7 @@ public final class Solver {
 
     numVariables = instance.numVariables;
     formula = instance.formula;
+    branched = branch;
     units = new TouchSet(numVariables);
     graph = new ImplicationsGraph(numVariables);
     watchLists = new WatchLists(numVariables, formula);
@@ -124,22 +127,17 @@ public final class Solver {
       simplify();
 
       // If all clauses were removed solve the remaining 2SAT.
-      // boolean empty = isEmptyFormula(formula);
       boolean _2SAT = true;
       ClauseIterator it = new ClauseIterator(formula);
-      while (it.hasNext()) {
+      while (it.hasNext() && _2SAT) {
         int clause = it.next();
         int length = length(formula, clause);
-        if (length > 2) {
-          _2SAT = false;
-          break;
-        }
+        _2SAT = length <= 2;
       }
 
       return _2SAT ? solve2SAT() : Solution.unknown();
     } catch (ContradictionException e) {
-      // logger.info("found contradiction", e);
-      return Solution.unsatisfiable();
+      return Solution.unsatisfiable(branched);
     }
   }
 
@@ -148,7 +146,7 @@ public final class Solver {
    */
   private Solution solve2SAT() throws ContradictionException {
     try {
-      // Makes sure that all binaries are in the graph
+      // Makes sure that all binaries (including XORs) are in the graph.
       propagateBinaries();
 
       // Collapses strongly connected components and removes contradictions.
@@ -215,11 +213,11 @@ public final class Solver {
       HiddenTautologyElimination.run(this);
     }
 
+    renameEquivalentLiterals();
+
     if (Configure.selfSubsumming) {
       SelfSubsumming.run(this);
     }
-
-    renameEquivalentLiterals();
 
     if (Configure.pureLiterals) {
       PureLiterals.run(this);

@@ -87,12 +87,7 @@ public class VariableElimination {
       }
     }
 
-    if (Configure.verbose) {
-      if (!ve.isEmpty()) {
-        System.err.print("ve" + ve.size() + ".");
-      }
-    }
-
+    logger.info("Eliminated " + ve.size() + " variables");
     return ve;
   }
 
@@ -114,12 +109,14 @@ public class VariableElimination {
     int[] p = solver.watchLists.get(literal).toArray();
     int[] n = solver.watchLists.get(neg(literal)).toArray();
     for (int i = 0; i < p.length; i++) {
-      if (length(solver.formula, p[i]) > 16 || type(solver.formula, p[i]) != OR) {
+      if (length(solver.formula, p[i]) > 16
+          || type(solver.formula, p[i]) != OR) {
         return null;
       }
     }
     for (int i = 0; i < n.length; i++) {
-      if (length(solver.formula, n[i]) > 16 || type(solver.formula, n[i]) != OR) {
+      if (length(solver.formula, n[i]) > 16
+          || type(solver.formula, n[i]) != OR) {
         return null;
       }
     }
