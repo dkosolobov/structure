@@ -43,11 +43,8 @@ public final class SelfSubsumming {
 
   public static boolean run(final Solver solver)
       throws ContradictionException {
-    solver.verifyIntegrity();
     boolean simplified = (new SelfSubsumming(solver)).run();
-    solver.verifyIntegrity();
     solver.propagate();
-    solver.verifyIntegrity();
     return simplified;
   }
 
