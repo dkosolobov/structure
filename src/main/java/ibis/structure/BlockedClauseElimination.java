@@ -44,6 +44,11 @@ public final class BlockedClauseElimination {
       int length = length(bce, clause);
       int literal = bce.get(clause);
 
+      if (!units.contains(neg(literal))) {
+        units.add(literal);
+        continue;
+      }
+
       boolean satisfied = false;
       for (int i = clause; i < clause + length; i++) {
         if (units.contains(bce.getQuick(i))) {
