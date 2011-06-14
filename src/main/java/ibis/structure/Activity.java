@@ -57,7 +57,7 @@ public class Activity extends ibis.constellation.Activity {
           verifySatisfied(response.units());
         } catch (Exception e) {
           logger.error("Verification failed", e);
-          logger.info("Failed instance is\n" + original);
+          // logger.info("Failed instance is\n" + original);
           System.exit(1);  // TODO: exit gracefully
         }
       }
@@ -69,7 +69,7 @@ public class Activity extends ibis.constellation.Activity {
     BitSet unitsSet = new BitSet();
     for (int unit : units) {
       unitsSet.add(unit);
-      if (unitsSet.contains(-unit)) {
+      if (unitsSet.contains(neg(unit))) {
         throw new Exception("Contradiction unit " + unit);
       }
     }

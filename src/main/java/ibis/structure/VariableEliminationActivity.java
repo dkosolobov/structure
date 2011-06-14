@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import gnu.trove.list.array.TIntArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
@@ -29,8 +30,13 @@ public final class VariableEliminationActivity extends Activity {
   }
 
   public void initialize() {
+    if (!Configure.ve) {
+      executor.submit(new RestartActivity(parent, depth, instance));
+      finish();
+      return;
+    }
+
     try {
-      instance.expandSmallXOR();
       normalizer.normalize(instance);
 
       Solver solver = new Solver(instance, 0);
@@ -53,13 +59,9 @@ public final class VariableEliminationActivity extends Activity {
 
   public void process(Event e) throws Exception {
     Solution response = (Solution) e.data;
-
-    if (response.isSatisfiable()) {
-      response = core.merge(response);
-      response = VariableElimination.restore(ve, response);
-      normalizer.denormalize(response);
-    }
-
+    response = core.merge(response);
+    response = VariableElimination.restore(ve, response);
+    normalizer.denormalize(response);
     reply(response);
     finish();
   }

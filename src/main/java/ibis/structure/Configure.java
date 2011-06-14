@@ -34,7 +34,9 @@ public class Configure {
   /** True to extract xor gates and enable dependent variable elimination. */
   public static boolean xor = true;
   /** True to run blocked clause elimination. */
-  public static boolean bce = false;
+  public static boolean bce = true;
+  /** True to enable variable elimination. */
+  public static boolean ve = true;
   /** Number of hyper binary resolutions to perform. 0 to disable. */
   public static boolean hyperBinaryResolution = true;
   /** Threshold for transitive closure. */

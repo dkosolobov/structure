@@ -280,6 +280,7 @@ public final class Misc {
     return type(formula, clause) == DELETED;
   }
 
+  /** Returns true if the clause is satisfied by the given assingment. */
   public static boolean isClauseSatisfied(final TIntArrayList formula,
                                           final int clause,
                                           final TIntHashSet units) {
