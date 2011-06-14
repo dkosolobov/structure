@@ -63,9 +63,6 @@ public final class PreprocessActivity extends Activity {
     }
 
     core = solver.core();
-    logger.info("Reduced from " + instance.size() + " to "
-         + core.instance().size() + " literals");
-
     executor.submit(new VariableEliminationActivity(
           identifier(), depth, core.instance()));
 
