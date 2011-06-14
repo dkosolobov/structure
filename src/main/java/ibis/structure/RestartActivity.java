@@ -15,9 +15,9 @@ import static ibis.structure.Misc.*;
 public final class RestartActivity extends Activity {
   private static final Logger logger = Logger.getLogger(RestartActivity.class);
 
-  private Random random = new Random(1);
-  private Timer timer = new Timer();
+  private static Random random = new Random(1);
   private static int delay = 10;
+  private Timer timer = new Timer();
 
   public RestartActivity(final ActivityIdentifier parent,
                          final int depth,
