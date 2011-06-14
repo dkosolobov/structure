@@ -107,6 +107,7 @@ public final class Reader {
         String first = scanner.next();
         boolean isXOR = first.equals("x");
         boolean sign = false;
+        boolean tautology = false;
 
         int length = 0;
         int literal;
@@ -124,8 +125,20 @@ public final class Reader {
             literal = var(literal);
           }
 
+          if (seen.contains(neg(literal))) {
+            assert !isXOR;
+            tautology = true;
+            logger.warn("Found a tautology");
+          }
+
           if (seen.containsOrAdd(literal)) {
-            throw new ParseException("Duplicate literal " + literal);
+            if (isXOR) {
+              throw new ParseException("Duplicate XOR literal " + literal);
+            } else {
+              logger.warn("Ignored duplicate literal in OR clause");
+              literal = scanner.nextInt();
+              continue;
+            }
           }
 
           length++;
@@ -133,8 +146,12 @@ public final class Reader {
           literal = scanner.nextInt();
         }
 
-        skeleton.formula.set(pos, encode(
-              length, isXOR ? sign ? NXOR : XOR : OR));
+        if (tautology) {
+          skeleton.formula.remove(pos, skeleton.formula.size() - pos);
+        } else {
+          skeleton.formula.set(pos, encode(
+                length, isXOR ? sign ? NXOR : XOR : OR));
+        }
       }
     } catch (NoSuchElementException e) {
       throw new ParseException(
