@@ -1,6 +1,5 @@
 package ibis.structure;
 
-import java.util.Random;
 import gnu.trove.list.array.TIntArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
@@ -10,8 +9,8 @@ import static ibis.structure.Misc.*;
 
 
 public final class SelectBranchActivity extends Activity {
-  private static final Logger logger = Logger.getLogger(SelectBranchActivity.class);
-  private static final Random random = new Random(1);
+  private static final Logger logger = Logger.getLogger(
+      SelectBranchActivity.class);
 
   private InstanceNormalizer normalizer = new InstanceNormalizer();
 
