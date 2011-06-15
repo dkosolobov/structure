@@ -43,9 +43,7 @@ public final class SelfSubsumming {
 
   public static boolean run(final Solver solver)
       throws ContradictionException {
-    boolean simplified = (new SelfSubsumming(solver)).run();
-    solver.propagate();
-    return simplified;
+    return (new SelfSubsumming(solver)).run();
   }
 
   /** @return true if any clause was removed. */
@@ -173,12 +171,6 @@ next_clause:
         continue next_clause;
       }
 
-      /*
-      if (length >= 3 && selfLiteral != 0)
-        logger.info(clauseToString(formula, clause) + " subsumes "
-            + clauseToString(formula, other));
-            */
-
       boolean recompute = false;
       if (type == OR && otherType == OR) {
         if (selfLiteral == 0) {
@@ -269,8 +261,6 @@ next_clause:
   /**
    * Returns the literal in clause that appears the least
    * in other clauses.
-   *
-   * TODO: returns variable
    */
   private int bestVariable(final int clause) {
     int bestVariable = 0;

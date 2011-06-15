@@ -82,6 +82,7 @@ public final class Solution {
     }
 
     // Adds proxies.
+    /*
     int numVariables = core.numVariables();
     int[] proxies = core.proxies();
     for (int l = 1; l <= numVariables; l++) {
@@ -99,6 +100,7 @@ public final class Solution {
         solution.learned.add(0);
       }
     }
+    */
 
     if (empty) {
       solution.learned = EMPTY;
@@ -224,29 +226,31 @@ public final class Solution {
     logger.info("Added " + (formula.size() - size) + " new literals");
   }
 
+  /** Expands the tree of learned clauses and adds them to formula. */
   private int addLearnedClauses(final TIntArrayList formula, 
-                                int start,
+                                final int start,
                                 final TIntArrayList stack) {
-    if (start == learned.size()) {
-      return start;
+    int p = start;
+    if (p == learned.size()) {
+      return p;
     }
 
-    if (learned.get(start) == 0) {
+    if (learned.get(p) == 0) {
       if (stack.size() <= 7) {
         formula.add(encode(stack.size(), OR));
         formula.addAll(stack);
       }
-      return start + 1;
+      return p + 1;
     }
 
-    while (start < learned.size()) {
-      int l = learned.get(start);
+    while (p < learned.size()) {
+      int l = learned.get(p);
       if (l == 0) {
-        return start + 1;
+        return p + 1;
       }
 
       stack.add(l);
-      start = addLearnedClauses(formula, start + 1, stack);
+      p = addLearnedClauses(formula, p + 1, stack);
       stack.removeAt(stack.size() - 1);
     }
 
