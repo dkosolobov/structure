@@ -1,6 +1,8 @@
 package ibis.structure;
 
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.iterator.TLongIterator;
+import gnu.trove.set.hash.TLongHashSet;
 import gnu.trove.set.hash.TIntHashSet;
 import org.apache.log4j.Logger;
 
@@ -24,7 +26,8 @@ public final class HyperBinaryResolution {
   private final Solver solver;
   /** Units discovered. */
   private final TIntHashSet units = new TIntHashSet();
-  /** Binaries discovered */
+  /** Binaries discovered encoded as (a &lt;&lt; 32L) + b. */
+  private final TLongHashSet packs = new TLongHashSet();
   private final TIntArrayList binaries = new TIntArrayList();
   /** How many times each variables was seen */
   private final int[] counts;
@@ -53,8 +56,7 @@ public final class HyperBinaryResolution {
     long start = System.currentTimeMillis();
     ClauseIterator it = new ClauseIterator(solver.formula);
     while (it.hasNext()) {
-      int clause = it.next();
-      run(clause);
+      run(it.next());
 
       long curr = System.currentTimeMillis();
       if (curr - start >= TIME_MILLIS_LIMIT) {
@@ -66,6 +68,7 @@ public final class HyperBinaryResolution {
     int numUnits = units.size();
     solver.unitsQueue.addAll(units);
 
+    // Adds discovered binaries.
     int numBinaries = binaries.size() / 3;
     solver.watchLists.append(binaries);
 
@@ -91,6 +94,11 @@ public final class HyperBinaryResolution {
     int numLiterals = 0;
     int clauseSum = 0;
     int numTouched = 0;
+
+    if (length == 2) {
+      packs.add(pack(solver.formula.get(clause),
+                     solver.formula.get(clause + 1)));
+    }
 
     // If clause contains two literals with no
     // binaries then hbr is effective on it.
@@ -150,9 +158,12 @@ public final class HyperBinaryResolution {
           continue;
         }
 
-        binaries.add(encode(2, OR));
-        binaries.add(neg(literal));
-        binaries.add(missing);
+        long pack = pack(neg(literal), missing);
+        if (packs.add(pack)) {
+          binaries.add(encode(2, OR));
+          binaries.add(neg(literal));
+          binaries.add(missing);
+        }
       }
 
       counts[touch] = 0;
@@ -160,10 +171,22 @@ public final class HyperBinaryResolution {
     }
   }
 
+  private long pack(int a, int b) {
+    if (a > b) {
+      int c = a;
+      a = b;
+      b = c;
+    }
+
+    a += solver.numVariables;
+    b += solver.numVariables;
+    return ((long) a << 32L) + (long) b;
+  }
+
   /**
    * Returns dfs for a given literal caching the result.
    */
-  private final TIntArrayList cache(final int literal) {
+  private TIntArrayList cache(final int literal) {
     int hash = Hash.hash(literal) & (CACHE_SIZE - 1);
 
     if (cacheLiterals[hash] == literal) {
