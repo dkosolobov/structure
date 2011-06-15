@@ -11,7 +11,9 @@ public final class BlockedClauseEliminationActivity extends Activity {
   private static final Logger logger = Logger.getLogger(
       BlockedClauseEliminationActivity.class);
 
+  private InstanceNormalizer normalizer = new InstanceNormalizer();
   private TIntArrayList bce = null;
+  private Core core = null;
 
   public BlockedClauseEliminationActivity(final ActivityIdentifier parent,
                                           final int depth,
@@ -28,8 +30,11 @@ public final class BlockedClauseEliminationActivity extends Activity {
     }
 
     try {
+      normalizer.normalize(instance);
       Solver solver = new Solver(instance, 0);
       bce = BlockedClauseElimination.run(solver);
+      MissingLiterals.run(solver);
+      core = solver.core();
     } catch (ContradictionException e) {
       reply(Solution.unsatisfiable());
       finish();
@@ -37,13 +42,15 @@ public final class BlockedClauseEliminationActivity extends Activity {
     }
 
     executor.submit(new VariableEliminationActivity(
-          identifier(), depth, instance));
+          identifier(), depth, core.instance()));
     suspend();
   }
 
   public void process(Event e) throws Exception {
     Solution response = (Solution) e.data;
+    response = core.merge(response);
     response = BlockedClauseElimination.restore(bce, response);
+    normalizer.denormalize(response);
     reply(response);
     finish();
   }

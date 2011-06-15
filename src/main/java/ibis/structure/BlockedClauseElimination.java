@@ -9,7 +9,8 @@ import static ibis.structure.Misc.*;
 
 
 /**
- * Performes <a href="http://fmv.jku.at/papers/JarvisaloBiereHeule-TACAS10.pdf">Blocked Clause Elimination</a>.
+ * Performes <a href="http://fmv.jku.at/papers/JarvisaloBiereHeule-TACAS10.pdf">
+ * Blocked Clause Elimination</a>.
  */
 public final class BlockedClauseElimination {
   private static final Logger logger = Logger.getLogger(Solver.class);
@@ -32,7 +33,8 @@ public final class BlockedClauseElimination {
   }
 
   /** Fixes units to satisfy blocked clauses. */
-  public static Solution restore(final TIntArrayList bce, final Solution solution) {
+  public static Solution restore(final TIntArrayList bce,
+                                 final Solution solution) {
     if (!solution.isSatisfiable() || bce == null || bce.isEmpty()) {
       return solution;
     }
