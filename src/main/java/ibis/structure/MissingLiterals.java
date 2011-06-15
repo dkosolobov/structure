@@ -6,7 +6,7 @@ public class MissingLiterals {
     int numUnits = 0;
     for (int u = 1; u <= solver.numVariables; u++) {
       if (solver.isVariableMissing(u)) {
-        solver.queueUnit(u);
+        solver.units.add(u);
         numUnits++;
       }
     }
@@ -17,7 +17,6 @@ public class MissingLiterals {
       }
     }
 
-    solver.propagateUnits();
     return numUnits > 0;
   }
 }
