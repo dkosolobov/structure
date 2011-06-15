@@ -6,17 +6,23 @@ import gnu.trove.list.array.TLongArrayList;
 import gnu.trove.set.hash.TIntHashSet;
 import gnu.trove.iterator.TIntIterator;
 import gnu.trove.map.hash.TIntIntHashMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
 import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
 
 public class VariableElimination {
   private static final Logger logger = Logger.getLogger(VariableElimination.class);
-  private static final int MAX_SCORE = 64;
+  private static int MAX_LIMIT = 512;
 
   private static class Data {
     public int literal;
     public TIntArrayList clauses;
+
+    public Data(final int literal, final TIntArrayList clauses) {
+      this.literal = literal;
+      this.clauses = clauses;
+    }
   }
 
   private final Solver solver;
@@ -70,21 +76,15 @@ public class VariableElimination {
   private Object run() throws ContradictionException {
     Vector<Data> ve = new Vector<Data>();
 
-    TLongArrayList all = new TLongArrayList();
-    for (int literal = 1; literal <= solver.numVariables; literal++) {
-      int score = score(literal);
-      if (0 < score && score <= MAX_SCORE) {
-        all.add((((long) score) << 32) + literal);
+    for (int limit = 1; limit <= MAX_LIMIT; limit <<= 1) {
+      for (int literal = 1; literal <= solver.numVariables; literal++) {
+        Data data = eliminate(literal, limit);
+        if (data != null) {
+          ve.add(data);
+        }
       }
-    }
 
-    all.sort();
-    for (int j = 0; j < all.size(); j++) {
-      int literal = (int) all.get(j);
-      Data data = eliminate(literal);
-      if (data != null) {
-        ve.add(data);
-      }
+      SelfSubsumming.run(solver);
     }
 
     logger.info("Eliminated " + ve.size() + " variables");
@@ -92,121 +92,51 @@ public class VariableElimination {
   }
 
   /**
-   * Scores a given literal.
+   * Attempts to eliminate a literal such that the formula
+   * doesn't increase more than limit.
    */
-  private int score(int literal) {
-    return solver.numClauses(literal) * solver.numClauses(neg(literal));
-  }
-
-  private Data eliminate(final int literal)
+  private Data eliminate(final int literal, final int limit)
       throws ContradictionException {
-    // Checks that variable is suitable for elimination.
-    if (solver.isLiteralAssigned(literal) || score(literal) > MAX_SCORE) {
-      return null;
-    }
+    assert solver.graph.edges(literal).isEmpty();
+    assert solver.graph.edges(neg(literal)).isEmpty();
+    assert !solver.isLiteralAssigned(literal);
 
     // Clauses must be short enough and not XORs.
     int[] p = solver.watchLists.get(literal).toArray();
     int[] n = solver.watchLists.get(neg(literal)).toArray();
+    int size = 0;
+
+    if (p.length == 0 && n.length == 0) {
+      return null;
+    }
+
     for (int i = 0; i < p.length; i++) {
-      if (length(solver.formula, p[i]) > 16
-          || type(solver.formula, p[i]) != OR) {
+      size += length(solver.formula, p[i]) + 1;
+      if (type(solver.formula, p[i]) != OR) {
         return null;
       }
     }
     for (int i = 0; i < n.length; i++) {
-      if (length(solver.formula, n[i]) > 16
-          || type(solver.formula, n[i]) != OR) {
+      size += length(solver.formula, n[i]) + 1;
+      if (type(solver.formula, n[i]) != OR) {
         return null;
       }
     }
 
-    TIntArrayList store = resolution(literal, p, n);
-    solver.watchLists.append(store);
-
-    Data data = new Data();
-    data.literal = literal;
-    data.clauses = removeLiteral(literal, p, n);
-
-    return data;
-  }
-
-  private TIntArrayList removeLiteral(final int literal, int[] p, int[] n) {
-    TIntArrayList clauses = new TIntArrayList();
-
-    for (int i = 0; i < p.length; i++) {
-      copy(clauses, solver.formula, p[i]);
-      solver.watchLists.removeClause(p[i]);
-    }
-    for (int i = 0; i < n.length; i++) {
-      copy(clauses, solver.formula, n[i]);
-      solver.watchLists.removeClause(n[i]);
-    }
-
-    TIntArrayList edges;
-    edges = solver.graph.edges(literal);
-    for (int j = 0; j < edges.size(); j++) {
-      clauses.add(encode(2, OR));
-      clauses.add(neg(literal));
-      clauses.add(edges.getQuick(j));
-    }
-
-    edges = solver.graph.edges(neg(literal));
-    for (int j = 0; j < edges.size(); j++) {
-      clauses.add(encode(2, OR));
-      clauses.add(literal);
-      clauses.add(edges.getQuick(j));
-    }
-
-    solver.graph.remove(literal);
-
-    return clauses;
-  }
-
-  private TIntArrayList resolution(final int literal, int[] p, int[] n) {
     TIntArrayList store = new TIntArrayList();
-
-    // clause - clause
     for (int i = 0; i < p.length; i++) {
       for (int j = 0; j < n.length; j++) {
         resolution(store, p[i], n[j], literal);
-      }
-    }
-
-    // clause - binary
-    TIntArrayList pEdges = solver.graph.edges(literal);
-    for (int i = 0; i < p.length; i++) {
-      for (int j = 0; j < pEdges.size(); j++) {
-        binaryResolution(store, p[i], neg(literal), pEdges.getQuick(j));
-      }
-    }
-
-    // binary - clause
-    TIntArrayList nEdges = solver.graph.edges(neg(literal));
-    for (int i = 0; i < n.length; i++) {
-      for (int j = 0; j < nEdges.size(); j++) {
-        binaryResolution(store, n[i], literal, nEdges.getQuick(j));
-      }
-    }
-
-    // binary - binary
-    for (int i = 0; i < pEdges.size(); i++) {
-      for (int j = 0; j < nEdges.size(); j++) {
-        int u = pEdges.getQuick(i);
-        int v = nEdges.getQuick(j);
-
-        if (u == v) {
-          store.add(encode(1, OR));
-          store.add(u);
-        } else if (u != neg(v)) {
-          store.add(encode(2, OR));
-          store.add(u);
-          store.add(v);
+        if (store.size() > size + limit) {
+          // Too much.
+          return null;
         }
       }
     }
 
-    return store;
+    TIntArrayList clauses = removeLiteral(literal, p, n);
+    solver.watchLists.append(store);
+    return new Data(literal, clauses);
   }
 
   /**
@@ -245,41 +175,6 @@ public class VariableElimination {
   }
 
   /**
-   * Perform a resolution between clause
-   * and binary first + second and puts the resulted
-   * clause in store.
-   */
-  private void binaryResolution(final TIntArrayList store,
-                                final int clause,
-                                final int first,
-                                final int second) {
-    if (first == neg(second)) {
-      // Ignores binary tautologies.
-      return;
-    }
-
-    store.add(0);
-    int storeClause = store.size();
-
-    // Adds literals from the first clause.
-    int length = length(solver.formula, clause);
-    for (int i = clause; i < clause + length; i++) {
-      int u = solver.formula.getQuick(i);
-      if (u == neg(first)) {
-        if (first != second) {
-          store.add(second);
-        }
-      } else {
-        store.add(u);
-      }
-    }
-
-    length = store.size() - storeClause;
-    store.setQuick(storeClause - 1, encode(length, OR));
-    cleanLastClause(store, storeClause);
-  }
-
-  /**
    * Cleans last clauses added to store, removing it
    * if the clause is a tautology.
    */
@@ -292,7 +187,6 @@ public class VariableElimination {
     for (int i = clause; i < clause + length; i++) {
       int u = store.getQuick(i);
       if (touched.contains(neg(u))) {
-        // logger.info("tautology");
         store.remove(clause - 1, store.size() - clause + 1);
         return;
       } else if (!touched.containsOrAdd(u)) {
@@ -303,5 +197,21 @@ public class VariableElimination {
 
     store.remove(p, store.size() - p);
     store.setQuick(clause - 1, encode(p - clause, OR));
+  }
+
+  private TIntArrayList removeLiteral(final int literal, int[] p, int[] n) {
+    TIntArrayList clauses = new TIntArrayList();
+
+    for (int i = 0; i < p.length; i++) {
+      copy(clauses, solver.formula, p[i]);
+      solver.watchLists.removeClause(p[i]);
+    }
+
+    for (int i = 0; i < n.length; i++) {
+      copy(clauses, solver.formula, n[i]);
+      solver.watchLists.removeClause(n[i]);
+    }
+
+    return clauses;
   }
 }
