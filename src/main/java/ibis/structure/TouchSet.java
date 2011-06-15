@@ -87,4 +87,9 @@ public final class TouchSet {
 
     return array;
   }
+
+  /** Returns a string represenatation of this set */
+  public String toString() {
+    return (new TIntArrayList(toArray())).toString();
+  }
 }
