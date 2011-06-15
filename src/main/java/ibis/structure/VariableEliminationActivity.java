@@ -31,22 +31,22 @@ public final class VariableEliminationActivity extends Activity {
 
   public void initialize() {
     if (!Configure.ve) {
-      executor.submit(new RestartActivity(parent, depth, instance));
+      executor.submit(new SimplifyActivity(
+            parent, depth, instance));
       finish();
       return;
     }
 
     try {
       normalizer.normalize(instance);
-
       Solver solver = new Solver(instance, 0);
       ve = VariableElimination.run(solver);
-      SelfSubsumming.run(solver);
+
       MissingLiterals.run(solver);
       solver.verifyIntegrity();
 
       core = solver.core();
-      executor.submit(new RestartActivity(
+      executor.submit(new SimplifyActivity(
             identifier(), depth, core.instance()));
 
       gc();

@@ -20,7 +20,8 @@ public final class XORActivity extends Activity {
 
   public void initialize() {
     if (!Configure.xor) {
-      executor.submit(new SimplifyActivity(parent, depth, instance));
+      executor.submit(new BlockedClauseEliminationActivity(
+            parent, depth, instance));
       finish();
       return;
     }
@@ -36,7 +37,8 @@ public final class XORActivity extends Activity {
       return;
     }
 
-    executor.submit(new SimplifyActivity(identifier(), depth, instance));
+    executor.submit(new BlockedClauseEliminationActivity(
+          identifier(), depth, instance));
     suspend();
   }
 

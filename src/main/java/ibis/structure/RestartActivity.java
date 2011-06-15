@@ -16,7 +16,7 @@ public final class RestartActivity extends Activity {
   private static final Logger logger = Logger.getLogger(RestartActivity.class);
 
   private static Random random = new Random(1);
-  private static int delay = 10;
+  private static int delay = 5;  // TODO: should not be static
   private Timer timer = new Timer();
 
   public RestartActivity(final ActivityIdentifier parent,
@@ -41,6 +41,7 @@ public final class RestartActivity extends Activity {
                 + " for " + delay + " seconds");
     logger.info("Instance has " + instance.numVariables + " / "
                 + instance.formula.size());
+    // logger.info("Solving\n" + instance);
     executor.submit(new BlackHoleActivity(
           identifier(), depth, generation, instance.clone()));
 
@@ -52,7 +53,7 @@ public final class RestartActivity extends Activity {
       };
 
       timer.schedule(task, delay * 1000L);
-      delay += random.nextInt(delay);
+      delay += 1; // random.nextInt(delay);
     }
   }
 
@@ -79,7 +80,8 @@ public final class RestartActivity extends Activity {
 
     // response.show(">> ", 0, 0);
     response.addLearnedClauses(instance.formula);
-    executor.submit(new SimplifyActivity(identifier(), depth, instance));
+    executor.submit(new BlockedClauseEliminationActivity(
+          identifier(), depth, instance));
     suspend();
   }
 }

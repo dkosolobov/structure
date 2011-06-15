@@ -31,8 +31,9 @@ public final class SimplifyActivity extends Activity {
       solver.propagate();
       HyperBinaryResolution.run(solver);
       HiddenTautologyElimination.run(solver);
-      solver.renameEquivalentLiterals();
       SelfSubsumming.run(solver);
+      solver.propagate();
+      solver.renameEquivalentLiterals();
       PureLiterals.run(solver);
       MissingLiterals.run(solver);
       Configure.verbose = false;
@@ -44,7 +45,7 @@ public final class SimplifyActivity extends Activity {
       return;
     }
 
-    executor.submit(new BlockedClauseEliminationActivity(
+    executor.submit(new RestartActivity(
           identifier(), depth, core.instance()));
     suspend();
   }
