@@ -13,7 +13,7 @@ import static ibis.structure.Misc.*;
 
 public class VariableElimination {
   private static final Logger logger = Logger.getLogger(VariableElimination.class);
-  private static int MAX_LIMIT = 512;
+  private static int MAX_LIMIT = 1024;
 
   private static class Data {
     public int literal;
@@ -77,16 +77,19 @@ public class VariableElimination {
     Vector<Data> ve = new Vector<Data>();
 
     for (int limit = 1; limit <= MAX_LIMIT; limit <<= 1) {
+      solver.propagateBinaries();
+      HiddenTautologyElimination.run(solver);
+      SelfSubsumming.run(solver);
+
       for (int literal = 1; literal <= solver.numVariables; literal++) {
         Data data = eliminate(literal, limit);
         if (data != null) {
           ve.add(data);
         }
       }
-
-      SelfSubsumming.run(solver);
     }
 
+    SelfSubsumming.run(solver);
     logger.info("Eliminated " + ve.size() + " variables");
     return ve;
   }
@@ -97,8 +100,6 @@ public class VariableElimination {
    */
   private Data eliminate(final int literal, final int limit)
       throws ContradictionException {
-    assert solver.graph.edges(literal).isEmpty();
-    assert solver.graph.edges(neg(literal)).isEmpty();
     assert !solver.isLiteralAssigned(literal);
 
     // Clauses must be short enough and not XORs.
@@ -126,8 +127,8 @@ public class VariableElimination {
     TIntArrayList store = new TIntArrayList();
     for (int i = 0; i < p.length; i++) {
       for (int j = 0; j < n.length; j++) {
-        resolution(store, p[i], n[j], literal);
-        if (store.size() > size + limit) {
+        int length = resolution(store, p[i], n[j], literal);
+        if (length > 16 || store.size() > size + limit) {
           // Too much.
           return null;
         }
@@ -143,10 +144,10 @@ public class VariableElimination {
    * Performs resolution between first and second on literal and
    * puts the resulted clause in store.
    */
-  private void resolution(final TIntArrayList store,
-                          final int first,
-                          final int second,
-                          final int literal) {
+  private int resolution(final TIntArrayList store,
+                         final int first,
+                         final int second,
+                         final int literal) {
     store.add(0);
     int storeClause = store.size();
 
@@ -172,6 +173,7 @@ public class VariableElimination {
     length = store.size() - storeClause;
     store.setQuick(storeClause - 1, encode(length, OR));
     cleanLastClause(store, storeClause);
+    return length;
   }
 
   /**
