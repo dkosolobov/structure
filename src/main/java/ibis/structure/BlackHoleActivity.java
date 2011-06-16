@@ -31,9 +31,9 @@ public final class BlackHoleActivity extends Activity {
                            final long generation,
                            final Skeleton instance) {
     super(parent, depth, generation, instance);
-    assert instance.size() > 0;
   }
 
+  /** Sets generation kill as dead. */
   private static void moveToGraveyard(final long kill) {
     synchronized (graveyard) {
       graveyard.add(kill);

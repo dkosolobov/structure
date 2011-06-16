@@ -168,7 +168,6 @@ public final class ImplicationsGraph {
     visited.reset();
     for (int i = 0; i < assigned.size(); i++) {
       int u = assigned.get(i);
-      assert edges(u).isEmpty() && edges(neg(u)).isEmpty();
       visited.add(u);
       visited.add(neg(u));
     }
@@ -182,7 +181,7 @@ public final class ImplicationsGraph {
 
       for (int j = 0; j < edges(neg(u)).size(); j++) {
         // v is the parent of u
-        int v = -edges(neg(u)).get(j);
+        int v = neg(edges(neg(u)).get(j));
         if (units.contains(v)) {
           units.add(u);
           break;
