@@ -45,8 +45,9 @@ public final class Solver {
     unitsQueue = new TIntArrayList();
 
     proxies = new int[2 * numVariables + 1];
-    for (int u = -numVariables; u <= numVariables; ++u) {
+    for (int u = 1; u <= numVariables; u++) {
       proxies[u + numVariables] = u;
+      proxies[neg(u) + numVariables] = neg(u);
     }
 
     watchLists.build();
@@ -70,8 +71,8 @@ public final class Solver {
   public boolean isVariableMissing(final int u) {
     assert var(u) == u;
     return proxy(u) == u
-        && !units.contains(u) && !units.contains(-u)
-        && watchLists.get(u).isEmpty() && watchLists.get(-u).isEmpty();
+        && !units.contains(u) && !units.contains(neg(u))
+        && watchLists.get(u).isEmpty() && watchLists.get(neg(u)).isEmpty();
   }
 
   /**
@@ -100,6 +101,8 @@ public final class Solver {
     if (u == v) {
       queueUnit(u);
     } else {
+      assert -numVariables <= u && u <= numVariables;
+      assert -numVariables <= v && v <= numVariables;
       graph.add(neg(u), v);
     }
   }
@@ -141,30 +144,41 @@ public final class Solver {
     }
   }
 
+  public Solution solve2() throws ContradictionException {
+    verifyIntegrity();
+
+    // If all clauses were removed solve the remaining 2SAT.
+    boolean _2SAT = true;
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext() && _2SAT) {
+      int clause = it.next();
+      int length = length(formula, clause);
+      _2SAT = length <= 2;
+    }
+
+    return _2SAT ? solve2SAT() : Solution.unknown();
+  }
+
   /**
    * Solves the remaining 2SAT encoded in the implication graph
    */
   private Solution solve2SAT() throws ContradictionException {
-    try {
-      // Makes sure that all binaries (including XORs) are in the graph.
-      propagateBinaries();
+    // Makes sure that all binaries (including XORs) are in the graph.
+    propagateBinaries();
 
-      // Collapses strongly connected components and removes contradictions.
-      // No new binary clause is created because there are no clauses
-      // of longer length.
-      renameEquivalentLiterals();
+    // Collapses strongly connected components and removes contradictions.
+    // No new binary clause is created because there are no clauses
+    // of longer length.
+    renameEquivalentLiterals();
 
-      TIntArrayList assigned = new TIntArrayList();
-      for (int u = 1; u <= numVariables; ++u) {
-        if (isLiteralAssigned(u)) {
-          assigned.add(u);
-        }
+    TIntArrayList assigned = new TIntArrayList();
+    for (int u = 1; u <= numVariables; ++u) {
+      if (isLiteralAssigned(u)) {
+        assigned.add(u);
       }
-
-      units.add(graph.solve(assigned));
-    } catch (ContradictionException e) {
-      return Solution.unsatisfiable();
     }
+
+    units.add(graph.solve(assigned));
 
     // Satisfy literals with proxies.
     for (int literal = -numVariables; literal <= numVariables; ++literal) {
@@ -240,7 +254,7 @@ public final class Solver {
    * Putes discovered binaries in the graph.
    * Formula is not modified.
    */
-  private boolean propagateBinaries() {
+  public boolean propagateBinaries() {
     TIntArrayList clauses = watchLists.binaries;
     boolean simplified = false;
 
@@ -252,9 +266,12 @@ public final class Solver {
 
       int length = length(formula, clause);
       int type = type(formula, clause);
-      simplified = true;
+      if (length == 1) {
+        queueUnit(formula.getQuick(clause));
+        continue;
+      }
 
-      assert length == 2: "Length should be 2 not " + length;
+      simplified = true;
       int l0 = formula.getQuick(clause);
       int l1 = formula.getQuick(clause + 1);
 
@@ -310,7 +327,7 @@ public final class Solver {
     TIntArrayList propagated = graph.propagate(literals);
     for (int i = 0; i < propagated.size(); i++) {
       int unit = propagated.getQuick(i);
-      assert proxy(unit) == unit;
+      unit = proxy(unit);
 
       if (units.contains(unit)) {
         continue;
@@ -377,8 +394,10 @@ public final class Solver {
       if (u != 0 && isLiteralAssigned(u)) {
         assert watchLists.get(u).isEmpty()
             : "Assigned literal " + u + " has non empty watch list";
+        /*
         assert graph.edges(u).isEmpty()
             : "Assigned literal " + u + " has neighbours in the implication graph";
+            */
       }
     }
   }
