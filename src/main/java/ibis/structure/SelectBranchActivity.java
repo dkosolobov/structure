@@ -51,8 +51,8 @@ public final class SelectBranchActivity extends Activity {
     double bestScore = Double.NEGATIVE_INFINITY;;
 
     for (int branch = 1; branch <= numVariables; branch++) {
-      double score = instance.evaluateBranch(scores, branch) * random.nextDouble();
-      if (score > bestScore) {
+      double score = instance.evaluateBranch(scores, branch); //  * random.nextDouble();
+      if (score > bestScore && random.nextDouble() < Configure.ttc[3]) {
         bestBranch = branch;
         bestScore = score;
       }

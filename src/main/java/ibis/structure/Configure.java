@@ -40,7 +40,7 @@ public class Configure {
   /** Number of hyper binary resolutions to perform. 0 to disable. */
   public static boolean hyperBinaryResolution = true;
   /** Threshold for transitive closure. */
-  public static double[] ttc = {0.29, 0.19};
+  public static double[] ttc = {0.64, 0.59, 0.92, 0.99};
 
   public static boolean configure(String[] args) {
     Options options = new Options();

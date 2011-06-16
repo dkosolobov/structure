@@ -16,17 +16,17 @@ public final class RestartActivity extends Activity {
   private static final Logger logger = Logger.getLogger(RestartActivity.class);
 
   private static Random random = new Random(1);
-  private static int delay = 5;  // TODO: should not be static
+  private static int delay = 15;  // TODO: should not be static
   private Timer timer = new Timer();
 
   public RestartActivity(final ActivityIdentifier parent,
                          final int depth,
                          final Skeleton instance) {
     super(parent, depth, 0, instance);
-    assert instance.size() > 0;
   }
 
-  private long guid() {
+  /** Returns a unique random long non-zero number. */
+  private static long guid() {
     long generation;
     do {
       generation = random.nextLong();
@@ -41,7 +41,6 @@ public final class RestartActivity extends Activity {
                 + " for " + delay + " seconds");
     logger.info("Instance has " + instance.numVariables + " / "
                 + instance.formula.size());
-    // logger.info("Solving\n" + instance);
     executor.submit(new BlackHoleActivity(
           identifier(), depth, generation, instance.clone()));
 
@@ -53,7 +52,7 @@ public final class RestartActivity extends Activity {
       };
 
       timer.schedule(task, delay * 1000L);
-      delay += 1; // random.nextInt(delay);
+      delay += random.nextInt(5);
     }
   }
 
@@ -78,7 +77,6 @@ public final class RestartActivity extends Activity {
       return;
     }
 
-    // response.show(">> ", 0, 0);
     response.addLearnedClauses(instance.formula);
     executor.submit(new BlockedClauseEliminationActivity(
           identifier(), depth, instance));

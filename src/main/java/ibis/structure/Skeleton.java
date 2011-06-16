@@ -84,13 +84,13 @@ public final class Skeleton implements java.io.Serializable {
 
     // These values were fine tuned for easy instances from
     // SAT Competition 2011.
-    final double alpha = 0.64;
-    final double beta = 0.59;
-    final double gamma = 0.92;
+    // final double alpha = 0.64;
+    // final double beta = 0.59;
+    // final double gamma = 0.92;
 
-    // final double alpha = Configure.ttc[0];
-    // final double beta = Configure.ttc[1];
-    // final double gamma = Configure.ttc[2];
+    final double alpha = Configure.ttc[0];
+    final double beta = Configure.ttc[1];
+    final double gamma = Configure.ttc[2];
 
     // First scores are computed based on clauses length
     ClauseIterator it = new ClauseIterator(formula);

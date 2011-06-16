@@ -26,18 +26,14 @@ public final class SimplifyActivity extends Activity {
       normalizer.normalize(instance);
       Solver solver = new Solver(instance, 0);
 
-      Configure.verbose = true;
       solver.propagate();
       HyperBinaryResolution.run(solver);
       HiddenTautologyElimination.run(solver);
-      solver.propagate();
-      SelfSubsumming.run(solver);
       SelfSubsumming.run(solver);
       solver.propagate();
       solver.renameEquivalentLiterals();
       PureLiterals.run(solver);
       MissingLiterals.run(solver);
-      Configure.verbose = false;
 
       Solution solution = solver.solve2();
       if (!solution.isUnknown()) {

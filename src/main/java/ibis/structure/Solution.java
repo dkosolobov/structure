@@ -2,7 +2,10 @@ package ibis.structure;
 
 import java.io.PrintStream;
 import gnu.trove.iterator.TIntIterator;
+import gnu.trove.iterator.TIntDoubleIterator;
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.map.hash.TIntIntHashMap;
+import gnu.trove.map.hash.TIntDoubleHashMap;
 import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
@@ -31,7 +34,7 @@ public final class Solution {
   /** Units. */
   private int[] units = null;
   /** Learned. */
-  private TIntArrayList learned = EMPTY;
+  public TIntArrayList learned = EMPTY;
 
   /** Returns a solution representing a satisfiable instance. */
   public static Solution satisfiable(final int[] units) {
@@ -81,8 +84,8 @@ public final class Solution {
       }
     }
 
-    // Adds proxies.
     /*
+    // Adds proxies.
     int numVariables = core.numVariables();
     int[] proxies = core.proxies();
     for (int l = 1; l <= numVariables; l++) {
@@ -130,7 +133,8 @@ public final class Solution {
       solution.learned.addAll(s1.learned);
       solution.learned.addAll(s2.learned);
     } else {
-      assert s1.learned.size() == 2;
+      assert s1.isUnsatisfiable();
+      assert s1.learned.size() == 2: "Learned size is " + s1.learned.size();
       solution.learned.add(s1.learned.get(0));
       solution.learned.addAll(s2.learned);
       solution.learned.set(1, 0);
@@ -220,23 +224,37 @@ public final class Solution {
 
   /** Adds learned clauses to formula. */
   public void addLearnedClauses(final TIntArrayList formula) {
+    TIntDoubleHashMap histogram = new TIntDoubleHashMap();
     int size = formula.size();
-    addLearnedClauses(formula, 0, new TIntArrayList());
+    addLearnedClauses(formula, 0, new TIntArrayList(), histogram, 1.);
     logger.info("Learned size is " + learned.size());
     logger.info("Added " + (formula.size() - size) + " new literals");
+
+    /*
+    logger.info("Histogram is");
+    TIntDoubleIterator it = histogram.iterator();
+    while (it.hasNext()) {
+      it.advance();
+      if (it.value() > 2.) {
+        System.err.println(it.key() + " " + it.value());
+      }
+    }
+    */
   }
 
   /** Expands the tree of learned clauses and adds them to formula. */
   private int addLearnedClauses(final TIntArrayList formula, 
                                 final int start,
-                                final TIntArrayList stack) {
+                                final TIntArrayList stack,
+                                final TIntDoubleHashMap histogram,
+                                final double score) {
     int p = start;
     if (p == learned.size()) {
       return p;
     }
 
     if (learned.get(p) == 0) {
-      if (stack.size() <= 7) {
+      if (stack.size() <= 63) {
         formula.add(encode(stack.size(), OR));
         formula.addAll(stack);
       }
@@ -249,29 +267,10 @@ public final class Solution {
         return p + 1;
       }
 
+      // histogram.adjustOrPutValue(var(l), score, score);
       stack.add(l);
-      p = addLearnedClauses(formula, p + 1, stack);
+      p = addLearnedClauses(formula, p + 1, stack, histogram, score * 0.9);
       stack.removeAt(stack.size() - 1);
-    }
-
-    return learned.size();
-  }
-
-  public int show(String path, int start, int depth) {
-    if (start == learned.size()) {
-      return start;
-    }
-    if (learned.get(start) == 0) {
-      if (depth <= 3) {
-        System.err.println(path);
-      }
-      return start + 1;
-    }
-
-    while (start < learned.size()) {
-      int l = learned.get(start);
-      if (l == 0) return start + 1;
-      start = show(path + " " + l, start + 1, depth + 1);
     }
 
     return learned.size();

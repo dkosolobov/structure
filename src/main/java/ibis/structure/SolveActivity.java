@@ -51,6 +51,7 @@ public final class SolveActivity extends Activity {
     } else if (response.isUnknown()) {
       response = Solution.unknown(branch, response, core);
     }
+
     reply(response);
     finish();
   }

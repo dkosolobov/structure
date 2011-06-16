@@ -13,7 +13,7 @@ import static ibis.structure.Misc.*;
 
 public class VariableElimination {
   private static final Logger logger = Logger.getLogger(VariableElimination.class);
-  private static int MAX_LIMIT = 1024;
+  private static int MAX_LIMIT = 512;
 
   private static class Data {
     public int literal;
@@ -102,7 +102,6 @@ public class VariableElimination {
       throws ContradictionException {
     assert !solver.isLiteralAssigned(literal);
 
-    // Clauses must be short enough and not XORs.
     int[] p = solver.watchLists.get(literal).toArray();
     int[] n = solver.watchLists.get(neg(literal)).toArray();
     int size = 0;
@@ -111,6 +110,7 @@ public class VariableElimination {
       return null;
     }
 
+    // Clauses must be short enough and not XORs.
     for (int i = 0; i < p.length; i++) {
       size += length(solver.formula, p[i]) + 1;
       if (type(solver.formula, p[i]) != OR) {
