@@ -19,7 +19,6 @@ public final class SimplifyActivity extends Activity {
                           final int depth,
                           final Skeleton instance) {
     super(parent, depth, 0, instance.clone());
-    assert instance.size() > 0;
   }
 
   public void initialize() {
@@ -31,12 +30,22 @@ public final class SimplifyActivity extends Activity {
       solver.propagate();
       HyperBinaryResolution.run(solver);
       HiddenTautologyElimination.run(solver);
+      solver.propagate();
+      SelfSubsumming.run(solver);
       SelfSubsumming.run(solver);
       solver.propagate();
       solver.renameEquivalentLiterals();
       PureLiterals.run(solver);
       MissingLiterals.run(solver);
       Configure.verbose = false;
+
+      Solution solution = solver.solve2();
+      if (!solution.isUnknown()) {
+        normalizer.denormalize(solution);
+        reply(solution);
+        finish();
+        return;
+      }
 
       core = solver.core();
     } catch (ContradictionException e) {
