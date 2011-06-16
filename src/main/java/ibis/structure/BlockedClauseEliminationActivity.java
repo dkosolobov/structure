@@ -32,6 +32,7 @@ public final class BlockedClauseEliminationActivity extends Activity {
     try {
       normalizer.normalize(instance);
       Solver solver = new Solver(instance, 0);
+      SelfSubsumming.run(solver);
       bce = BlockedClauseElimination.run(solver);
       MissingLiterals.run(solver);
       core = solver.core();
