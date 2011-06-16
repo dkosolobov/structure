@@ -329,4 +329,31 @@ public final class Misc {
 
     formula.remove(p, formula.size() - p);
   }
+
+  /** Returns all clauses containing given literals. */
+  public static TIntArrayList filter(final TIntArrayList formula,
+                                     final int... literals) {
+    TIntArrayList filtered = new TIntArrayList();
+    TIntHashSet set = new TIntHashSet();
+
+    for (int literal : literals) {
+      set.add(var(literal));
+    }
+
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+
+      for (int i = clause; i < clause + length; i++) {
+        int literal = formula.getQuick(clause);
+        if (set.contains(var(literal))) {
+          copy(filtered, formula, clause);
+          break;
+        }
+      }
+    }
+
+    return filtered;
+  }
 }
