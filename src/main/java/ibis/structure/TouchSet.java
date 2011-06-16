@@ -20,6 +20,7 @@ public final class TouchSet {
   private short currentColor = 0;
   private short[] colors = null;
 
+  /** Creates a set that can store numVariables variables. */
   public TouchSet(final int numVariables) {
     this.numVariables = numVariables;
     this.colors = new short[2 * numVariables + 1];

@@ -12,7 +12,6 @@ import static ibis.structure.Misc.*;
 public final class SimplifyActivity extends Activity {
   private static final Logger logger = Logger.getLogger(SimplifyActivity.class);
 
-  private InstanceNormalizer normalizer = new InstanceNormalizer();
   private Core core = null;
 
   public SimplifyActivity(final ActivityIdentifier parent,
@@ -23,7 +22,7 @@ public final class SimplifyActivity extends Activity {
 
   public void initialize() {
     try {
-      normalizer.normalize(instance);
+      normalize();
       Solver solver = new Solver(instance, 0);
 
       solver.propagate();
@@ -37,7 +36,6 @@ public final class SimplifyActivity extends Activity {
 
       Solution solution = solver.solve2();
       if (!solution.isUnknown()) {
-        normalizer.denormalize(solution);
         reply(solution);
         finish();
         return;
@@ -58,7 +56,6 @@ public final class SimplifyActivity extends Activity {
   public void process(Event e) throws Exception {
     Solution response = (Solution) e.data;
     response = core.merge(response);
-    normalizer.denormalize(response);
     reply(response);
     finish();
   }

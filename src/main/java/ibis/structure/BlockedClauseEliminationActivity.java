@@ -11,7 +11,6 @@ public final class BlockedClauseEliminationActivity extends Activity {
   private static final Logger logger = Logger.getLogger(
       BlockedClauseEliminationActivity.class);
 
-  private InstanceNormalizer normalizer = new InstanceNormalizer();
   private TIntArrayList bce = null;
   private Core core = null;
 
@@ -30,7 +29,7 @@ public final class BlockedClauseEliminationActivity extends Activity {
     }
 
     try {
-      normalizer.normalize(instance);
+      normalize();
       Solver solver = new Solver(instance, 0);
       bce = BlockedClauseElimination.run(solver);
       MissingLiterals.run(solver);
@@ -50,7 +49,6 @@ public final class BlockedClauseEliminationActivity extends Activity {
     Solution response = (Solution) e.data;
     response = core.merge(response);
     response = BlockedClauseElimination.restore(bce, response);
-    normalizer.denormalize(response);
     reply(response);
     finish();
   }

@@ -8,8 +8,8 @@ import org.apache.log4j.Logger;
 import static ibis.structure.Misc.*;
 
 
-public final class InstanceNormalizer {
-  private static final Logger logger = Logger.getLogger(InstanceNormalizer.class);
+public final class Normalizer {
+  private static final Logger logger = Logger.getLogger(Normalizer.class);
 
   private TIntIntHashMap variableMap = new TIntIntHashMap();
 

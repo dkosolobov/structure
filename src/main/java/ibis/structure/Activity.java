@@ -21,8 +21,11 @@ public class Activity extends ibis.constellation.Activity {
   protected long generation = 0;
   /** Instance to be solved. */
   protected Skeleton instance = null;
+
+  /** A normalizer for the instance to be solver. */
+  private Normalizer normalizer = null;
   /** Original instance to be solved. */
-  protected Skeleton original = null;
+  private Skeleton original = null;
 
   protected Activity() {
     super(UnitActivityContext.DEFAULT, true);
@@ -39,19 +42,43 @@ public class Activity extends ibis.constellation.Activity {
     this.instance = instance;
 
     if (Configure.enableExpensiveChecks) {
+      // Keeps a copy of original instance for verification.
       original = instance.clone();
     }
   }
 
-  protected void reply(final Solution response) {
+  /** Sends reponse back to parent. */
+  protected final void reply(final Solution response) {
+    if (normalizer != null) {
+      normalizer.denormalize(response);
+    }
+
     verify(response);
     executor.send(new Event(identifier(), parent, response));
   }
 
+  /**
+   * Normalizes Activity instance.
+   *
+   * Normaly this should be called before instance is processed.
+   */
+  protected final void normalize() {
+    normalizer = new Normalizer();
+    normalizer.normalize(instance);
+  }
+  
+  /**
+   * Performs a garbage collector.
+   */
+  protected void gc() {
+    instance = null;
+  }
+
+  /** Verifies that solution satisfies instance. */
   public void verify(final Solution response) {
     if (Configure.enableExpensiveChecks && original != null) {
       if (response.isSatisfiable()) {
-        // For satisfiable originals reponse contains a proof.
+        // For satisfiable instances reponse contains a proof.
         try {
           verifyUnits(response.units());
           verifySatisfied(response.units());
@@ -132,10 +159,6 @@ public class Activity extends ibis.constellation.Activity {
         }
       }
     }
-  }
-  
-  protected void gc() {
-    instance = null;
   }
 
   @Override

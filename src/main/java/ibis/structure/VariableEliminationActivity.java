@@ -18,7 +18,6 @@ public final class VariableEliminationActivity extends Activity {
   private static final Logger logger = Logger.getLogger(
       VariableEliminationActivity.class);
 
-  private InstanceNormalizer normalizer = new InstanceNormalizer();
   private Object ve = null;
   private Core core = null;
 

@@ -14,8 +14,6 @@ public final class SelectBranchActivity extends Activity {
       SelectBranchActivity.class);
   private static final Random random = new Random(1);
 
-  private InstanceNormalizer normalizer = new InstanceNormalizer();
-
   public SelectBranchActivity(final ActivityIdentifier parent,
                               final int depth,
                               final long generation,
@@ -25,7 +23,7 @@ public final class SelectBranchActivity extends Activity {
   }
 
   public void initialize() {
-    normalizer.normalize(instance);
+    normalize();
     int branch = chooseBranch();
     
     executor.submit(new BranchActivity(
@@ -37,7 +35,6 @@ public final class SelectBranchActivity extends Activity {
 
   public void process(Event e) throws Exception {
     Solution response = (Solution) e.data;
-    normalizer.denormalize(response);
     reply(response);
     finish();
   }
