@@ -21,9 +21,7 @@ public final class Core {
     this.numVariables = numVariables;
     this.units.addAll(units);
     this.proxies = proxies;
-
-    assert !formula.isEmpty();
-    instance = new Skeleton(numVariables, formula);
+    this.instance = new Skeleton(numVariables, formula);
   }
 
   /** Returns number of variables. */
