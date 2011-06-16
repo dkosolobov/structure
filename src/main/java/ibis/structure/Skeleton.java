@@ -31,23 +31,6 @@ public final class Skeleton implements java.io.Serializable {
     return new Skeleton(numVariables, new TIntArrayList(formula));
   }
 
-  /** Prints all clauses containing given literal. */
-  public void printClauses(final int literal) {
-    System.err.println(">>> <<<");
-    ClauseIterator it = new ClauseIterator(formula);
-    while (it.hasNext()) {
-      int clause = it.next();
-      int length = length(formula, clause);
-
-      int p = formula.indexOf(clause, literal);
-      int n = formula.indexOf(clause, neg(literal));
-      
-      if ((p != -1 && p < clause + length)
-          || (n != -1 && n < clause + length)) {
-        System.err.println(">>> " + clauseToString(formula, clause));
-      }
-    }
-  }
 
   /** Expands small XOR gates. */
   public void expandSmallXOR() {
@@ -84,6 +67,8 @@ public final class Skeleton implements java.io.Serializable {
     }
   }
 
+  private static final java.util.Random random = new java.util.Random(1);
+
   /**
    * Computes scores for every literal.
    *
@@ -99,9 +84,13 @@ public final class Skeleton implements java.io.Serializable {
 
     // These values were fine tuned for easy instances from
     // SAT Competition 2011.
-    final double alpha = 0.20;
-    final double beta = 0.24;
-    final double gamma = 0.25;
+    final double alpha = 0.64;
+    final double beta = 0.59;
+    final double gamma = 0.92;
+
+    // final double alpha = Configure.ttc[0];
+    // final double beta = Configure.ttc[1];
+    // final double gamma = Configure.ttc[2];
 
     // First scores are computed based on clauses length
     ClauseIterator it = new ClauseIterator(formula);
@@ -117,9 +106,7 @@ public final class Skeleton implements java.io.Serializable {
           int literal = formula.getQuick(i);
           scores[neg(literal) + numVariables] += delta;
         }
-      } 
-
-      if (type != OR) {
+      } else {
         // TODO: beta doesn't seem to have a big influence.
         delta = Math.pow(beta, length);
         for (int i = clause; i < clause + length; i++) {
