@@ -94,8 +94,8 @@ public class Activity extends ibis.constellation.Activity {
   /** Checks units don't contain a contradiction */
   public void verifyUnits(final int[] units) throws Exception {
     TIntArrayList formula = original.formula;
-    BitSet unitsSet = new BitSet();
-    unitsSet.addAll(units);
+    TouchSet unitsSet = new TouchSet(original.numVariables);
+    unitsSet.add(units);
 
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {

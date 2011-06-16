@@ -101,14 +101,14 @@ public class XOR {
       // mapZtoN orders variable 0, -1, 1, -2, 2
       // so library sort function can be used.
       for (int i = clause; i < clause + length; i++) {
-        formula.set(i, BitSet.mapZtoN(formula.get(i)));
+        formula.set(i, mapZtoN(formula.get(i)));
       }
 
       formula.sort(clause, clause + length);
       clauses.add(clause);
 
       for (int i = clause; i < clause + length; i++) {
-        formula.set(i, BitSet.mapNtoZ(formula.get(i)));
+        formula.set(i, mapNtoZ(formula.get(i)));
       }
     }
 
@@ -175,5 +175,26 @@ public class XOR {
       odd = odd ^ (u < 0);
     }
     return odd;
+  }
+
+  /**
+   * Bijective function mapping Z to N.
+   *
+   *  0 to 0
+   * -1 to 1
+   *  1 to 2
+   * -2 to 3
+   *  2 to 4
+   * etc.
+   */
+  public static int mapZtoN(final int a) {
+    return a < 0 ? (-1 - a - a) : a + a;
+  }
+
+  /**
+   * Inverse of mapZtoN.
+   */
+  public static int mapNtoZ(final int a) {
+    return (a & 1) != 0 ? -(a + 1) / 2 : a / 2;
   }
 }
