@@ -204,7 +204,7 @@ public final class Solver {
 
     watchLists = null;
     compact(formula);
-    return new Core(numVariables, units.toArray(), proxies, formula);
+    return new Core(numVariables, units, proxies, formula);
   }
 
   /**

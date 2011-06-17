@@ -16,7 +16,7 @@ public final class Core {
   /** Number of variables. */
   private int numVariables;
   /** Set of units. */
-  private TIntHashSet units = new TIntHashSet();
+  private TouchSet units;
   /** Proxies for equivalent literals. */
   private int[] proxies;
   /** Core instance without units and equivalent literals. */
@@ -31,11 +31,11 @@ public final class Core {
    * @param formula smaller formula needed to be solved.
    */
   public Core(final int numVariables,
-              final int[] units,
+              final TouchSet units,
               final int[] proxies,
               final TIntArrayList formula) {
     this.numVariables = numVariables;
-    this.units.addAll(units);
+    this.units = units;
     this.proxies = proxies;
     this.instance = new Skeleton(numVariables, formula);
   }
@@ -46,7 +46,7 @@ public final class Core {
   }
 
   /** Returns units. */
-  public TIntHashSet units() {
+  public TouchSet units() {
     return units;
   }
 
@@ -74,7 +74,7 @@ public final class Core {
     }
 
     // Adds instance's units
-    units.addAll(solution.units());
+    units.add(solution.units());
 
     // Adds equivalent literals
     // XXX A bug prevents from iterating from -numVariables to +numVariables

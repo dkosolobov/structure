@@ -74,9 +74,7 @@ public final class Solution {
     boolean empty = s.learned.isEmpty();
 
     // Adds units.
-    TIntIterator it = core.units().iterator();
-    for (int size = core.units().size(); size > 0; size--) {
-      int unit = it.next();
+    for (int unit : core.units().toArray()) {
       if (unit != branch) {
         empty = false;
         solution.learned.add(unit);
