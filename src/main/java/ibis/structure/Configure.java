@@ -89,13 +89,14 @@ public class Configure {
 
     enableExpensiveChecks = cl.hasOption("debug");
     verbose = !cl.hasOption("q");
-    hte = !cl.hasOption("nohte");
-    pl = !cl.hasOption("nopl");
-    sss = !cl.hasOption("nosss");
-    split = !cl.hasOption("nosplit");
-    xor = !cl.hasOption("noxor");
-    bce = !cl.hasOption("nobce");
-    hbr = !cl.hasOption("nohbr");
+
+    hte = hte && !cl.hasOption("nohte");
+    pl = pl && !cl.hasOption("nopl");
+    sss = sss && !cl.hasOption("nosss");
+    split = split && !cl.hasOption("nosplit");
+    xor = xor && !cl.hasOption("noxor");
+    bce = bce && !cl.hasOption("nobce");
+    hbr = hbr && !cl.hasOption("nohbr");
 
     if (cl.hasOption("ttc")) {
       String[] ttc_ = cl.getOptionValue("ttc").split(",");
