@@ -201,7 +201,17 @@ public class VariableElimination {
     store.setQuick(clause - 1, encode(p - clause, OR));
   }
 
-  private TIntArrayList removeLiteral(final int literal, int[] p, int[] n) {
+  /**
+   * Removes literal from clauses in p and n
+   *
+   * @param literal literal to be removed
+   * @param p clauses containing literal
+   * @param n clauses containing -literal
+   * @return formula with removed clauses
+   */
+  private TIntArrayList removeLiteral(final int literal,
+                                      final int[] p,
+                                      final int[] n) {
     TIntArrayList clauses = new TIntArrayList();
 
     for (int i = 0; i < p.length; i++) {
