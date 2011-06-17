@@ -250,6 +250,8 @@ public class Activity extends ibis.constellation.Activity {
 
   @Override
   public void process(final Event e) throws Exception {
+    reply((Solution) e.data);
+    finish();
   }
 
   @Override
