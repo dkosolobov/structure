@@ -101,6 +101,45 @@ public class Activity extends ibis.constellation.Activity {
   }
 
   /**
+   * Verifies an instance.
+   *
+   * @param instance to be verified.
+   */
+  public final void verify(final Skeleton instance) throws Exception {
+    if (Configure.enableExpensiveChecks && original != null) {
+      try {
+        verifyInstance(instance);
+      } catch (Exception e) {
+        logger.error("Verification failed", e);
+        // logger.info("Failed instance is\n" + original);
+        System.exit(1);  // TODO: exit gracefully
+      }
+    }
+  }
+
+  /**
+   * Verifies an instance.
+   *
+   * @param instance to be verified.
+   */
+  private final void verifyInstance(final Skeleton instance) throws Exception {
+    TIntArrayList formula = instance.formula;
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+
+      for (int i = clause; i < clause + length; i++) {
+        int literal = formula.get(i);
+        if (1 > var(literal) || var(literal) > instance.numVariables) {
+          throw new Exception("Found literal " + literal + ", but "
+                              + "numVariables is " + instance.numVariables);
+        }
+      }
+    }
+  }
+
+  /**
    * Verifies that solution satisfies instance.
    *
    * @param response solution to verify
