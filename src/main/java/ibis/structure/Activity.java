@@ -9,7 +9,9 @@ import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
 
-
+/**
+ * The base activity for all activities.
+ */
 public class Activity extends ibis.constellation.Activity {
   private static final Logger logger = Logger.getLogger(Activity.class);
 
@@ -27,10 +29,22 @@ public class Activity extends ibis.constellation.Activity {
   /** Original instance to be solved. */
   private Skeleton original = null;
 
+  /**
+   * Creates an activity with default parent, depth, generation
+   * and no instance.
+   */
   protected Activity() {
     super(UnitActivityContext.DEFAULT, true);
   }
 
+  /**
+   * Creates an activity.
+   *
+   * @param parent parent activity
+   * @param depth depth of computation
+   * @param generation current restart generation (0, no generation)
+   * @param instance instance to be solved.
+   */
   protected Activity(final ActivityIdentifier parent,
                      final int depth,
                      final long generation,
@@ -47,7 +61,13 @@ public class Activity extends ibis.constellation.Activity {
     }
   }
 
-  /** Sends reponse back to parent. */
+  /**
+   * Sends reponse back to parent.
+   *
+   * It denormalizes and verifies the response.
+   *
+   * @param response solution to send to parent
+   */
   protected final void reply(final Solution response) {
     if (normalizer != null) {
       normalizer.denormalize(response);
@@ -66,16 +86,19 @@ public class Activity extends ibis.constellation.Activity {
     normalizer = new Normalizer();
     normalizer.normalize(instance);
   }
-  
-  /**
-   * Performs a garbage collector.
-   */
+
+  /** Performs a garbage collector. */
   protected void gc() {
     instance = null;
   }
 
-  /** Verifies that solution satisfies instance. */
-  public void verify(final Solution response) {
+  /**
+   * Verifies that solution satisfies instance.
+   *
+   * @param units assignment to verify
+   * @throws Exception in case of error.
+   */
+  public final void verify(final Solution response) {
     if (Configure.enableExpensiveChecks && original != null) {
       if (response.isSatisfiable()) {
         // For satisfiable instances reponse contains a proof.
@@ -91,11 +114,15 @@ public class Activity extends ibis.constellation.Activity {
     }
   }
 
-  /** Checks units don't contain a contradiction */
-  public void verifyUnits(final int[] units) throws Exception {
+  /**
+   * Checks units don't contain a contradiction.
+   *
+   * @param units assignment to verify
+   * @throws Exception in case of error.
+   */
+  public final void verifyUnits(final int[] units) throws Exception {
     TIntArrayList formula = original.formula;
-    TouchSet unitsSet = new TouchSet(original.numVariables);
-    unitsSet.add(units);
+    TIntHashSet unitsSet = new TIntHashSet(units);
 
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
@@ -105,8 +132,8 @@ public class Activity extends ibis.constellation.Activity {
       for (int i = clause; i < clause + length; i++) {
         int literal = formula.get(i);
         if (!unitsSet.contains(literal) && !unitsSet.contains(neg(literal))) {
-          throw new Exception("Literal " + literal + " in formula, but "
-                              + "not assigned.");
+          throw new Exception(
+              "Literal " + literal + " in formula, but " + "not assigned.");
         }
       }
     }
@@ -118,11 +145,10 @@ public class Activity extends ibis.constellation.Activity {
     }
   }
 
-  /** Checks all CNF clauses are satisfied */
-  public void verifySatisfied(final int[] units) throws Exception {
+  /** Checks that all clauses are satisfied. */
+  public final void verifySatisfied(final int[] units) throws Exception {
     TIntArrayList formula = original.formula;
-    TIntHashSet unitsSet = new TIntHashSet();
-    unitsSet.addAll(units);
+    TIntHashSet unitsSet = new TIntHashSet(units);
 
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
@@ -172,7 +198,7 @@ public class Activity extends ibis.constellation.Activity {
   }
 
   @Override
-  public void process(Event e) throws Exception {
+  public void process(final Event e) throws Exception {
   }
 
   @Override

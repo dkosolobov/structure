@@ -5,13 +5,16 @@ import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
 
-import static ibis.structure.Misc.*;
-
+/**
+ * Performs Blocked Clause Elimination on the received instance.
+ */
 public final class BlockedClauseEliminationActivity extends Activity {
   private static final Logger logger = Logger.getLogger(
       BlockedClauseEliminationActivity.class);
 
+  /** Object used to restore solution. */
   private TIntArrayList bce = null;
+  /** Core instance after simplification. */
   private Core core = null;
 
   public BlockedClauseEliminationActivity(final ActivityIdentifier parent,
@@ -20,6 +23,7 @@ public final class BlockedClauseEliminationActivity extends Activity {
     super(parent, depth, 0, instance);
   }
 
+  @Override
   public void initialize() {
     if (!Configure.bce) {
       executor.submit(new VariableEliminationActivity(
@@ -45,11 +49,17 @@ public final class BlockedClauseEliminationActivity extends Activity {
     suspend();
   }
 
-  public void process(Event e) throws Exception {
+  @Override
+  public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
     response = core.merge(response);
     response = BlockedClauseElimination.restore(bce, response);
     reply(response);
     finish();
+  }
+
+  protected void gc() {
+    super.gc();
+    core.gc();
   }
 }

@@ -6,14 +6,30 @@ import gnu.trove.set.hash.TIntHashSet;
 import static ibis.structure.Misc.*;
 
 
+/**
+ * Represents a core instance after simplifications.
+ *
+ * It contains a smaller formula to needed to be solved
+ * in order to solve the original formula.
+ */
 public final class Core {
-  private final int numVariables;
+  /** Number of variables. */
+  private int numVariables;
+  /** Set of units. */
   private TIntHashSet units = new TIntHashSet();
   /** Proxies for equivalent literals. */
   private int[] proxies;
   /** Core instance without units and equivalent literals. */
   private Skeleton instance;
 
+  /**
+   * Constructor.
+   *
+   * @param numVariables number of variables
+   * @param units units discovered
+   * @param proxies equivalent literals
+   * @param formula smaller formula needed to be solved.
+   */
   public Core(final int numVariables,
               final int[] units,
               final int[] proxies,

@@ -9,25 +9,31 @@ import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
 
-
+/**
+ * Tries to split instance into smaller independent instances.
+ *
+ * The algorithm is as follows: puts variables in the same clause
+ * into the same set using disjoint sets. The instance can be split
+ * into variables dictated by the disjoints sets.
+ */
 public final class SplitActivity extends Activity {
   private static final Logger logger = Logger.getLogger(SplitActivity.class);
 
-  /** Representants in disjoint set  */
+  /** Representants in disjoint set.  */
   private int[] repr;
-  /** Height of disjoint set */
+  /** Height of disjoint set. */
   private int[] height;
-  /** Array of found units */
+  /** Array of found units. */
   private int[] units = null;
-  /** Number of found units */
+  /** Number of found units. */
   private int numUnits = 0;
-  /** Number of subproblems solved */
+  /** Number of subproblems solved. */
   private int numSubmittedSplits = 0;
-  /** True if any components is unsatisfiable */
+  /** True if any components is unsatisfiable. */
   private boolean isUnsatisfiable = false;
-  /** True if any component is unknown */
+  /** True if any component is unknown. */
   private boolean isUnknown = false;
-  /** Subproblems */
+  /** Subproblems. */
   private TIntObjectHashMap<Skeleton> subInstances = null;
 
   public SplitActivity(final ActivityIdentifier parent,
@@ -37,6 +43,7 @@ public final class SplitActivity extends Activity {
     super(parent, depth, generation, instance);
   }
 
+  @Override
   public void initialize() {
     if (!Configure.split) {
       executor.submit(new SelectBranchActivity(
@@ -73,11 +80,13 @@ public final class SplitActivity extends Activity {
     suspend();
   }
 
-  public void process(Event e) throws Exception {
-    Solution response = (Solution)e.data;
+  @Override
+  public void process(final Event e) throws Exception {
+    Solution response = (Solution) e.data;
     numSubmittedSplits--;
 
     if (response.isUnsatisfiable()) {
+      // For unsatisfiable case sends solution as fast as possible.
       executor.send(new Event(identifier(), parent, Solution.unsatisfiable()));
       isUnsatisfiable = true;
     }
@@ -93,11 +102,9 @@ public final class SplitActivity extends Activity {
     if (numSubmittedSplits > 0) {
       suspend();
     } else {
-      if (isUnsatisfiable) {
-        // Solution already sent.
-      } else if (isUnknown) {
+      if (isUnknown) {
         reply(Solution.unknown());
-      } else {
+      } else if (!isUnsatisfiable) {
         units = java.util.Arrays.copyOf(units, numUnits);
         Solution solution = Solution.satisfiable(units);
         reply(solution);
@@ -145,7 +152,7 @@ public final class SplitActivity extends Activity {
       int clause = it.next();
       int length = length(formula, clause);
       int type = type(formula, clause);
-      
+
       int u = formula.get(clause);
       Skeleton subInstance = subInstances.get(find(u));
       if (subInstance == null) {
@@ -161,13 +168,13 @@ public final class SplitActivity extends Activity {
     }
   }
 
-  /** Adds new units from a sub instance */
-  private void mergeNewUnits(int[] newUnits) {
+  /** Adds new units from a sub instance. */
+  private void mergeNewUnits(final int[] newUnits) {
     System.arraycopy(newUnits, 0, units, numUnits, newUnits.length);
     numUnits += newUnits.length;
   }
 
-  /** Returns the top representant of u */
+  /** Returns the top representant of u. */
   private int find(int u) {
     u = Math.abs(u);
     if (repr[u] == 0) {
@@ -177,7 +184,8 @@ public final class SplitActivity extends Activity {
     return findInternal(u);
   }
 
-  private int findInternal(int u) {
+  /** Helper function for find. */
+  private int findInternal(final int u) {
     if (repr[u] == u) {
       return u;
     }
@@ -185,7 +193,7 @@ public final class SplitActivity extends Activity {
     return repr[u];
   }
 
-  /** Joins u and v's sets */
+  /** Joins u and v's sets. */
   private void join(int u, int v) {
     u = find(u);
     v = find(v);

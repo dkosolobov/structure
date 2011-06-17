@@ -2,30 +2,20 @@ package ibis.structure;
 
 import gnu.trove.set.hash.TLongHashSet;
 import ibis.constellation.ActivityIdentifier;
-import ibis.constellation.Event;
 import org.apache.log4j.Logger;
 
-import static ibis.structure.Misc.*;
-
-
 /**
- * TODO: Handle case when all variables are eliminated.
+ * This Activity purpose is to remove instances from
+ * old generations.
  */
 public final class BlackHoleActivity extends Activity {
   private static final Logger logger = Logger.getLogger(
       BlackHoleActivity.class);
 
+  /** A set of dead generations. */
   private static final TLongHashSet graveyard = new TLongHashSet();
 
-  public long kill = 0L;
-
-  public BlackHoleActivity(final long kill) {
-    super();
-    assert kill != 0L;
-    this.kill = kill;
-    moveToGraveyard(kill);
-  }
-
+  /** Checks and removes instances from dead generation. */
   public BlackHoleActivity(final ActivityIdentifier parent,
                            final int depth,
                            final long generation,
@@ -34,33 +24,25 @@ public final class BlackHoleActivity extends Activity {
   }
 
   /** Sets generation kill as dead. */
-  private static void moveToGraveyard(final long kill) {
+  public static void moveToGraveyard(final long kill) {
     synchronized (graveyard) {
       graveyard.add(kill);
     }
   }
 
+  @Override
   public void initialize() {
-    if (kill == 0) {
-      boolean dead;
-      synchronized (graveyard) {
-        dead = graveyard.contains(generation);
-      }
-
-      if (dead) {
-        reply(Solution.unknown());
-      } else {
-        executor.submit(new SplitActivity(
-              parent, depth, generation, instance));
-      }
-
-      finish(); 
-    } else {
-      moveToGraveyard(kill);
-      finish();
+    boolean dead;
+    synchronized (graveyard) {
+      dead = graveyard.contains(generation);
     }
-  }
 
-  public void process(Event e) throws Exception {
+    if (dead) {
+      reply(Solution.unknown());
+    } else {
+      executor.submit(new SplitActivity(parent, depth, generation, instance));
+    }
+
+    finish();
   }
 }

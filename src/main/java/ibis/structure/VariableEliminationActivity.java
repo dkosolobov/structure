@@ -1,24 +1,20 @@
 package ibis.structure;
 
-import gnu.trove.list.array.TIntArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
 
-import static ibis.structure.Misc.*;
-
 
 /**
  * Performs variable elimination.
- *
- * TODO: Handle case when all variables are eliminated.
- * TODO: Add disable option.
  */
 public final class VariableEliminationActivity extends Activity {
   private static final Logger logger = Logger.getLogger(
       VariableEliminationActivity.class);
 
+  /** Object to restore a satisfiable solution. */
   private Object ve = null;
+  /** Core of instance after variable elimination. */
   private Core core = null;
 
   public VariableEliminationActivity(final ActivityIdentifier parent,
@@ -28,10 +24,10 @@ public final class VariableEliminationActivity extends Activity {
     assert instance.size() > 0;
   }
 
+  @Override
   public void initialize() {
     if (!Configure.ve) {
-      executor.submit(new SimplifyActivity(
-            parent, depth, instance));
+      executor.submit(new SimplifyActivity(parent, depth, instance));
       finish();
       return;
     }
@@ -58,7 +54,8 @@ public final class VariableEliminationActivity extends Activity {
     }
   }
 
-  public void process(Event e) throws Exception {
+  @Override
+  public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
     response = core.merge(response);
     response = VariableElimination.restore(ve, response);

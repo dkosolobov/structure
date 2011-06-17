@@ -5,19 +5,23 @@ import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
 
-
+/**
+ * Extracts XOR gates and performs Dependent Variable Elimination
+ * on the instance.
+ */
 public final class XORActivity extends Activity {
   private static final Logger logger = Logger.getLogger(XORActivity.class);
 
+  /** Object used to restore solution after Dependent Variable Elimination. */
   private TIntArrayList dve;
 
   public XORActivity(final ActivityIdentifier parent,
                      final int depth,
                      final Skeleton instance) {
     super(parent, depth, 0, instance);
-    assert instance.size() > 0;
   }
 
+  @Override
   public void initialize() {
     if (!Configure.xor) {
       executor.submit(new BlockedClauseEliminationActivity(
@@ -42,7 +46,8 @@ public final class XORActivity extends Activity {
     suspend();
   }
 
-  public void process(Event e) throws Exception {
+  @Override
+  public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
     response = DependentVariableElimination.restore(dve, response);
     reply(response);

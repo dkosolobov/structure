@@ -11,11 +11,8 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import org.apache.log4j.Logger;
 
-import static ibis.structure.Misc.formulaToString;
-
 class Structure {
   private static final Logger logger = Logger.getLogger(Structure.class);
-
 
   private static void displayHeader() {
     logger.info("STRUCTure: a SATisfiability library for Java (c) 2009-2010 Alexandru Moșoi");

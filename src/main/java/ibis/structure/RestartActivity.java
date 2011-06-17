@@ -3,29 +3,49 @@ package ibis.structure;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Random;
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.set.hash.TIntHashSet;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
 
-import static ibis.structure.Misc.*;
-
-
+/**
+ * Implements restarting strategy.
+ *
+ * Restarting loop contains a few preprocessing activities:
+ * BCE, VE, simplification.
+ *
+ * Each solved instance is part of a generation. When a timer
+ * expires is generation killed (see BlackHoleActivity).
+ *
+ * When a generation is finished RestartActivity
+ * adds to formula learned clauses.
+ *
+ * KNOWN BUGS: learned clauses "enforce" the variable ordering
+ * for the future generations.
+ */
 public final class RestartActivity extends Activity {
-  private static final Logger logger = Logger.getLogger(RestartActivity.class);
+  private static final int INITIAL_TTL = 15;
+  private static final int MAX_TTL = 1000000;
 
-  private static Random random = new Random(1);
-  private static int delay = 15;  // TODO: should not be static
-  private Timer timer = new Timer();
+  private static final Logger logger = Logger.getLogger(RestartActivity.class);
+  private static final Random random = new Random(1);
+
+  /** Current generation time to live. */
+  private static int ttl = INITIAL_TTL;  // TODO: should not be static
+  /** The original instance. */
+  private Skeleton original;
 
   public RestartActivity(final ActivityIdentifier parent,
                          final int depth,
                          final Skeleton instance) {
     super(parent, depth, 0, instance);
+    original = instance;
   }
 
-  /** Returns a unique random long non-zero number. */
+  /**
+   * Returns a unique random long non-zero number.
+   *
+   * @return an unique id.
+   */
   private static long guid() {
     long generation;
     do {
@@ -34,41 +54,34 @@ public final class RestartActivity extends Activity {
     return generation;
   }
 
-  private void startNewGeneration() {
+  @Override
+  public void initialize() {
     final long generation = guid();
 
-    logger.info("Spawning generation " + generation
-                + " for " + delay + " seconds");
+    logger.info("Spawning generation " + generation + " for "
+                + ttl + " seconds");
     logger.info("Instance has " + instance.numVariables + " / "
                 + instance.formula.size());
-    executor.submit(new BlackHoleActivity(
-          identifier(), depth, generation, instance.clone()));
 
-    if (delay < 1000000) {
+    executor.submit(new BlackHoleActivity(
+          identifier(), depth, generation, original.clone()));
+
+    if (ttl < MAX_TTL) {
       TimerTask task = new TimerTask() {
         public void run() {
-          executor.submit(new BlackHoleActivity(generation));
+          BlackHoleActivity.moveToGraveyard(generation);
         }
       };
 
-      timer.schedule(task, delay * 1000L);
-      delay += random.nextInt(5);
+      (new Timer()).schedule(task, ttl * 1000L);
+      ttl += random.nextInt(5);
     }
-  }
 
-  @Override
-  public void gc() {
-    
-  }
-
-  @Override
-  public void initialize() {
-    startNewGeneration();
     suspend();
   }
 
   @Override
-  public void process(Event e) throws Exception {
+  public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
 
     if (!response.isUnknown()) {
@@ -77,9 +90,9 @@ public final class RestartActivity extends Activity {
       return;
     }
 
-    response.addLearnedClauses(instance.formula);
+    response.addLearnedClauses(original.formula);
     executor.submit(new BlockedClauseEliminationActivity(
-          identifier(), depth, instance));
+          identifier(), depth, original));
     suspend();
   }
 }

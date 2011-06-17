@@ -1,17 +1,21 @@
 package ibis.structure;
 
-import gnu.trove.set.hash.TIntHashSet;
-import gnu.trove.list.array.TIntArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
 
-
+/**
+ * Performs some simplification on the instance.
+ *
+ * This activity is similar to SolveActivity, but is
+ * part of the restart loop.
+ */
 public final class SimplifyActivity extends Activity {
   private static final Logger logger = Logger.getLogger(SimplifyActivity.class);
 
+  /** Core after simplification. */
   private Core core = null;
 
   public SimplifyActivity(final ActivityIdentifier parent,
@@ -20,6 +24,7 @@ public final class SimplifyActivity extends Activity {
     super(parent, depth, 0, instance.clone());
   }
 
+  @Override
   public void initialize() {
     try {
       normalize();
@@ -53,10 +58,9 @@ public final class SimplifyActivity extends Activity {
     suspend();
   }
 
-  public void process(Event e) throws Exception {
-    Solution response = (Solution) e.data;
-    response = core.merge(response);
-    reply(response);
+  @Override
+  public void process(final Event e) throws Exception {
+    reply(core.merge((Solution) e.data));
     finish();
   }
 }

@@ -5,10 +5,18 @@ import ibis.constellation.Event;
 import org.apache.log4j.Logger;
 
 
+/**
+ * Performs some simplification on the instance.
+ *
+ * This activity is similar to SimplifyActivity, but is
+ * part of the solving loop.
+ */
 public final class SolveActivity extends Activity {
   private static final Logger logger = Logger.getLogger(SolveActivity.class);
 
-  private final int branch;
+  /** branching literal. */
+  private int branch;
+  /** Core of the instance after simplification. */
   private Core core;
 
   public SolveActivity(final ActivityIdentifier parent,
@@ -20,10 +28,11 @@ public final class SolveActivity extends Activity {
     this.branch = branch;
   }
 
+  @Override
   public void initialize() {
     Solver solver = null;
     Solution solution = null;
-    
+
     try {
       solver = new Solver(instance, branch);
       solution = solver.solve(false);
@@ -42,6 +51,7 @@ public final class SolveActivity extends Activity {
     }
   }
 
+  @Override
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
     if (response.isSatisfiable()) {
