@@ -24,23 +24,23 @@ public class Configure {
   /** True to print more info. */
   public static boolean verbose = true;
   /** True to perform hidden tautology elimination. */
-  public static boolean hiddenTautologyElimination = true;
+  public static boolean hte = true;
   /** True to perform pure literals. */
-  public static boolean pureLiterals = true;
+  public static boolean pl = true;
   /** True to perform binary (self) subsumming. */
-  public static boolean selfSubsumming = true;
+  public static boolean sss = true;
   /** True to split instances when possible. */
   public static boolean split = true;
   /** True to extract xor gates and enable dependent variable elimination. */
-  public static boolean xor = true;
+  public static boolean xor = false;
   /** True to run blocked clause elimination. */
   public static boolean bce = true;
   /** True to enable variable elimination. */
   public static boolean ve = true;
   /** Number of hyper binary resolutions to perform. 0 to disable. */
-  public static boolean hyperBinaryResolution = true;
+  public static boolean hbr = true;
   /** Threshold for transitive closure. */
-  public static double[] ttc = {0.64, 0.59, 0.92, 0.99};
+  public static double[] ttc = {1024};
 
   public static boolean configure(String[] args) {
     Options options = new Options();
@@ -86,34 +86,17 @@ public class Configure {
     if (cl.hasOption("o")) {
       outputFile = cl.getOptionValue("o");
     }
-    if (cl.hasOption("debug")) {
-      enableExpensiveChecks = true;
-    }
-    if (cl.hasOption("q")) {
-      verbose = false;
-    }
 
-    if (cl.hasOption("hte")) {
-      hiddenTautologyElimination = false;
-    }
-    if (cl.hasOption("nopl")) {
-      pureLiterals = false;
-    }
-    if (cl.hasOption("nosss")) {
-      selfSubsumming = false;
-    }
-    if (cl.hasOption("nosplit")) {
-      split = false;
-    }
-    if (cl.hasOption("noxor")) {
-      xor = false;
-    }
-    if (cl.hasOption("nobce")) {
-      bce = false;
-    }
-    if (cl.hasOption("nohbr")) {
-      hyperBinaryResolution = false;
-    }
+    enableExpensiveChecks = cl.hasOption("debug");
+    verbose = !cl.hasOption("q");
+    hte = !cl.hasOption("nohte");
+    pl = !cl.hasOption("nopl");
+    sss = !cl.hasOption("nosss");
+    split = !cl.hasOption("nosplit");
+    xor = !cl.hasOption("noxor");
+    bce = !cl.hasOption("nobce");
+    hbr = !cl.hasOption("nohbr");
+
     if (cl.hasOption("ttc")) {
       String[] ttc_ = cl.getOptionValue("ttc").split(",");
       ttc = new double[ttc_.length];
