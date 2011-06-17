@@ -15,17 +15,18 @@ import static ibis.structure.Misc.*;
 public final class BlockedClauseElimination {
   private static final Logger logger = Logger.getLogger(Solver.class);
 
+  /** Solver containing the instance. */
   private final Solver solver;
-  private final int numVariables;
-  private final TIntArrayList formula;
+  /** Literals seen in the tested clause. */
   private final TouchSet seen;
+  /** Literals hidden with current literal. */
+  private final TouchSet hidden;
 
   public BlockedClauseElimination(final Solver solver) {
     this.solver = solver;
     
-    numVariables = solver.numVariables;
-    formula = solver.formula;
-    seen = new TouchSet(numVariables);
+    seen = new TouchSet(solver.numVariables);
+    hidden = new TouchSet(solver.numVariables);
   }
 
   public static TIntArrayList run(final Solver solver) {
@@ -74,22 +75,34 @@ public final class BlockedClauseElimination {
    * Returns a list of blocked clauses.
    */
   private TIntArrayList run() {
+    solver.propagateBinaries();
+
     TIntArrayList bce = new TIntArrayList(); 
     TIntArrayList blocked = new TIntArrayList();;
     int numBlocked = 0;
     int numLiterals = 0;
 
     for (int iz = 0; iz < 3; iz++) {
-      for (int literal = -numVariables; literal <= numVariables; literal++) {
+      for (int literal = -solver.numVariables;
+          literal <= solver.numVariables;
+          literal++) {
         int ne = solver.watchLists.get(neg(literal)).size();
         int pe = solver.watchLists.get(literal).size();
         if (ne > 100 || 1L * ne * pe > 10000L) {
           // This is a cutoff to avoid very expensive literals.
           continue;
         }
-        if (hasXORClauses(literal)) {
+        if (Configure.xor && hasXORClauses(literal)) {
           // BCE can't handle xor clauses.
           continue;
+        }
+
+        // Finds hidden literals by current literal
+        hidden.reset();
+        TIntArrayList foobar = new TIntArrayList();
+        solver.graph.bfs(neg(literal), foobar);
+        for (int i = 0; i < foobar.size(); i++) {
+          hidden.add(neg(literal));
         }
 
         // Checks each clause containing literal if it is blocked on literal.
@@ -98,7 +111,7 @@ public final class BlockedClauseElimination {
         TIntIterator it = clauses.iterator();
         for (int size = clauses.size(); size > 0; size--) {
           int clause = it.next();
-          if (type(formula, clause) == OR && isBlocked(literal, clause)) {
+          if (type(solver.formula, clause) == OR && isBlocked(literal, clause)) {
             blocked.add(clause);
           }
         }
@@ -106,17 +119,17 @@ public final class BlockedClauseElimination {
         numBlocked += blocked.size();
         for (int i = 0; i < blocked.size(); i++) {
           int clause = blocked.getQuick(i);
-          int length = length(formula, clause);
+          int length = length(solver.formula, clause);
           numLiterals += length;
 
           // Moves blocked literal in front of the clause
-          int p = formula.indexOf(clause, literal);
-          formula.setQuick(p, formula.getQuick(clause));
-          formula.setQuick(clause, literal);
+          int p = solver.formula.indexOf(clause, literal);
+          solver.formula.setQuick(p, solver.formula.getQuick(clause));
+          solver.formula.setQuick(clause, literal);
 
           // Puts the clauses in reverse order.
           for (int j = clause + 1; j < clause + length; j++) {
-            bce.add(formula.getQuick(j));
+            bce.add(solver.formula.getQuick(j));
           }
           bce.add(literal);
           bce.add(encode(length, OR));
@@ -141,7 +154,7 @@ public final class BlockedClauseElimination {
     TIntIterator it = clauses.iterator();
     for (int size = clauses.size(); size > 0; size--) {
       int clause = it.next();
-      if (type(formula, clause) != OR) {
+      if (type(solver.formula, clause) != OR) {
         return true;
       }
     }
@@ -151,12 +164,12 @@ public final class BlockedClauseElimination {
   /** Returns true if literal blocks clause. */
   private boolean isBlocked(final int literal, final int clause) {
     seen.reset();
-    int length = length(formula, clause);
+    int length = length(solver.formula, clause);
     for (int i = clause; i < clause + length; i++) {
-      seen.add(formula.getQuick(i));
+      seen.add(solver.formula.getQuick(i));
     }
 
-    TIntHashSet clauses = solver.watchLists.get(-literal);
+    TIntHashSet clauses = solver.watchLists.get(neg(literal));
     TIntIterator it = clauses.iterator();
     for (int size = clauses.size(); size > 0; size--) {
       if (!isResolutionTautology(it.next())) {
@@ -168,21 +181,25 @@ public final class BlockedClauseElimination {
   }
 
   /**
-   * Checks if resolution between clause and clause stored in seen is a tautology.
+   * Checks if resolution between clause and clause
+   * marked in seen is a tautology.
    *
-   * clause and clause marked in seen already have one variable in common (i.e.
-   * the one currently tested in run()) of oposite signs.
+   * clause and clause marked in seen already have one
+   * variable in common (i.e.  * the one currently tested
+   * in run()) of oposite signs. If thereis a second variable,
+   * then resolution is a tautology.
    */
   private boolean isResolutionTautology(final int clause) {
-    int length = length(formula, clause);
-    int count = 0;
+    int length = length(solver.formula, clause);
+    boolean found = false;
 
     for (int i = clause; i < clause + length; i++) {
-      if (seen.contains(-formula.getQuick(i))) {
-        count++;
-        if (count == 2) {
+      int literal = neg(solver.formula.getQuick(i));
+      if (seen.contains(literal) || hidden.contains(literal)) {
+        if (found) {
           return true;
         }
+        found = true;
       }
     }
 
