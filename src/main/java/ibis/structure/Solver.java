@@ -103,44 +103,7 @@ public final class Solver {
     }
   }
 
-  /**
-   * Returns a literal to branch on.
-   *
-   * @param top true to enable more algs.
-   * @return solution or simplified instance.
-   */
-  public Solution solve(boolean top) {
-    try {
-      if (top) {
-        if (Configure.pureLiterals) {
-          PureLiterals.run(this);
-        }
-        if (Configure.hyperBinaryResolution) {
-          HyperBinaryResolution.run(this);
-        }
-        if (Configure.selfSubsumming) {
-          SelfSubsumming.run(this);
-        }
-      }
-
-      simplify();
-
-      // If all clauses were removed solve the remaining 2SAT.
-      boolean _2SAT = true;
-      ClauseIterator it = new ClauseIterator(formula);
-      while (it.hasNext() && _2SAT) {
-        int clause = it.next();
-        int length = length(formula, clause);
-        _2SAT = length <= 2;
-      }
-
-      return _2SAT ? solve2SAT() : Solution.unknown();
-    } catch (ContradictionException e) {
-      return Solution.unsatisfiable(branched);
-    }
-  }
-
-  public Solution solve2() throws ContradictionException {
+  public Solution solve() throws ContradictionException {
     verifyIntegrity();
 
     // If all clauses were removed solve the remaining 2SAT.
@@ -205,36 +168,6 @@ public final class Solver {
     watchLists = null;
     compact(formula);
     return new Core(numVariables, units, proxies, formula);
-  }
-
-  /**
-   * Simplifies the instance.
-   *
-   * @throws ContradictionException if contradiction was found
-   */
-  public void simplify() throws ContradictionException {
-    propagate();
-
-    if (Configure.hyperBinaryResolution) {
-      HyperBinaryResolution.run(this);
-    }
-
-    if (Configure.hiddenTautologyElimination) {
-      HiddenTautologyElimination.run(this);
-    }
-
-    renameEquivalentLiterals();
-
-    if (Configure.selfSubsumming) {
-      SelfSubsumming.run(this);
-    }
-
-    if (Configure.pureLiterals) {
-      PureLiterals.run(this);
-    }
-
-    MissingLiterals.run(this);
-    verifyIntegrity();
   }
 
   /** Propagates units and binaries */

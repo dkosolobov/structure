@@ -34,21 +34,36 @@ public final class SolveActivity extends Activity {
     Solution solution = null;
 
     try {
+      // Instance is already normalized.
       solver = new Solver(instance, branch);
-      solution = solver.solve(false);
+
+      solver.propagate();
+      HyperBinaryResolution.run(solver);
+      HiddenTautologyElimination.run(solver);
+      solver.renameEquivalentLiterals();
+      SelfSubsumming.run(solver);
+      PureLiterals.run(solver);
+      MissingLiterals.run(solver);
+
+      solution = solver.solve();
     } catch (ContradictionException e) {
       solution = Solution.unsatisfiable(branch);
+    } catch (Exception e) {
+      // Catch unwanted exception.
+      e.printStackTrace();
+      System.exit(1);
     }
 
-    if (solution.isUnknown() && depth > 0) {
-      core = solver.core();
-      executor.submit(new BlackHoleActivity(
-            identifier(), depth, generation, core.instance()));
-      suspend();
-    } else {
+    if (!solution.isUnknown()) {
       reply(solution);
       finish();
+      return;
     }
+
+    core = solver.core();
+    executor.submit(new BlackHoleActivity(
+          identifier(), depth, generation, core.instance()));
+    suspend();
   }
 
   @Override

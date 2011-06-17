@@ -26,33 +26,38 @@ public final class SimplifyActivity extends Activity {
 
   @Override
   public void initialize() {
+    Solver solver = null;
+    Solution solution = null;
+
     try {
       normalize();
-      Solver solver = new Solver(instance, 0);
+      solver = new Solver(instance, 0);
 
       solver.propagate();
       HyperBinaryResolution.run(solver);
       HiddenTautologyElimination.run(solver);
-      SelfSubsumming.run(solver);
-      solver.propagate();
       solver.renameEquivalentLiterals();
+      SelfSubsumming.run(solver);
       PureLiterals.run(solver);
       MissingLiterals.run(solver);
 
-      Solution solution = solver.solve2();
-      if (!solution.isUnknown()) {
-        reply(solution);
-        finish();
-        return;
-      }
-
-      core = solver.core();
+      solution = solver.solve();
     } catch (ContradictionException e) {
-      reply(Solution.unsatisfiable());
+      solution = Solution.unsatisfiable(0);
+      return;
+    } catch (Exception e) {
+      // Catch unwanted exception.
+      e.printStackTrace();
+      System.exit(1);
+    }
+
+    if (!solution.isUnknown()) {
+      reply(solution);
       finish();
       return;
     }
 
+    core = solver.core();
     executor.submit(new RestartActivity(
           identifier(), depth, core.instance()));
     suspend();
