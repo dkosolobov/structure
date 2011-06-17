@@ -21,7 +21,6 @@ public final class VariableEliminationActivity extends Activity {
                                      final int depth,
                                      final Skeleton instance) {
     super(parent, depth, 0, instance);
-    assert instance.size() > 0;
   }
 
   @Override
