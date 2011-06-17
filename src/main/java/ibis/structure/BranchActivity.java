@@ -45,6 +45,9 @@ public final class BranchActivity extends Activity {
 
   @Override
   public void initialize() {
+    normalize();
+    branch = normalize(branch);
+
     Skeleton copy1 = instance;
     Skeleton copy2 = instance.clone();
 

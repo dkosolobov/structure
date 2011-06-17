@@ -54,6 +54,7 @@ public final class SolveActivity extends Activity {
   @Override
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
+
     if (response.isSatisfiable()) {
       response = core.merge(response);
     } else if (response.isUnsatisfiable()) {

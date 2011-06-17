@@ -58,7 +58,6 @@ public final class VariableEliminationActivity extends Activity {
     Solution response = (Solution) e.data;
     response = core.merge(response);
     response = VariableElimination.restore(ve, response);
-    // normalizer.denormalize(response);
     reply(response);
     finish();
   }

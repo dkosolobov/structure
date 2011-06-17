@@ -23,7 +23,6 @@ public class Activity extends ibis.constellation.Activity {
   protected long generation = 0;
   /** Instance to be solved. */
   protected Skeleton instance = null;
-
   /** A normalizer for the instance to be solver. */
   private Normalizer normalizer = null;
   /** Original instance to be solved. */
@@ -85,6 +84,15 @@ public class Activity extends ibis.constellation.Activity {
   protected final void normalize() {
     normalizer = new Normalizer();
     normalizer.normalize(instance);
+  }
+
+  /**
+   * Normalizes a branch.
+   *
+   * This method should be called after normalize()
+   */
+  protected final int normalize(final int branch) {
+    return normalizer.rename(branch);
   }
 
   /** Performs a garbage collector. */
