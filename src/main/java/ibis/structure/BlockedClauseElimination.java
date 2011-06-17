@@ -79,48 +79,50 @@ public final class BlockedClauseElimination {
     int numBlocked = 0;
     int numLiterals = 0;
 
-    for (int literal = -numVariables; literal <= numVariables; literal++) {
-      int ne = solver.watchLists.get(neg(literal)).size();
-      int pe = solver.watchLists.get(literal).size();
-      if (ne > 100 || 1L * ne * pe > 10000L) {
-        // This is a cutoff to avoid very expensive literals.
-        continue;
-      }
-      if (hasXORClauses(literal)) {
-        // BCE can't handle xor clauses.
-        continue;
-      }
-
-      // Checks each clause containing literal if it is blocked on literal.
-      blocked.reset();
-      TIntHashSet clauses = solver.watchLists.get(literal);
-      TIntIterator it = clauses.iterator();
-      for (int size = clauses.size(); size > 0; size--) {
-        int clause = it.next();
-        if (type(formula, clause) == OR && isBlocked(literal, clause)) {
-          blocked.add(clause);
+    for (int iz = 0; iz < 3; iz++) {
+      for (int literal = -numVariables; literal <= numVariables; literal++) {
+        int ne = solver.watchLists.get(neg(literal)).size();
+        int pe = solver.watchLists.get(literal).size();
+        if (ne > 100 || 1L * ne * pe > 10000L) {
+          // This is a cutoff to avoid very expensive literals.
+          continue;
         }
-      }
-
-      numBlocked += blocked.size();
-      for (int i = 0; i < blocked.size(); i++) {
-        int clause = blocked.getQuick(i);
-        int length = length(formula, clause);
-        numLiterals += length;
-
-        // Moves blocked literal in front of the clause
-        int p = formula.indexOf(clause, literal);
-        formula.setQuick(p, formula.getQuick(clause));
-        formula.setQuick(clause, literal);
-
-        // Puts the clauses in reverse order.
-        for (int j = clause + 1; j < clause + length; j++) {
-          bce.add(formula.getQuick(j));
+        if (hasXORClauses(literal)) {
+          // BCE can't handle xor clauses.
+          continue;
         }
-        bce.add(literal);
-        bce.add(encode(length, OR));
 
-        solver.watchLists.removeClause(clause);
+        // Checks each clause containing literal if it is blocked on literal.
+        blocked.reset();
+        TIntHashSet clauses = solver.watchLists.get(literal);
+        TIntIterator it = clauses.iterator();
+        for (int size = clauses.size(); size > 0; size--) {
+          int clause = it.next();
+          if (type(formula, clause) == OR && isBlocked(literal, clause)) {
+            blocked.add(clause);
+          }
+        }
+
+        numBlocked += blocked.size();
+        for (int i = 0; i < blocked.size(); i++) {
+          int clause = blocked.getQuick(i);
+          int length = length(formula, clause);
+          numLiterals += length;
+
+          // Moves blocked literal in front of the clause
+          int p = formula.indexOf(clause, literal);
+          formula.setQuick(p, formula.getQuick(clause));
+          formula.setQuick(clause, literal);
+
+          // Puts the clauses in reverse order.
+          for (int j = clause + 1; j < clause + length; j++) {
+            bce.add(formula.getQuick(j));
+          }
+          bce.add(literal);
+          bce.add(encode(length, OR));
+
+          solver.watchLists.removeClause(clause);
+        }
       }
     }
 
