@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import gnu.trove.list.array.TDoubleArrayList;
 import ibis.constellation.ActivityIdentifier;
 import org.apache.log4j.Logger;
 
@@ -11,14 +12,13 @@ public final class PreprocessActivity extends Activity {
       PreprocessActivity.class);
 
   public PreprocessActivity(final ActivityIdentifier parent,
-                            final int depth,
                             final Skeleton instance) {
-    super(parent, depth, 0, instance);
+    super(parent, 0, 0, null, instance);
   }
 
   @Override
   public void initialize() throws Exception {
-    executor.submit(new XORActivity(parent, depth, instance));
+    executor.submit(new XORActivity(parent, null, instance));
     finish();
   }
 }

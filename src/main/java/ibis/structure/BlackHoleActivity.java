@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.set.hash.TLongHashSet;
 import ibis.constellation.ActivityIdentifier;
 import org.apache.log4j.Logger;
@@ -19,8 +20,9 @@ public final class BlackHoleActivity extends Activity {
   public BlackHoleActivity(final ActivityIdentifier parent,
                            final int depth,
                            final long generation,
+                           final TDoubleArrayList scores,
                            final Skeleton instance) {
-    super(parent, depth, generation, instance);
+    super(parent, depth, generation, scores, instance);
   }
 
   /** Sets generation kill as dead. */
@@ -40,7 +42,8 @@ public final class BlackHoleActivity extends Activity {
     if (depth <= 0 || dead) {
       reply(Solution.unknown());
     } else {
-      executor.submit(new SplitActivity(parent, depth, generation, instance));
+      executor.submit(new SplitActivity(
+            parent, depth, generation, scores, instance));
     }
 
     finish();

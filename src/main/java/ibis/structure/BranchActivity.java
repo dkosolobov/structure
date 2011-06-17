@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import gnu.trove.list.array.TDoubleArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
@@ -35,9 +36,10 @@ public final class BranchActivity extends Activity {
   public BranchActivity(final ActivityIdentifier parent,
                         final int depth,
                         final long generation,
+                        final TDoubleArrayList scores,
                         final Skeleton instance,
                         final int branch) {
-    super(parent, depth, generation, instance);
+    super(parent, depth, generation, scores, instance);
     this.branch = branch;
 
     assert instance.size() > 0;
@@ -49,9 +51,9 @@ public final class BranchActivity extends Activity {
     Skeleton copy2 = instance.clone();
 
     executor.submit(new SolveActivity(
-          identifier(), depth - 1, generation, copy1, branch));
+          identifier(), depth - 1, generation, scores, copy1, branch));
     executor.submit(new SolveActivity(
-          identifier(), depth - 1, generation, copy2, neg(branch)));
+          identifier(), depth - 1, generation, scores, copy2, neg(branch)));
 
     suspend();
   }

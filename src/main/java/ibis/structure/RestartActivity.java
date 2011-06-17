@@ -3,9 +3,12 @@ package ibis.structure;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Random;
+import gnu.trove.list.array.TDoubleArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
+
+import gnu.trove.list.array.TIntArrayList;
 
 /**
  * Implements restarting strategy.
@@ -25,6 +28,7 @@ import org.apache.log4j.Logger;
 public final class RestartActivity extends Activity {
   private static final int INITIAL_TTL = 15;
   private static final int MAX_TTL = 1000000;
+  private static final int DEPTH = Integer.MAX_VALUE;
 
   private static final Logger logger = Logger.getLogger(RestartActivity.class);
   private static final Random random = new Random(1);
@@ -35,9 +39,9 @@ public final class RestartActivity extends Activity {
   private Skeleton original;
 
   public RestartActivity(final ActivityIdentifier parent,
-                         final int depth,
+                         final TDoubleArrayList scores,
                          final Skeleton instance) {
-    super(parent, depth, 0, instance);
+    super(parent, 0, 0, scores, instance);
     original = instance;
   }
 
@@ -64,7 +68,7 @@ public final class RestartActivity extends Activity {
                 + instance.formula.size());
 
     executor.submit(new BlackHoleActivity(
-          identifier(), depth, generation, original.clone()));
+          identifier(), DEPTH, generation, scores, original.clone()));
 
     if (ttl < MAX_TTL) {
       TimerTask task = new TimerTask() {
@@ -92,7 +96,7 @@ public final class RestartActivity extends Activity {
 
     response.addLearnedClauses(original.formula);
     executor.submit(new BlockedClauseEliminationActivity(
-          identifier(), depth, original));
+          identifier(), scores, original));
     suspend();
   }
 }

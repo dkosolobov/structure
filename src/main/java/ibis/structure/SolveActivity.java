@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import gnu.trove.list.array.TDoubleArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
@@ -22,9 +23,10 @@ public final class SolveActivity extends Activity {
   public SolveActivity(final ActivityIdentifier parent,
                        final int depth,
                        final long generation,
+                       final TDoubleArrayList scores,
                        final Skeleton instance,
                        final int branch) {
-    super(parent, depth, generation, instance);
+    super(parent, depth, generation, scores, instance);
     this.branch = branch;
   }
 
@@ -62,7 +64,7 @@ public final class SolveActivity extends Activity {
 
     core = solver.core();
     executor.submit(new BlackHoleActivity(
-          identifier(), depth, generation, core.instance()));
+          identifier(), depth, generation, scores, core.instance()));
     suspend();
   }
 

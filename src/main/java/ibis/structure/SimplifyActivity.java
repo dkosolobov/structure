@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import gnu.trove.list.array.TDoubleArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
@@ -19,9 +20,9 @@ public final class SimplifyActivity extends Activity {
   private Core core = null;
 
   public SimplifyActivity(final ActivityIdentifier parent,
-                          final int depth,
+                          final TDoubleArrayList scores,
                           final Skeleton instance) {
-    super(parent, depth, 0, instance.clone());
+    super(parent, 0, 0, scores, instance.clone());
   }
 
   @Override
@@ -58,8 +59,7 @@ public final class SimplifyActivity extends Activity {
     }
 
     core = solver.core();
-    executor.submit(new RestartActivity(
-          identifier(), depth, core.instance()));
+    executor.submit(new RestartActivity(identifier(), scores, core.instance()));
     suspend();
   }
 

@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.list.array.TDoubleArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
@@ -16,16 +17,16 @@ public final class XORActivity extends Activity {
   private TIntArrayList dve;
 
   public XORActivity(final ActivityIdentifier parent,
-                     final int depth,
+                     final TDoubleArrayList scores,
                      final Skeleton instance) {
-    super(parent, depth, 0, instance);
+    super(parent, 0, 0, scores, instance);
   }
 
   @Override
   public void initialize() {
     if (!Configure.xor) {
       executor.submit(new BlockedClauseEliminationActivity(
-            parent, depth, instance));
+            parent, scores, instance));
       finish();
       return;
     }
@@ -42,7 +43,7 @@ public final class XORActivity extends Activity {
     }
 
     executor.submit(new BlockedClauseEliminationActivity(
-          identifier(), depth, instance));
+          identifier(), scores, instance));
     suspend();
   }
 

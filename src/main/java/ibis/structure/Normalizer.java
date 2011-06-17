@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import gnu.trove.iterator.TIntIntIterator;
+import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.hash.TIntIntHashMap;;
 import org.apache.log4j.Logger;
@@ -14,7 +15,8 @@ public final class Normalizer {
   private TIntIntHashMap variableMap = new TIntIntHashMap();
 
   /** Normalizes given instance. */
-  public void normalize(final Skeleton instance) {
+  public void normalize(final TDoubleArrayList scores,
+                        final Skeleton instance) {
     TIntArrayList formula = instance.formula;
 
     ClauseIterator it = new ClauseIterator(formula);
@@ -45,6 +47,22 @@ public final class Normalizer {
     }
 
     instance.numVariables = variableMap.size() / 2;
+
+    // TODO: Inefficient
+    // 1. inverseMap can be built here
+    // 2. scores.clear() / scores.add()
+  
+    if (scores != null) {
+      double[] newScores = new double[instance.numVariables + 1];
+      TIntIntIterator it1 = variableMap.iterator();
+      for (int size = variableMap.size(); size > 0; size--) {
+        it1.advance();
+        newScores[var(it1.value())] = scores.getQuick(var(it1.key()));
+      }
+
+      scores.clear();
+      scores.add(newScores);
+    }
   }
 
   /** Renames a literal under current variable map. */

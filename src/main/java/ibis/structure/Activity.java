@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.set.hash.TIntHashSet;
 import ibis.constellation.ActivityIdentifier;
@@ -21,6 +22,8 @@ public class Activity extends ibis.constellation.Activity {
   protected int depth = Integer.MAX_VALUE;
   /** Instance generation. */
   protected long generation = 0;
+  /** Variables scores. */
+  protected TDoubleArrayList scores = null;
   /** Instance to be solved. */
   protected Skeleton instance = null;
   /** A normalizer for the instance to be solver. */
@@ -29,29 +32,24 @@ public class Activity extends ibis.constellation.Activity {
   private Skeleton original = null;
 
   /**
-   * Creates an activity with default parent, depth, generation
-   * and no instance.
-   */
-  protected Activity() {
-    super(UnitActivityContext.DEFAULT, true);
-  }
-
-  /**
    * Creates an activity.
    *
    * @param parent parent activity
    * @param depth depth of computation
    * @param generation current restart generation (0, no generation)
-   * @param instance instance to be solved.
+   * @param scores variables scores
+   * @param instance instance to be solved
    */
   protected Activity(final ActivityIdentifier parent,
                      final int depth,
                      final long generation,
+                     final TDoubleArrayList scores,
                      final Skeleton instance) {
     super(UnitActivityContext.DEFAULT, true);
     this.parent = parent;
     this.depth = depth;
     this.generation = generation;
+    this.scores = scores;
     this.instance = instance;
 
     if (Configure.enableExpensiveChecks) {
@@ -83,7 +81,7 @@ public class Activity extends ibis.constellation.Activity {
    */
   protected final void normalize() {
     normalizer = new Normalizer();
-    normalizer.normalize(instance);
+    normalizer.normalize(scores, instance);
   }
 
   /**

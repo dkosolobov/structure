@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
@@ -18,16 +19,16 @@ public final class BlockedClauseEliminationActivity extends Activity {
   private Core core = null;
 
   public BlockedClauseEliminationActivity(final ActivityIdentifier parent,
-                                          final int depth,
+                                          final TDoubleArrayList scores,
                                           final Skeleton instance) {
-    super(parent, depth, 0, instance);
+    super(parent, 0, 0, scores, instance);
   }
 
   @Override
   public void initialize() {
     if (!Configure.bce) {
       executor.submit(new VariableEliminationActivity(
-            parent, depth, instance));
+            parent, scores, instance));
       finish();
       return;
     }
@@ -45,7 +46,7 @@ public final class BlockedClauseEliminationActivity extends Activity {
     }
 
     executor.submit(new VariableEliminationActivity(
-          identifier(), depth, core.instance()));
+          identifier(), scores, core.instance()));
     suspend();
   }
 
