@@ -24,7 +24,7 @@ public final class BlockedClauseElimination {
 
   public BlockedClauseElimination(final Solver solver) {
     this.solver = solver;
-    
+
     seen = new TouchSet(solver.numVariables);
     hidden = new TouchSet(solver.numVariables);
   }
@@ -72,12 +72,12 @@ public final class BlockedClauseElimination {
   /**
    * For all literals finds clauses blocked on that literal. <br/>
    *
-   * Returns a list of blocked clauses.
+   * @return a list of blocked clauses.
    */
   private TIntArrayList run() {
     solver.propagateBinaries();
 
-    TIntArrayList bce = new TIntArrayList(); 
+    TIntArrayList bce = new TIntArrayList();
     TIntArrayList blocked = new TIntArrayList();;
     int numBlocked = 0;
     int numLiterals = 0;
@@ -148,7 +148,12 @@ public final class BlockedClauseElimination {
     return bce;
   }
 
-  /** Returns true if there exists a XOR clause containing literal. */
+  /**
+   * Returns true if there exists a XOR clause containing literal.
+   *
+   * @param literal literal to search in XOR clauses
+   * @return true if there is XOR clause containing literal
+   */
   private boolean hasXORClauses(final int literal) {
     TIntHashSet clauses = solver.watchLists.get(var(literal));
     TIntIterator it = clauses.iterator();
@@ -161,7 +166,13 @@ public final class BlockedClauseElimination {
     return false;
   }
 
-  /** Returns true if literal blocks clause. */
+  /**
+   * Tests if literal blocks clause.
+   *
+   * @param literal blocked literal
+   * @param clause blocked clause
+   * @return true if clause is blocked on literal
+   */
   private boolean isBlocked(final int literal, final int clause) {
     seen.reset();
     int length = length(solver.formula, clause);
@@ -188,6 +199,9 @@ public final class BlockedClauseElimination {
    * variable in common (i.e.  * the one currently tested
    * in run()) of oposite signs. If thereis a second variable,
    * then resolution is a tautology.
+   *
+   * @param clause clause to be resoluted and checked
+   * @param true if resolution is a tautology
    */
   private boolean isResolutionTautology(final int clause) {
     int length = length(solver.formula, clause);
