@@ -315,11 +315,8 @@ public final class ImplicationsGraph {
    *
    * TODO: Function was changed to do BFS so it should be renamed.
    */
-  public void dfs(final int start, final TIntArrayList seen) {
-    if (seen.isEmpty()) {
-      visited.reset();
-    }
-
+  public void bfs(final int start, final TIntArrayList seen) {
+    assert seen.isEmpty();
     internalBFS(start, seen);
   }
 

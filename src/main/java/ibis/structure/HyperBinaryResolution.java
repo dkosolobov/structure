@@ -200,7 +200,7 @@ public final class HyperBinaryResolution {
     }
 
     cacheLiterals[hash] = literal;
-    solver.graph.dfs(literal, cacheEdges[hash]);
+    solver.graph.bfs(literal, cacheEdges[hash]);
     return cacheEdges[hash];
   }
 }
