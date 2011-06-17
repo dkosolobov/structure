@@ -95,8 +95,8 @@ public class Activity extends ibis.constellation.Activity {
   /**
    * Verifies that solution satisfies instance.
    *
-   * @param units assignment to verify
-   * @throws Exception in case of error.
+   * @param response solution to verify
+   * @throws Exception in case of error
    */
   public final void verify(final Solution response) {
     if (Configure.enableExpensiveChecks && original != null) {
@@ -145,7 +145,11 @@ public class Activity extends ibis.constellation.Activity {
     }
   }
 
-  /** Checks that all clauses are satisfied. */
+  /** Checks that all clauses are satisfied.
+   *
+   * @param units assignment to verify
+   * @throws Exception in case of error.
+   */
   public final void verifySatisfied(final int[] units) throws Exception {
     TIntArrayList formula = original.formula;
     TIntHashSet unitsSet = new TIntHashSet(units);
