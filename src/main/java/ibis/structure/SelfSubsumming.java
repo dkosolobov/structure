@@ -252,7 +252,7 @@ next_clause:
     long hash = 0;
     int length = length(formula, clause);
     for (int i = clause; i < clause + length; i++) {
-      int h = Hash.hash(var(formula.getQuick(i)));
+      int h = hash(var(formula.getQuick(i)));
       hash |= 1L << ((h >>> 26) & 63);
     }
     return hash;

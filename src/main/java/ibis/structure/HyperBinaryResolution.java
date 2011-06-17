@@ -187,7 +187,7 @@ public final class HyperBinaryResolution {
    * Returns dfs for a given literal caching the result.
    */
   private TIntArrayList cache(final int literal) {
-    int hash = Hash.hash(literal) & (CACHE_SIZE - 1);
+    int hash = hash(literal) & (CACHE_SIZE - 1);
 
     if (cacheLiterals[hash] == literal) {
       return cacheEdges[hash];
