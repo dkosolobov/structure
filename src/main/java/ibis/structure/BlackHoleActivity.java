@@ -37,7 +37,7 @@ public final class BlackHoleActivity extends Activity {
       dead = graveyard.contains(generation);
     }
 
-    if (dead) {
+    if (depth <= 0 || dead) {
       reply(Solution.unknown());
     } else {
       executor.submit(new SplitActivity(parent, depth, generation, instance));
