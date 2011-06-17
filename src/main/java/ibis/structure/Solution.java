@@ -182,7 +182,7 @@ public final class Solution {
   public String toString() {
     switch (solved) {
       case SATISFIABLE:
-        return "satisfiable";
+        return "satisfiable " + new TIntArrayList(units);
 
       case UNSATISFIABLE:
         return "unsatisfiable";
