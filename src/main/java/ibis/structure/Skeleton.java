@@ -34,6 +34,10 @@ public final class Skeleton implements java.io.Serializable {
 
   /** Expands small XOR gates. */
   public void expandSmallXOR() {
+    if (!Configure.xor) {
+      return;
+    }
+
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
