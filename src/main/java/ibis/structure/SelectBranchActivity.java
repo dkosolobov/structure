@@ -2,7 +2,6 @@ package ibis.structure;
 
 import java.util.Random;
 import ibis.constellation.ActivityIdentifier;
-import ibis.constellation.Event;
 import org.apache.log4j.Logger;
 
 /**
@@ -23,10 +22,12 @@ public final class SelectBranchActivity extends Activity {
 
   @Override
   public void initialize() {
-    executor.submit(new BranchActivity(
-          parent, depth, generation, instance, chooseBranch()));
+    normalize();
 
-    finish();
+    executor.submit(new BranchActivity(
+          identifier(), depth, generation, instance, chooseBranch()));
+
+    suspend();
   }
 
   /**
@@ -43,7 +44,7 @@ public final class SelectBranchActivity extends Activity {
 
     for (int branch = 1; branch <= numVariables; branch++) {
       double score = instance.evaluateBranch(scores, branch);
-      if (score > bestScore && random.nextDouble() < Configure.ttc[3]) {
+      if (score > bestScore) {
         bestBranch = branch;
         bestScore = score;
       }
