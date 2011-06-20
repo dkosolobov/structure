@@ -33,10 +33,7 @@ public final class VariableEliminationActivity extends Activity {
     }
 
     try {
-      // normalizer.normalize(instance);
       Solver solver = new Solver(instance, 0);
-
-      solver.propagateBinaries();
       ve = VariableElimination.run(solver);
       solver.propagateUnits();
       MissingLiterals.run(solver);
