@@ -16,13 +16,17 @@ public final class BlackHoleActivity extends Activity {
   /** A set of dead generations. */
   private static final TLongHashSet graveyard = new TLongHashSet();
 
+  private int branch;
+
   /** Checks and removes instances from dead generation. */
   public BlackHoleActivity(final ActivityIdentifier parent,
                            final int depth,
                            final long generation,
                            final TDoubleArrayList scores,
-                           final Skeleton instance) {
+                           final Skeleton instance,
+                           final int branch) {
     super(parent, depth, generation, scores, instance);
+    this.branch = branch;
   }
 
   /** Sets generation kill as dead. */
@@ -42,8 +46,8 @@ public final class BlackHoleActivity extends Activity {
     if (depth <= 0 || dead) {
       reply(Solution.unknown());
     } else {
-      executor.submit(new SplitActivity(
-            parent, depth, generation, scores, instance));
+      executor.submit(new SolveActivity(
+            parent, depth, generation, scores, instance, branch));
     }
 
     finish();

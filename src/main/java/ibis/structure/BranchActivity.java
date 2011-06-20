@@ -47,13 +47,12 @@ public final class BranchActivity extends Activity {
 
   @Override
   public void initialize() {
-    Skeleton copy1 = instance;
-    Skeleton copy2 = instance.clone();
-
-    executor.submit(new SolveActivity(
-          identifier(), depth - 1, generation, scores, copy1, branch));
-    executor.submit(new SolveActivity(
-          identifier(), depth - 1, generation, scores, copy2, neg(branch)));
+    executor.submit(new BlackHoleActivity(
+          identifier(), depth - 1, generation,
+          new TDoubleArrayList(scores), instance.clone(), branch));
+    executor.submit(new BlackHoleActivity(
+          identifier(), depth - 1, generation,
+          scores, instance, neg(branch)));
 
     suspend();
   }

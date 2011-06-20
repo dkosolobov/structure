@@ -63,7 +63,7 @@ public final class SolveActivity extends Activity {
     }
 
     core = solver.core();
-    executor.submit(new BlackHoleActivity(
+    executor.submit(new SplitActivity(
           identifier(), depth, generation, scores, core.instance()));
     suspend();
   }
