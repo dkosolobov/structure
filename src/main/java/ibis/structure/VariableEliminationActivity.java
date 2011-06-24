@@ -33,7 +33,7 @@ public final class VariableEliminationActivity extends Activity {
     }
 
     try {
-      Solver solver = new Solver(instance, 0);
+      Solver solver = new Solver(instance);
       ve = VariableElimination.run(solver);
       solver.propagateUnits();
       MissingLiterals.run(solver);

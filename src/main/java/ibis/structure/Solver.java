@@ -29,13 +29,12 @@ public final class Solver {
   public TIntArrayList unitsQueue;
 
   /** Constructor. */
-  public Solver(final Skeleton instance, final int branch)
+  public Solver(final Skeleton instance)
       throws ContradictionException {
     instance.expandSmallXOR();
 
     numVariables = instance.numVariables;
     formula = instance.formula;
-    branched = branch;
     units = new TIntHashSet();
     graph = new ImplicationsGraph(numVariables);
     watchLists = new WatchLists(numVariables, formula);
@@ -48,9 +47,6 @@ public final class Solver {
     }
 
     watchLists.build();
-    if (branch != 0) {
-      watchLists.addBranch(branch);
-    }
 
     if (Configure.verbose) {
       System.err.print(".");

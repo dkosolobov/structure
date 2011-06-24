@@ -41,7 +41,7 @@ public final class SolveActivity extends Activity {
       instance.formula.add(encode(1, OR));
       instance.formula.add(branch);
       normalizer.normalize(instance);
-      solver = new Solver(instance, 0);
+      solver = new Solver(instance);
 
       solver.propagate();
       HyperBinaryResolution.run(solver);

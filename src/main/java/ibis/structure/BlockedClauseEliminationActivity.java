@@ -35,7 +35,7 @@ public final class BlockedClauseEliminationActivity extends Activity {
 
     try {
       normalizer.normalize(instance);
-      Solver solver = new Solver(instance, 0);
+      Solver solver = new Solver(instance);
       bce = BlockedClauseElimination.run(solver);
       MissingLiterals.run(solver);
 

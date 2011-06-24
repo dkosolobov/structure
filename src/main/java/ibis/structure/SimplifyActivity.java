@@ -32,7 +32,7 @@ public final class SimplifyActivity extends Activity {
 
     try {
       normalizer.normalize(instance);
-      solver = new Solver(instance, 0);
+      solver = new Solver(instance);
 
       solver.propagate();
       HyperBinaryResolution.run(solver);

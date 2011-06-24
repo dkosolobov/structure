@@ -63,14 +63,6 @@ public final class WatchLists {
     build(start);
   }
 
-  /** Adds an extra unit. */
-  public void addBranch(final int branch) throws ContradictionException {
-    int start = formula.size();
-    formula.add(encode(1, OR));
-    formula.add(branch);
-    build(start);
-  }
-
   /** Returns the watch list for literal. */
   public TIntHashSet get(final int literal) {
     int temp = literal + numVariables;
