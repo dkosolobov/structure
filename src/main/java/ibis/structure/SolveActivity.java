@@ -5,6 +5,8 @@ import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
 
+import static ibis.structure.Misc.*;
+
 
 /**
  * Performs some simplification on the instance.
@@ -36,8 +38,10 @@ public final class SolveActivity extends Activity {
     Solution solution = null;
 
     try {
-      // Instance is already normalized.
-      solver = new Solver(instance, branch);
+      instance.formula.add(encode(1, OR));
+      instance.formula.add(branch);
+      normalizer.normalize(instance);
+      solver = new Solver(instance, 0);
 
       solver.propagate();
       HyperBinaryResolution.run(solver);
@@ -57,12 +61,12 @@ public final class SolveActivity extends Activity {
     }
 
     if (!solution.isUnknown()) {
-      reply(solution);
+      reply(normalizer.denormalize(solution));
       finish();
       return;
     }
 
-    core = solver.core();
+    core = normalizer.denormalize(solver.core());
     executor.submit(new SplitActivity(
           identifier(), depth, generation, scores, core.instance()));
     suspend();

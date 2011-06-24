@@ -138,7 +138,7 @@ public final class DependentVariableElimination {
       }
     }
 
-    return Solution.satisfiable(units.toArray());
+    return Solution.satisfiable(units);
   }
   
   /** Returns a set with all independent variables. */

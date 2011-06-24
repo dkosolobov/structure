@@ -47,12 +47,10 @@ public final class BranchActivity extends Activity {
 
   @Override
   public void initialize() {
-    executor.submit(new BlackHoleActivity(
-          identifier(), depth - 1, generation,
-          new TDoubleArrayList(scores), instance.clone(), branch));
-    executor.submit(new BlackHoleActivity(
-          identifier(), depth - 1, generation,
-          scores, instance, neg(branch)));
+    executor.submit(new BlackHoleActivity(identifier(), depth - 1, generation,
+                                          scores, instance.clone(), branch));
+    executor.submit(new BlackHoleActivity(identifier(), depth - 1, generation,
+                                          scores, instance, neg(branch)));
 
     suspend();
   }

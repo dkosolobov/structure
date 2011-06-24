@@ -1,10 +1,10 @@
 package ibis.structure;
 
 import java.io.PrintStream;
+import gnu.trove.TIntCollection;
 import gnu.trove.iterator.TIntIterator;
 import gnu.trove.iterator.TIntDoubleIterator;
 import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TIntDoubleHashMap;
 import org.apache.log4j.Logger;
 
@@ -31,15 +31,15 @@ public final class Solution {
 
   /** One of: SATISFIABLE, UNSATISFIABLE or UNKNOWN */
   private int solved = UNKNOWN;
-  /** Units. */
-  private int[] units = null;
-  /** Learned. */
+  /** List of units. */
+  private TIntArrayList units = null;
+  /** Learned clauses tree. */
   public TIntArrayList learned = EMPTY;
 
   /** Returns a solution representing a satisfiable instance. */
-  public static Solution satisfiable(final int[] units) {
+  public static Solution satisfiable(final TIntCollection units) {
     Solution solution = new Solution(SATISFIABLE);
-    solution.units = units;
+    solution.units = new TIntArrayList(units);
     return solution;
   }
 
@@ -171,14 +171,17 @@ public final class Solution {
     return -1;
   }
 
-  public int[] units() {
+  /** Returns an array of units */
+  public TIntArrayList units() {
     return units;
   }
 
+  /** Returns the tree of learned clauses. */
   public TIntArrayList learned() {
     return learned;
   }
 
+  /** Returns a string representation of this solution. */
   public String toString() {
     switch (solved) {
       case SATISFIABLE:
@@ -212,8 +215,8 @@ public final class Solution {
 
     if (isSatisfiable()) {
       out.print("v");
-      for (int i = 0; i < units.length; ++i) {
-         out.print(" " + units[i]);
+      for (int i = 0; i < units.size(); i++) {
+         out.print(" " + units.get(i));
       }
       out.println(" 0");
     }
@@ -221,23 +224,13 @@ public final class Solution {
   }
 
   /** Adds learned clauses to formula. */
-  public void addLearnedClauses(final TIntArrayList formula) {
-    TIntDoubleHashMap histogram = new TIntDoubleHashMap();
+  public void addLearnedClauses(final TIntArrayList formula,
+                                final TIntDoubleHashMap histogram) {
     int size = formula.size();
-    addLearnedClauses(formula, 0, new TIntArrayList(), histogram, 1.);
     logger.info("Learned size is " + learned.size());
-    logger.info("Added " + (formula.size() - size) + " new literals");
 
-    /*
-    logger.info("Histogram is");
-    TIntDoubleIterator it = histogram.iterator();
-    while (it.hasNext()) {
-      it.advance();
-      if (it.value() > 2.) {
-        System.err.println(it.key() + " " + it.value());
-      }
-    }
-    */
+    addLearnedClauses(formula, 0, new TIntArrayList(), histogram, 1.);
+    logger.info("Added " + (formula.size() - size) + " new literals");
   }
 
   /** Expands the tree of learned clauses and adds them to formula. */
@@ -252,7 +245,23 @@ public final class Solution {
     }
 
     if (learned.get(p) == 0) {
-      if (stack.size() <= 63) {
+      if (stack.size() <= 15) {
+        double alpha = Configure.ttc[0];
+        double beta = Configure.ttc[1];
+        double delta;
+
+        delta = 1.;
+        for (int i = stack.size() - 1; i >= 0; i--) {
+          delta *= alpha;
+          histogram.adjustOrPutValue(stack.get(i), delta, delta);
+        }
+
+        delta = 1.;
+        for (int i = 0; i < stack.size(); i++) {
+          delta *= beta;
+          histogram.adjustOrPutValue(stack.get(i), delta, delta);
+        }
+
         formula.add(encode(stack.size(), OR));
         formula.addAll(stack);
       }
@@ -265,9 +274,9 @@ public final class Solution {
         return p + 1;
       }
 
-      // histogram.adjustOrPutValue(var(l), score, score);
+      // histogram.adjustOrPutValue(l, score, score);
       stack.add(l);
-      p = addLearnedClauses(formula, p + 1, stack, histogram, score * 0.9);
+      p = addLearnedClauses(formula, p + 1, stack, histogram, score * 0.8);
       stack.removeAt(stack.size() - 1);
     }
 

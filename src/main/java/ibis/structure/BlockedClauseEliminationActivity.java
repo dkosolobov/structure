@@ -34,11 +34,12 @@ public final class BlockedClauseEliminationActivity extends Activity {
     }
 
     try {
-      normalize();
+      normalizer.normalize(instance);
       Solver solver = new Solver(instance, 0);
       bce = BlockedClauseElimination.run(solver);
       MissingLiterals.run(solver);
-      core = solver.core();
+
+      core = normalizer.denormalize(solver.core());
     } catch (ContradictionException e) {
       reply(Solution.unsatisfiable());
       finish();
@@ -53,8 +54,11 @@ public final class BlockedClauseEliminationActivity extends Activity {
   @Override
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
-    response = core.merge(response);
-    response = BlockedClauseElimination.restore(bce, response);
+    if (response.isSatisfiable()) {
+      response = core.merge(response);
+      response = BlockedClauseElimination.restore(bce, response);
+    }
+
     reply(response);
     finish();
   }

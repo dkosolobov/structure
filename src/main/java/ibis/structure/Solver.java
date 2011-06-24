@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.set.hash.TIntHashSet;
 import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
@@ -17,7 +18,7 @@ public final class Solver {
   /** Literal to branch on. */
   public int branched;
   /** Set of true literals discovered. */
-  public TouchSet units;
+  public TIntHashSet units;
   /** Equalities between literals. */
   public int[] proxies;
   /** The implication graph. */
@@ -35,7 +36,7 @@ public final class Solver {
     numVariables = instance.numVariables;
     formula = instance.formula;
     branched = branch;
-    units = new TouchSet(numVariables);
+    units = new TIntHashSet();
     graph = new ImplicationsGraph(numVariables);
     watchLists = new WatchLists(numVariables, formula);
     unitsQueue = new TIntArrayList();
@@ -137,7 +138,7 @@ public final class Solver {
       }
     }
 
-    units.add(graph.solve(assigned));
+    units.addAll(graph.solve(assigned));
 
     // Satisfy literals with proxies.
     for (int literal = -numVariables; literal <= numVariables; ++literal) {
@@ -156,7 +157,7 @@ public final class Solver {
       }
     }
 
-    return Solution.satisfiable(units.toArray());
+    return Solution.satisfiable(units);
   }
 
   /**
@@ -167,7 +168,14 @@ public final class Solver {
 
     watchLists = null;
     compact(formula);
-    return new Core(numVariables, units, proxies, formula);
+
+    TIntArrayList tmp = new TIntArrayList();
+    for (int u = 1; u <= numVariables; u++) {
+      tmp.add(u);
+      tmp.add(proxies[u + numVariables]);
+    }
+
+    return new Core(numVariables, new TIntArrayList(units), tmp, formula);
   }
 
   /** Propagates units and binaries */

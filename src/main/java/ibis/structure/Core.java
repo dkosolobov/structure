@@ -13,12 +13,10 @@ import static ibis.structure.Misc.*;
  * in order to solve the original formula.
  */
 public final class Core {
-  /** Number of variables. */
-  private int numVariables;
   /** Set of units. */
-  private TouchSet units;
+  private TIntArrayList units;
   /** Proxies for equivalent literals. */
-  private int[] proxies;
+  private TIntArrayList proxies;
   /** Core instance without units and equivalent literals. */
   private Skeleton instance;
 
@@ -31,10 +29,9 @@ public final class Core {
    * @param formula smaller formula needed to be solved.
    */
   public Core(final int numVariables,
-              final TouchSet units,
-              final int[] proxies,
+              final TIntArrayList units,
+              final TIntArrayList proxies,
               final TIntArrayList formula) {
-    this.numVariables = numVariables;
     this.units = units;
     this.proxies = proxies;
     this.instance = new Skeleton(numVariables, formula);
@@ -42,16 +39,16 @@ public final class Core {
 
   /** Returns number of variables. */
   public int numVariables() {
-    return numVariables;
+    return instance.numVariables;
   }
 
   /** Returns units. */
-  public TouchSet units() {
+  public TIntArrayList units() {
     return units;
   }
 
   /** Returns proxies. */
-  public int[] proxies() {
+  public TIntArrayList proxies() {
     return proxies;
   }
 
@@ -67,27 +64,21 @@ public final class Core {
     }
   }
 
-  /** Merges solution. */
+  /** Merges satisfiable solution. */
   public Solution merge(final Solution solution) {
-    if (!solution.isSatisfiable()) {
-      return solution;
+    assert solution.isSatisfiable();
+
+    TIntHashSet merged = new TIntHashSet();
+    merged.addAll(units);
+    merged.addAll(solution.units());
+
+    for (int i = 0; i < proxies.size(); i += 2) {
+      int u = proxies.getQuick(i);
+      int v = proxies.getQuick(i + 1);
+      assert merged.contains(v) || merged.contains(neg(v));
+      merged.add(merged.contains(v) ? u : neg(u));
     }
 
-    // Adds instance's units
-    units.add(solution.units());
-
-    // Adds equivalent literals
-    // XXX A bug prevents from iterating from -numVariables to +numVariables
-    for (int literal = 1; literal <= numVariables; ++literal) {
-      if (literal != proxies[literal + numVariables]) {
-        if (units.contains(proxies[literal + numVariables])) {
-          units.add(literal);
-        } else if (units.contains(proxies[neg(literal) + numVariables])) {
-          units.add(neg(literal));
-        }
-      }
-    }
-
-    return Solution.satisfiable(units.toArray());
+    return Solution.satisfiable(merged);
   }
 }

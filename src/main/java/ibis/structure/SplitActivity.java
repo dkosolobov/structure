@@ -25,9 +25,7 @@ public final class SplitActivity extends Activity {
   /** Height of disjoint set. */
   private int[] height;
   /** Array of found units. */
-  private int[] units = null;
-  /** Number of found units. */
-  private int numUnits = 0;
+  private TIntArrayList units = null;
   /** Number of subproblems solved. */
   private int numSubmittedSplits = 0;
   /** True if any components is unsatisfiable. */
@@ -57,7 +55,7 @@ public final class SplitActivity extends Activity {
     int numVariables = instance.numVariables;
     repr = new int[numVariables + 1];
     height = new int[numVariables + 1];
-    units = new int[numVariables];
+    units = new TIntArrayList(numVariables);
 
     joinVariablesInClauses(instance.formula);
 
@@ -107,9 +105,7 @@ public final class SplitActivity extends Activity {
       if (isUnknown) {
         reply(Solution.unknown());
       } else if (!isUnsatisfiable) {
-        units = java.util.Arrays.copyOf(units, numUnits);
-        Solution solution = Solution.satisfiable(units);
-        reply(solution);
+        reply(Solution.satisfiable(units));
       }
       finish();
     }
@@ -171,9 +167,8 @@ public final class SplitActivity extends Activity {
   }
 
   /** Adds new units from a sub instance. */
-  private void mergeNewUnits(final int[] newUnits) {
-    System.arraycopy(newUnits, 0, units, numUnits, newUnits.length);
-    numUnits += newUnits.length;
+  private void mergeNewUnits(final TIntArrayList newUnits) {
+    units.addAll(newUnits);
   }
 
   /** Returns the top representant of u. */

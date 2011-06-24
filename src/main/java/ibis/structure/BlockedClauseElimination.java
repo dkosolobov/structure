@@ -66,7 +66,7 @@ public final class BlockedClauseElimination {
       }
     }
 
-    return Solution.satisfiable(units.toArray());
+    return Solution.satisfiable(units);
   }
 
   /**

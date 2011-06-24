@@ -31,7 +31,7 @@ public final class SimplifyActivity extends Activity {
     Solution solution = null;
 
     try {
-      normalize();
+      normalizer.normalize(instance);
       solver = new Solver(instance, 0);
 
       solver.propagate();
@@ -44,8 +44,7 @@ public final class SimplifyActivity extends Activity {
 
       solution = solver.solve();
     } catch (ContradictionException e) {
-      solution = Solution.unsatisfiable(0);
-      return;
+      solution = Solution.unsatisfiable();
     } catch (Exception e) {
       // Catch unwanted exception.
       e.printStackTrace();
@@ -53,19 +52,25 @@ public final class SimplifyActivity extends Activity {
     }
 
     if (!solution.isUnknown()) {
-      reply(solution);
+      reply(normalizer.denormalize(solution));
       finish();
       return;
     }
 
     core = solver.core();
+    normalizer.denormalize(core);
     executor.submit(new RestartActivity(identifier(), scores, core.instance()));
     suspend();
   }
 
   @Override
   public void process(final Event e) throws Exception {
-    reply(core.merge((Solution) e.data));
+    Solution solution = (Solution) e.data;
+    if (solution.isSatisfiable()) {
+      solution = core.merge(solution);
+    }
+
+    reply(solution);
     finish();
   }
 }

@@ -12,95 +12,91 @@ import static ibis.structure.Misc.*;
 public final class Normalizer {
   private static final Logger logger = Logger.getLogger(Normalizer.class);
 
-  private TIntIntHashMap variableMap = new TIntIntHashMap();
+  private int oldNumVariables = 0;
+  /** Maps old names to new names. */
+  private TIntIntHashMap variableMap = null;
+  /** Maps new names to old names. */
+  private TIntIntHashMap inverseMap = null;
 
   /** Normalizes given instance. */
-  public void normalize(final TDoubleArrayList scores,
-                        final Skeleton instance) {
-    TIntArrayList formula = instance.formula;
+  public void normalize(final Skeleton instance) {
+    oldNumVariables = instance.numVariables;
+    variableMap = new TIntIntHashMap();
+    inverseMap = new TIntIntHashMap();
 
+    // Normalizes formula.
+    TIntArrayList formula = instance.formula;
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
-      int type = type(formula, clause);
-      int negative = 0;
 
       for (int i = clause; i < clause + length; i++) {
-        int literal = formula.get(i);
+        int literal = formula.getQuick(i);
         int renamed = rename(literal);
-
-        if (type == OR) {
-          formula.set(i, renamed);
-        } else {
-          assert type == NXOR || type == XOR;
-          formula.set(i, var(renamed));
-          negative += renamed > 0 ? 0 : 1;
-        }
-      }
-
-      if (type == XOR || type == NXOR) {
-        if ((negative & 1) != 0) {
-          switchXOR(formula, clause);
-        }
+        formula.set(i, renamed);
       }
     }
-
     instance.numVariables = variableMap.size() / 2;
+  }
 
-    // TODO: Inefficient
-    // 1. inverseMap can be built here
-    // 2. scores.clear() / scores.add()
-  
-    if (scores != null) {
-      double[] newScores = new double[instance.numVariables + 1];
-      TIntIntIterator it1 = variableMap.iterator();
-      for (int size = variableMap.size(); size > 0; size--) {
-        it1.advance();
-        newScores[var(it1.value())] = scores.getQuick(var(it1.key()));
+  /** Denormalizes in place a Core. */
+  public Core denormalize(final Core core) {
+    denormalize(core.units());
+    denormalize(core.proxies());
+
+    // Denormalizes formula.
+    TIntArrayList formula = core.instance().formula;
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+
+      for (int i = clause; i < clause + length; i++) {
+        int literal = formula.getQuick(i);
+        int renamed = inverseMap.get(literal);
+        formula.setQuick(i, renamed);
       }
+    }
+    core.instance().numVariables = oldNumVariables;
 
-      scores.clear();
-      scores.add(newScores);
+    return core;
+  }
+
+  /** Denormalizes in place a solution. */
+  public Solution denormalize(final Solution solution) {
+    if (solution.isSatisfiable()) {
+      denormalize(solution.units());
+    } else {
+      denormalize(solution.learned());
+    }
+    return solution;
+  }
+
+  /** Denormalizes in place an array of literals. */
+  private void denormalize(final TIntArrayList array) {
+    for (int i = 0; i < array.size(); ++i) {
+      array.set(i, inverseMap.get(array.get(i)));
     }
   }
 
   /** Renames a literal under current variable map. */
-  public int rename(final int literal) {
+  private int rename(final int literal) {
     int rename = variableMap.get(literal);
     if (rename == 0) {
       rename = variableMap.size() / 2 + 1;
       if (literal < 0) {
+        // Keeps the same sign for literal to preserve XOR clauses.
         rename = neg(rename);
       }
 
       variableMap.put(literal, rename);
       variableMap.put(neg(literal), neg(rename));
+
+      inverseMap.put(rename, literal);
+      inverseMap.put(neg(rename), neg(literal));
     }
 
     return rename;
-  }
-
-  /** Denormalizes inplace an array of literals. */
-  public void denormalize(final Solution solution) {
-    // Builds the inverse of variableMap.
-    TIntIntHashMap inverseMap = new TIntIntHashMap();
-    TIntIntIterator it = variableMap.iterator();
-    for (int size = variableMap.size(); size > 0; size--) {
-      it.advance();
-      inverseMap.put(it.value(), it.key());
-    }
-
-    if (solution.isSatisfiable()) {
-      int[] array = solution.units();
-      for (int i = 0; i < array.length; ++i) {
-        array[i] = inverseMap.get(array[i]);
-      }
-    } else {
-      TIntArrayList array = solution.learned();
-      for (int i = 0; i < array.size(); ++i) {
-        array.set(i, inverseMap.get(array.get(i)));
-      }
-    }
   }
 }

@@ -64,7 +64,7 @@ public class VariableElimination {
       }
     }
 
-    return Solution.satisfiable(units.toArray());
+    return Solution.satisfiable(units);
   }
 
   /**

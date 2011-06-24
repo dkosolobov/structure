@@ -27,7 +27,7 @@ public class Activity extends ibis.constellation.Activity {
   /** Instance to be solved. */
   protected Skeleton instance = null;
   /** A normalizer for the instance to be solver. */
-  private Normalizer normalizer = null;
+  protected Normalizer normalizer = new Normalizer();
   /** Original instance to be solved. */
   private Skeleton original = null;
 
@@ -53,7 +53,7 @@ public class Activity extends ibis.constellation.Activity {
     this.instance = instance;
 
     if (Configure.enableExpensiveChecks) {
-      // Keeps a copy of original instance for verification.
+      verify(instance);
       original = instance.clone();
     }
   }
@@ -66,31 +66,8 @@ public class Activity extends ibis.constellation.Activity {
    * @param response solution to send to parent
    */
   protected final void reply(final Solution response) {
-    if (normalizer != null) {
-      normalizer.denormalize(response);
-    }
-
     verify(response);
     executor.send(new Event(identifier(), parent, response));
-  }
-
-  /**
-   * Normalizes Activity instance.
-   *
-   * Normaly this should be called before instance is processed.
-   */
-  protected final void normalize() {
-    normalizer = new Normalizer();
-    normalizer.normalize(scores, instance);
-  }
-
-  /**
-   * Normalizes a branch.
-   *
-   * This method should be called after normalize()
-   */
-  protected final int normalize(final int branch) {
-    return normalizer.rename(branch);
   }
 
   /** Performs a garbage collector. */
@@ -103,8 +80,8 @@ public class Activity extends ibis.constellation.Activity {
    *
    * @param instance to be verified.
    */
-  public final void verify(final Skeleton instance) throws Exception {
-    if (Configure.enableExpensiveChecks && original != null) {
+  public final void verify(final Skeleton instance) {
+    if (Configure.enableExpensiveChecks) {
       try {
         verifyInstance(instance);
       } catch (Exception e) {
@@ -120,7 +97,7 @@ public class Activity extends ibis.constellation.Activity {
    *
    * @param instance to be verified.
    */
-  private final void verifyInstance(final Skeleton instance) throws Exception {
+  public final void verifyInstance(final Skeleton instance) throws Exception {
     TIntArrayList formula = instance.formula;
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
@@ -165,7 +142,7 @@ public class Activity extends ibis.constellation.Activity {
    * @param units assignment to verify
    * @throws Exception in case of error.
    */
-  public final void verifyUnits(final int[] units) throws Exception {
+  public final void verifyUnits(final TIntArrayList units) throws Exception {
     TIntArrayList formula = original.formula;
     TIntHashSet unitsSet = new TIntHashSet(units);
 
@@ -183,9 +160,10 @@ public class Activity extends ibis.constellation.Activity {
       }
     }
 
-    for (int unit : units) {
+    for (int i = 0; i < units.size(); i++) {
+      int unit = units.getQuick(i);
       if (unitsSet.contains(neg(unit))) {
-        throw new Exception("Contradiction unit " + unit);
+        throw new Exception("Contradictory unit " + unit);
       }
     }
   }
@@ -195,7 +173,7 @@ public class Activity extends ibis.constellation.Activity {
    * @param units assignment to verify
    * @throws Exception in case of error.
    */
-  public final void verifySatisfied(final int[] units) throws Exception {
+  public final void verifySatisfied(final TIntArrayList units) throws Exception {
     TIntArrayList formula = original.formula;
     TIntHashSet unitsSet = new TIntHashSet(units);
 
