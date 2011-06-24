@@ -80,7 +80,7 @@ public final class SelfSubsumming {
       uClauses.reset();
       uHashes.reset();
       TIntIterator it1;
-      
+
       it1 = watchLists.get(u).iterator();
       for (int size = watchLists.get(u).size(); size > 0; size--) {
         int clause = it1.next();
@@ -199,7 +199,7 @@ next_clause:
           watchLists.removeLiteral(other, literal);
         }
       }
-      
+
       if (recompute) {
         // recomputes other's hash
         otherHash = clauseHash(clause);
