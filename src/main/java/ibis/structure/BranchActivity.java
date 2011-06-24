@@ -41,16 +41,17 @@ public final class BranchActivity extends Activity {
                         final int branch) {
     super(parent, depth, generation, scores, instance);
     this.branch = branch;
-
-    assert instance.size() > 0;
   }
 
   @Override
   public void initialize() {
-    executor.submit(new BlackHoleActivity(identifier(), depth - 1, generation,
-                                          scores, instance.clone(), branch));
-    executor.submit(new BlackHoleActivity(identifier(), depth - 1, generation,
-                                          scores, instance, neg(branch)));
+    Skeleton copy1 = instance.clone();
+    Skeleton copy2 = instance;
+
+    executor.submit(new BlackHoleActivity(
+          identifier(), depth - 1, generation, scores, copy1, branch));
+    executor.submit(new BlackHoleActivity(
+          identifier(), depth - 1, generation, scores, copy2, neg(branch)));
 
     suspend();
   }

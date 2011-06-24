@@ -22,14 +22,25 @@ public final class SolveActivity extends Activity {
   /** Core of the instance after simplification. */
   private Core core;
 
+  /**
+   * @param branch branching literal.
+   */
   public SolveActivity(final ActivityIdentifier parent,
                        final int depth,
                        final long generation,
                        final TDoubleArrayList scores,
                        final Skeleton instance,
                        final int branch) {
-    super(parent, depth, generation, scores, instance);
+    super(parent, depth, generation, scores, addBranch(instance, branch));
     this.branch = branch;
+  }
+
+  /** Adds a branch to instance as an unit clause. */
+  private static Skeleton addBranch(final Skeleton instance,
+                                    final int branch) {
+    instance.formula.add(encode(1, OR));
+    instance.formula.add(branch);
+    return instance;
   }
 
   @Override
@@ -38,8 +49,6 @@ public final class SolveActivity extends Activity {
     Solution solution = null;
 
     try {
-      instance.formula.add(encode(1, OR));
-      instance.formula.add(branch);
       normalizer.normalize(instance);
       solver = new Solver(instance);
 
@@ -52,8 +61,9 @@ public final class SolveActivity extends Activity {
       MissingLiterals.run(solver);
 
       solution = solver.solve();
+      assert !solution.isUnsatisfiable();
     } catch (ContradictionException e) {
-      solution = Solution.unsatisfiable(branch);
+      solution = Solution.unsatisfiable(normalizer.rename(branch));
     } catch (Exception e) {
       // Catch unwanted exception.
       e.printStackTrace();
