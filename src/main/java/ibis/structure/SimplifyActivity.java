@@ -43,6 +43,8 @@ public final class SimplifyActivity extends Activity {
       MissingLiterals.run(solver);
 
       solution = solver.solve();
+      solution = normalizer.denormalize(solution);
+      assert !solution.isUnsatisfiable();
     } catch (ContradictionException e) {
       solution = Solution.unsatisfiable();
     } catch (Exception e) {
@@ -52,7 +54,7 @@ public final class SimplifyActivity extends Activity {
     }
 
     if (!solution.isUnknown()) {
-      reply(normalizer.denormalize(solution));
+      reply(solution);
       finish();
       return;
     }

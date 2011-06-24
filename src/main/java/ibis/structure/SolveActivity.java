@@ -61,9 +61,10 @@ public final class SolveActivity extends Activity {
       MissingLiterals.run(solver);
 
       solution = solver.solve();
+      solution = normalizer.denormalize(solution);
       assert !solution.isUnsatisfiable();
     } catch (ContradictionException e) {
-      solution = Solution.unsatisfiable(normalizer.rename(branch));
+      solution = Solution.unsatisfiable(branch);
     } catch (Exception e) {
       // Catch unwanted exception.
       e.printStackTrace();
@@ -71,7 +72,7 @@ public final class SolveActivity extends Activity {
     }
 
     if (!solution.isUnknown()) {
-      reply(normalizer.denormalize(solution));
+      reply(solution);
       finish();
       return;
     }
