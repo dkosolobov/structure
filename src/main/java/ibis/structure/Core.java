@@ -75,7 +75,10 @@ public final class Core {
     for (int i = 0; i < proxies.size(); i += 2) {
       int u = proxies.getQuick(i);
       int v = proxies.getQuick(i + 1);
+
       assert merged.contains(v) || merged.contains(neg(v));
+      assert !merged.contains(v) || !merged.contains(neg(v));
+      assert !merged.contains(u) && !merged.contains(neg(u));
       merged.add(merged.contains(v) ? u : neg(u));
     }
 
