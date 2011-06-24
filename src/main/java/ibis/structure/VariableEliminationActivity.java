@@ -35,8 +35,6 @@ public final class VariableEliminationActivity extends Activity {
     try {
       Solver solver = new Solver(instance);
       ve = VariableElimination.run(solver);
-      solver.propagateUnits();
-      MissingLiterals.run(solver);
       solver.verifyIntegrity();
 
       core = solver.core();
@@ -54,6 +52,7 @@ public final class VariableEliminationActivity extends Activity {
   @Override
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
+
     if (response.isSatisfiable()) {
       response = core.merge(response);
       response = VariableElimination.restore(ve, response);

@@ -56,6 +56,15 @@ public class VariableElimination {
       ClauseIterator it = new ClauseIterator(data.clauses);
       while (it.hasNext()) {
         int clause = it.next();
+        int length = length(data.clauses, clause);
+
+        for (int j = clause; j < clause + length; j++) {
+          int u = data.clauses.getQuick(j);
+          if (!units.contains(neg(u))) {  // Literal may be missing.
+            units.add(u);
+          }
+        }
+
         if (!isClauseSatisfied(data.clauses, clause, units)) {
           units.remove(data.literal);
           units.add(neg(data.literal));
