@@ -1,5 +1,7 @@
 package ibis.structure;
 
+import java.io.*;
+
 import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.set.hash.TIntHashSet;
@@ -133,6 +135,40 @@ public class Activity extends ibis.constellation.Activity {
           System.exit(1);  // TODO: exit gracefully
         }
       }
+
+      if (response.isUnsatisfiable()) {
+        // For unsatisfiable invoke cryptominisat.
+        String cnf = original.toString();
+        int r = 0;
+
+        try {
+          FileWriter fstream = new FileWriter("out.txt");
+          BufferedWriter out = new BufferedWriter(fstream);
+          out.write(cnf);
+          out.close();
+                
+          // System.err.println("cnf is " + cnf);
+          Process p = Runtime.getRuntime().exec("../cryptominisat /dev/stdin /dev/null");
+          p.getOutputStream().write(cnf.getBytes());
+          p.getOutputStream().flush();
+          p.getOutputStream().close();
+          r = p.waitFor();
+        } catch (Exception e) {
+          logger.error("failed to run cryptoministat");
+          e.printStackTrace();
+          // ignored
+        }
+
+        if (r == 10) {
+          try {
+            throw new Exception();
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+          logger.info("Satisfiable instance\n");
+          System.exit(1);
+        }
+      }
     }
   }
 
@@ -145,6 +181,7 @@ public class Activity extends ibis.constellation.Activity {
   public final void verifyUnits(final TIntArrayList units) throws Exception {
     TIntArrayList formula = original.formula;
     TIntHashSet unitsSet = new TIntHashSet(units);
+    TIntHashSet available = new TIntHashSet();
 
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
@@ -153,6 +190,8 @@ public class Activity extends ibis.constellation.Activity {
 
       for (int i = clause; i < clause + length; i++) {
         int literal = formula.get(i);
+        available.add(var(literal));
+
         if (!unitsSet.contains(literal) && !unitsSet.contains(neg(literal))) {
           throw new Exception(
               "Literal " + literal + " in formula, but " + "not assigned.");
@@ -162,6 +201,9 @@ public class Activity extends ibis.constellation.Activity {
 
     for (int i = 0; i < units.size(); i++) {
       int unit = units.getQuick(i);
+      if (!available.contains(var(unit))) {
+        throw new Exception("Unit " + unit + " assigned, but not in formula");
+      }
       if (unitsSet.contains(neg(unit))) {
         throw new Exception("Contradictory unit " + unit);
       }
