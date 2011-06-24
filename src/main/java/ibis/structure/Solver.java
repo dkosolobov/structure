@@ -101,6 +101,7 @@ public final class Solver {
   }
 
   public Solution solve() throws ContradictionException {
+    assert unitsQueue.isEmpty();
     verifyIntegrity();
 
     // If all clauses were removed solve the remaining 2SAT.
@@ -160,15 +161,17 @@ public final class Solver {
    * Returns core after simplifications.
    */
   public Core core() {
-    assert unitsQueue.isEmpty();
-
+    verifyIntegrity();
     watchLists = null;
     compact(formula);
 
     TIntArrayList tmp = new TIntArrayList();
     for (int u = 1; u <= numVariables; u++) {
-      tmp.add(u);
-      tmp.add(proxies[u + numVariables]);
+      int v = proxy(u);
+      if (u != v) {
+        tmp.add(u);
+        tmp.add(v);
+      }
     }
 
     return new Core(numVariables, new TIntArrayList(units), tmp, formula);
@@ -294,7 +297,7 @@ public final class Solver {
 
   /** Returns number of binaries in implication graph containing u. */
   public int numBinaries(final int u) {
-    return graph.edges(-u).size();
+    return graph.edges(neg(u)).size();
   }
 
   public int numClauses(final int u) {
