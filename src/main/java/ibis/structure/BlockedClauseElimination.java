@@ -42,6 +42,7 @@ public final class BlockedClauseElimination {
 
     TIntHashSet units = new TIntHashSet(solution.units());
     ClauseIterator it = new ClauseIterator(bce);
+clauses_loop:
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(bce, clause);
@@ -52,18 +53,19 @@ public final class BlockedClauseElimination {
         continue;
       }
 
-      boolean satisfied = false;
       for (int i = clause; i < clause + length; i++) {
-        if (units.contains(bce.getQuick(i))) {
-          satisfied = true;
-          break;
+        int u = bce.getQuick(i);
+
+        if (!units.contains(neg(u))) {  // Literal may be missing.
+          units.add(u);
+        }
+        if (units.contains(u)) {
+          continue clauses_loop;
         }
       }
 
-      if (!satisfied) {
-        units.remove(neg(literal));
-        units.add(literal);
-      }
+      units.remove(neg(literal));
+      units.add(literal);
     }
 
     return Solution.satisfiable(units);

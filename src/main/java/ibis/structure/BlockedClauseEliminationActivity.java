@@ -15,8 +15,6 @@ public final class BlockedClauseEliminationActivity extends Activity {
 
   /** Object used to restore solution. */
   private TIntArrayList bce = null;
-  /** Core instance after simplification. */
-  private Core core = null;
 
   public BlockedClauseEliminationActivity(final ActivityIdentifier parent,
                                           final TDoubleArrayList scores,
@@ -34,12 +32,8 @@ public final class BlockedClauseEliminationActivity extends Activity {
     }
 
     try {
-      normalizer.normalize(instance);
       Solver solver = new Solver(instance);
       bce = BlockedClauseElimination.run(solver);
-      MissingLiterals.run(solver);
-
-      core = normalizer.denormalize(solver.core());
     } catch (ContradictionException e) {
       reply(Solution.unsatisfiable());
       finish();
@@ -47,24 +41,15 @@ public final class BlockedClauseEliminationActivity extends Activity {
     }
 
     executor.submit(new VariableEliminationActivity(
-          identifier(), scores, core.instance()));
+          identifier(), scores, instance));
     suspend();
   }
 
   @Override
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
-    if (response.isSatisfiable()) {
-      response = core.merge(response);
-      response = BlockedClauseElimination.restore(bce, response);
-    }
-
+    response = BlockedClauseElimination.restore(bce, response);
     reply(response);
     finish();
-  }
-
-  protected void gc() {
-    super.gc();
-    core.gc();
   }
 }
