@@ -48,7 +48,10 @@ public final class BlockedClauseEliminationActivity extends Activity {
   @Override
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
-    response = BlockedClauseElimination.restore(bce, response);
+    if (response.isSatisfiable()) {
+      response = BlockedClauseElimination.restore(bce, response);
+    }
+
     reply(response);
     finish();
   }

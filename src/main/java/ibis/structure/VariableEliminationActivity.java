@@ -54,8 +54,11 @@ public final class VariableEliminationActivity extends Activity {
   @Override
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
-    response = core.merge(response);
-    response = VariableElimination.restore(ve, response);
+    if (response.isSatisfiable()) {
+      response = core.merge(response);
+      response = VariableElimination.restore(ve, response);
+    }
+
     reply(response);
     finish();
   }

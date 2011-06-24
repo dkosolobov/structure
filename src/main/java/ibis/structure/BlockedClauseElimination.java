@@ -36,10 +36,7 @@ public final class BlockedClauseElimination {
   /** Fixes units to satisfy blocked clauses. */
   public static Solution restore(final TIntArrayList bce,
                                  final Solution solution) {
-    if (!solution.isSatisfiable() || bce == null || bce.isEmpty()) {
-      return solution;
-    }
-
+    assert solution.isSatisfiable() && bce != null;
     TIntHashSet units = new TIntHashSet(solution.units());
     ClauseIterator it = new ClauseIterator(bce);
 clauses_loop:
