@@ -31,7 +31,6 @@ public final class Skeleton implements java.io.Serializable {
     return new Skeleton(numVariables, new TIntArrayList(formula));
   }
 
-
   /** Expands small XOR gates. */
   public void expandSmallXOR() {
     if (!Configure.xor) {
@@ -71,7 +70,25 @@ public final class Skeleton implements java.io.Serializable {
     }
   }
 
-  private static final java.util.Random random = new java.util.Random(1);
+  private static final int MAX_LENGTH = 16;
+  private static final double[] wOR = new double[MAX_LENGTH];
+  private static final double[] wXOR = new double[MAX_LENGTH];
+  private static final double wBIN;
+
+  static {
+    final double alpha = Configure.ttc[4];
+    final double beta = Configure.ttc[5];
+    final double gamma = Configure.ttc[6];
+
+    wOR[0] = alpha;
+    wXOR[0] = beta;
+    wBIN = gamma;
+
+    for (int i = 1; i < MAX_LENGTH; i++) {
+      wOR[i] = wOR[i - 1] * alpha;
+      wXOR[i] = wXOR[i - 1] * beta;
+    }
+  }
 
   /**
    * Computes scores for every literal.
@@ -84,35 +101,24 @@ public final class Skeleton implements java.io.Serializable {
    */
   public double[] evaluateLiterals() {
     double[] scores = new double[2 * numVariables + 1];
-    ImplicationsGraph graph = new ImplicationsGraph(numVariables);
-
-    // These values were fine tuned for easy instances from
-    // SAT Competition 2011.
-    // final double alpha = 0.64;
-    // final double beta = 0.59;
-    // final double gamma = 0.92;
-
-    final double alpha = Configure.ttc[0];
-    final double beta = Configure.ttc[1];
-    final double gamma = Configure.ttc[2];
-
-    // First scores are computed based on clauses length
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
       int type = type(formula, clause);
-      double delta;
+      
+      if (length >= MAX_LENGTH) {
+        continue;
+      }
 
       if (type == OR) {
-        delta = Math.pow(alpha, length);
+        double delta = wOR[length];
         for (int i = clause; i < clause + length; i++) {
           int literal = formula.getQuick(i);
           scores[neg(literal) + numVariables] += delta;
         }
       } else {
-        // TODO: beta doesn't seem to have a big influence.
-        delta = Math.pow(beta, length);
+        double delta = wXOR[length];
         for (int i = clause; i < clause + length; i++) {
           int literal = formula.getQuick(i);
           scores[literal + numVariables] += delta;
@@ -121,33 +127,15 @@ public final class Skeleton implements java.io.Serializable {
       } 
 
       if (length == 2) {
-        int u = formula.getQuick(clause);
-        int v = formula.getQuick(clause + 1);
-        graph.add(neg(u), v);
+        int u = formula.get(clause);
+        int v = formula.get(clause + 1);
+
+        scores[neg(u) + numVariables] += wBIN * scores[v + numVariables];
+        scores[neg(v) + numVariables] += wBIN * scores[u + numVariables];
       }
     }
 
-    int[] sort = graph.topologicalSort();
-    for (int i = 0; i < sort.length; i++) {
-      int u = sort[i];
-      if (u == 0) {
-        continue;
-      }
-
-      TIntArrayList edges = graph.edges(u);
-      for (int j = 0; j < edges.size(); j++) {
-        int v = edges.getQuick(j);
-        scores[u + numVariables] += gamma * scores[v + numVariables];
-      }
-    }
-    
     return scores;
-  }
-
-  public double evaluateBranch(double[] scores, int branch) {
-    double p = scores[branch + numVariables];
-    double n = scores[neg(branch) + numVariables];
-    return 1024 * n * p + n + p;
   }
 
   /** Returns the skeleton as in extended DIMACS format. */
