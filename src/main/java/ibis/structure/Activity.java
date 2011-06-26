@@ -124,18 +124,20 @@ public class Activity extends ibis.constellation.Activity {
    */
   public final void verify(final Solution response) {
     if (Configure.enableExpensiveChecks && original != null) {
-      if (response.isSatisfiable()) {
-        // For satisfiable instances reponse contains a proof.
-        try {
+      try {
+        response.verifyLearned();
+        if (response.isSatisfiable()) {
+          // For satisfiable instances reponse contains a proof.
           verifyUnits(response.units());
           verifySatisfied(response.units());
-        } catch (Exception e) {
-          logger.error("Verification failed", e);
-          // logger.info("Failed instance is\n" + original);
-          System.exit(1);  // TODO: exit gracefully
         }
+      } catch (Exception e) {
+        logger.error("Verification failed", e);
+        // logger.info("Failed instance is\n" + original);
+        System.exit(1);  // TODO: exit gracefully
       }
 
+      /*
       if (response.isUnsatisfiable()) {
         // For unsatisfiable invoke cryptominisat.
         String cnf = original.toString();
@@ -169,6 +171,7 @@ public class Activity extends ibis.constellation.Activity {
           System.exit(1);
         }
       }
+      */
     }
   }
 
@@ -254,6 +257,11 @@ public class Activity extends ibis.constellation.Activity {
         }
       }
     }
+  }
+
+  @Override
+  public String toString() {
+    return "(" + instance.size() + " / " + depth + ")";
   }
 
   @Override
