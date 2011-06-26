@@ -27,14 +27,13 @@ public final class Solution {
   private static final int SATISFIABLE = 10;
   private static final int UNSATISFIABLE = 20;
   private static final int UNKNOWN = 30;
-  private static final TIntArrayList EMPTY = new TIntArrayList();
 
   /** One of: SATISFIABLE, UNSATISFIABLE or UNKNOWN */
   private int solved = UNKNOWN;
   /** List of units. */
   private TIntArrayList units = null;
   /** Learned clauses tree. */
-  public TIntArrayList learned = EMPTY;
+  public TIntArrayList learned = new TIntArrayList();
 
   /** Returns a solution representing a satisfiable instance. */
   public static Solution satisfiable(final TIntCollection units) {
@@ -68,44 +67,10 @@ public final class Solution {
     assert branch != 0;
     Solution solution = new Solution(UNKNOWN);
 
-    solution.learned = new TIntArrayList();
-    solution.learned.add(neg(branch));
-    solution.learned.addAll(s.learned);
-    boolean empty = s.learned.isEmpty();
-
-    // Adds units.
-    for (int unit : core.units().toArray()) {
-      if (unit != branch) {
-        empty = false;
-        solution.learned.add(unit);
-        solution.learned.add(0);
-      }
-    }
-
-    /*
-    // Adds proxies.
-    int numVariables = core.numVariables();
-    int[] proxies = core.proxies();
-    for (int l = 1; l <= numVariables; l++) {
-      if (proxies[l + numVariables] != l) {
-        empty = false;
-
-        solution.learned.add(l);
-        solution.learned.add(neg(proxies[l + numVariables]));
-        solution.learned.add(0);
-        solution.learned.add(0);
-
-        solution.learned.add(neg(l));
-        solution.learned.add(proxies[l + numVariables]);
-        solution.learned.add(0);
-        solution.learned.add(0);
-      }
-    }
-    */
-
-    if (empty) {
-      solution.learned = EMPTY;
-    } else {
+    if (!core.units().isEmpty()) {
+      solution.learned.add(neg(branch));
+      solution.learned.addAll(s.learned);
+      solution.learnUnits(core.units(), branch);
       solution.learned.add(0);
     }
 
@@ -124,7 +89,6 @@ public final class Solution {
     }
 
     Solution solution = new Solution(UNKNOWN);
-    solution.learned = new TIntArrayList();
 
     if (s1.isUnknown()) {
       assert s2.isUnknown();
@@ -223,13 +187,67 @@ public final class Solution {
     out.flush();
   }
 
+  /** Learns a new set of units. */
+  public void learnUnits(final TIntArrayList units, final int branch) {
+    assert isUnknown();
+    for (int i = 0; i < units.size(); i++) {
+      int unit = units.get(i);
+      if (unit != branch) {
+        learned.add(unit);
+        learned.add(0);
+      }
+    }
+  }
+
+  /** Verifies learned clauses. */
+  public void verifyLearned() throws Exception {
+    verifyLearned(0, new TIntArrayList());
+  }
+
+  private int verifyLearned(final int start,
+                            final TIntArrayList stack)
+      throws Exception {
+    int p = start;
+    if (p == learned.size()) {
+      return p;
+    }
+
+    if (learned.get(p) == 0) {
+      for (int i = 0; i < stack.size(); i++) {
+        for (int j = i + 1; j < stack.size(); j++) {
+          if (var(stack.get(i)) == var(stack.get(j))) {
+            throw new Exception(
+                "Duplicate variable " + var(stack.get(i))
+                + " in learned clause " + stack + " on " + learned);
+          }
+        }
+      }
+
+      return p + 1;
+    }
+
+    while (p < learned.size()) {
+      int l = learned.get(p);
+      if (l == 0) {
+        return p + 1;
+      }
+
+      stack.add(l);
+      p = verifyLearned(p + 1, stack);
+      stack.removeAt(stack.size() - 1);
+    }
+
+    return learned.size();
+    
+  }
+
   /** Adds learned clauses to formula. */
   public void addLearnedClauses(final TIntArrayList formula,
                                 final TIntDoubleHashMap histogram) {
     int size = formula.size();
     logger.info("Learned size is " + learned.size());
 
-    addLearnedClauses(formula, 0, new TIntArrayList(), histogram, 1.);
+    addLearnedClauses(formula, 0, new TIntArrayList(), histogram);
     logger.info("Added " + (formula.size() - size) + " new literals");
   }
 
@@ -237,31 +255,25 @@ public final class Solution {
   private int addLearnedClauses(final TIntArrayList formula, 
                                 final int start,
                                 final TIntArrayList stack,
-                                final TIntDoubleHashMap histogram,
-                                final double score) {
+                                final TIntDoubleHashMap histogram) {
     int p = start;
     if (p == learned.size()) {
       return p;
     }
 
     if (learned.get(p) == 0) {
-      if (stack.size() <= 15) {
+      if (stack.size() < 8) {
         double alpha = Configure.ttc[0];
         double beta = Configure.ttc[1];
-        double delta;
+        double gamma = Configure.ttc[2];
+        double delta = sigmoid(alpha + beta * stack.size());
 
-        delta = 1.;
         for (int i = stack.size() - 1; i >= 0; i--) {
-          delta *= alpha;
           histogram.adjustOrPutValue(stack.get(i), delta, delta);
+          delta *= gamma;
         }
 
-        delta = 1.;
-        for (int i = 0; i < stack.size(); i++) {
-          delta *= beta;
-          histogram.adjustOrPutValue(stack.get(i), delta, delta);
-        }
-
+        // logger.info("Learned " + stack);
         formula.add(encode(stack.size(), OR));
         formula.addAll(stack);
       }
@@ -274,12 +286,18 @@ public final class Solution {
         return p + 1;
       }
 
-      // histogram.adjustOrPutValue(l, score, score);
       stack.add(l);
-      p = addLearnedClauses(formula, p + 1, stack, histogram, score * 0.8);
+      p = addLearnedClauses(formula, p + 1, stack, histogram);
       stack.removeAt(stack.size() - 1);
     }
 
     return learned.size();
+  }
+
+
+
+
+  public static double sigmoid(double x) {
+    return 1 / (1 + Math.exp(-x));
   }
 }
