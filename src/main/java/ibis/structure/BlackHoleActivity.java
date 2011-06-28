@@ -3,7 +3,10 @@ package ibis.structure;
 import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.set.hash.TLongHashSet;
 import ibis.constellation.ActivityIdentifier;
+import ibis.constellation.Event;
 import org.apache.log4j.Logger;
+
+import static ibis.structure.Misc.*;
 
 /**
  * This Activity purpose is to remove instances from
@@ -47,9 +50,22 @@ public final class BlackHoleActivity extends Activity {
       reply(Solution.unknown());
     } else {
       executor.submit(new SolveActivity(
-            parent, depth, generation, scores, instance, branch));
+            identifier(), depth, generation, scores, instance, branch));
     }
 
+    suspend();
+  }
+
+  static int counter = 0;
+
+  @Override
+  public void process(final Event e) throws Exception {
+    Solution response = (Solution) e.data;
+    if (response.isUnsatisfiable()) {
+      updateScore(scores, var(branch));
+    }
+
+    reply(response);
     finish();
   }
 }
