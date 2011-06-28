@@ -4,10 +4,12 @@ import java.util.Random;
 import java.util.Arrays;
 import gnu.trove.iterator.TIntIterator;
 import gnu.trove.iterator.TIntIntIterator;
+import gnu.trove.iterator.TIntLongIterator;
 import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.set.hash.TIntHashSet;
 import gnu.trove.map.hash.TIntIntHashMap;
+import gnu.trove.map.hash.TIntLongHashMap;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
@@ -23,19 +25,30 @@ public final class SelectBranchActivity extends Activity {
   private static final Logger logger = Logger.getLogger(
       SelectBranchActivity.class);
 
-  private static final int NUM_VARIABLES = 4;
+  private static final int NUM_VARIABLES = 6;
   private static final Random random = new Random(1);
 
+  public static int print = 0;
+
   /** Selected variables for branching. */
+  private int[] vars = null;
+  /** Literals in each propagation. */
   private int[][] lits = null;  
+  /** True if propagation is contradiction. */
+  private boolean[] contradiction = null;
   /** List of forced literals. */
   private TIntArrayList forced = new TIntArrayList();
   /** Assignments for each literals (2 * num selected variables). */
-  private TIntIntHashMap assignment = null;
+  private TIntLongHashMap assignment = null;
 
-  private int totalScore;
-  private int[] assignmentScore;
-  private int branch;
+  /** Total number of clauses. */
+  private int numClauses = 0;
+  /** Number of unsatisfied clauses for each propagation. */
+  private int[] numUnsatisfied = null;
+  /** Selected branch. */
+  private int branch = 0;
+  /** Learned clauses. */
+  private TIntArrayList learned = new TIntArrayList();
 
   public SelectBranchActivity(final ActivityIdentifier parent,
                               final int depth,
@@ -60,23 +73,17 @@ public final class SelectBranchActivity extends Activity {
     initialAssignment();
 
     try {
-      for (int repeat = 4; repeat > 0; repeat --) {
-        // Marks all forced literals in assignments.
-        for (int i = 0; i < forced.size(); i++) {
-          int literal = forced.getQuick(i);
-          assignment.put(literal, (1 << (2 * vars.length)) - 1);
-          assignment.put(neg(literal), 0);
-        }
-
+      for (int repeat = 3; repeat > 0; repeat--) {
         int tmp = forced.size();
         propagate();
+        findExtraContradictions();
         findExtraForced();
-
-        if (forced.size() > tmp) {
-          repeat++;
-        }
+        checkContradiction();
+        repeat += forced.size() > tmp ? 1 : 0;
       }
 
+      findExtraContradictions();
+      checkContradiction();
       solution = getAssignment();
     } catch (ContradictionException e) {
       solution = Solution.unsatisfiable();
@@ -89,16 +96,10 @@ public final class SelectBranchActivity extends Activity {
       return;
     }
 
-    for (int i = 0; i < forced.size(); i++) {
-      int literal = forced.getQuick(i);
-      instance.formula.add(encode(1, OR));
-      instance.formula.add(literal);
-    }
-
-    int branch = chooseBranch();
-    if (forced.contains(branch)) {
-      logger.warn("Branching on forced literal " + branch + " " + this);
-    }
+    updateScores();
+    chooseBranch();
+    addForcedLiterals();
+    print--;
 
     executor.submit(new BranchActivity(
           identifier(), depth, generation, scores, instance, branch));
@@ -111,7 +112,7 @@ public final class SelectBranchActivity extends Activity {
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
     if (response.isUnknown()) {
-      response.learnUnits(forced, 0);
+      response.learnClauses(learned);
     }
 
     reply(response);
@@ -120,15 +121,15 @@ public final class SelectBranchActivity extends Activity {
 
   /** Makes a pass over the formula propagating assigned literals. */
   private void propagate() throws ContradictionException {
-    totalScore = 0;
-    assignmentScore = new int[2 * vars.length];
+    numClauses = 0;
+    numUnsatisfied = new int[lits.length];
 
     // true if current clause was satisfied
-    boolean[] satisfied = new boolean[2 * vars.length];
+    boolean[] satisfied = new boolean[lits.length];
     // number of literals falsified in current clause
-    int[] falsified = new int[2 * vars.length];
+    int[] falsified = new int[lits.length];
     // last unsassigned literal
-    int[] unassigned = new int[2 * vars.length];
+    int[] unassigned = new int[lits.length];
 
     ClauseIterator it = new ClauseIterator(instance.formula);
 clause_loop:
@@ -136,17 +137,17 @@ clause_loop:
       int clause = it.next();
       int length = length(instance.formula, clause);
 
-      totalScore++;
+      numClauses += 1 + (16 >> length);
       Arrays.fill(satisfied, false);
       Arrays.fill(falsified, 0);
 
       for (int i = clause; i < clause + length; i++) {
         int l = instance.formula.getQuick(i);
-        int p = assignment.get(l);
-        int n = assignment.get(neg(l));
+        long p = assignment.get(l);
+        long n = assignment.get(neg(l));
 
-        for (int j = 0; j < 2 * vars.length; j++) {
-          int mask = 1 << j;
+        for (int j = 0; j < lits.length; j++) {
+          long mask = 1L << j;
           if ((n & mask) != 0) {
             falsified[j]++;
           } else if ((p & mask) == 0) {
@@ -157,38 +158,30 @@ clause_loop:
         }
       }
 
-      for (int j = 0; j < 2 * vars.length; j++) {
-        int literal = literal(j);
+      for (int j = 0; j < lits.length; j++) {
         if (falsified[j] == length) {
-          forceLiteral(neg(literal));
+          contradiction[j] = true;
         }
 
         if (!satisfied[j] && falsified[j] + 1 == length) {
-          // Not satisfied, and all literals except one are unsatisfied.
-          // unassigned[j] is forced.
-          assert (assignment.get(unassigned[j]) & (1 << j)) == 0;
-          assert (assignment.get(neg(unassigned[j])) & (1 << j)) == 0;
-          assignment.put(unassigned[j], assignment.get(unassigned[j]) | (1 << j));
+          // Not satisfied, but all literals except one are unsatisfied.
+          // The remaining unassigned[j] is constrained.
+          assign(unassigned[j], j);
           satisfied[j] = true;
         }
 
         if (!satisfied[j]) {
-          assignmentScore[j]++;
+          numUnsatisfied[j] += 1 + (16 >> (length - falsified[j]));
         }
       }
     }
   }
 
-  /** Returns propagated literal indexed by j */
-  private int literal(final int j) {
-    return (j & 1) == 0 ? vars[j / 2] : neg(vars[j / 2]);
-  }
-
   /** Returns a solution if propagation found oune. */
   private Solution getAssignment() {
     int p = -1;
-    for (int j = 0; j < 2 * vars.length; j++) {
-      if (assignmentScore[j] == 0) {
+    for (int j = 0; j < lits.length; j++) {
+      if (!contradiction[j] && numUnsatisfied[j] == 0) {
         p = j;
         break;
       }
@@ -200,10 +193,10 @@ clause_loop:
 
     // Gets the assignment.
     TIntHashSet units = new TIntHashSet();
-    TIntIntIterator it = assignment.iterator();
+    TIntLongIterator it = assignment.iterator();
     for (int size = assignment.size(); size > 0; size--) {
       it.advance();
-      if ((it.value() & (1 << p)) != 0) {
+      if ((it.value() & (1L << p)) != 0) {
         units.add(it.key());
       }
     }
@@ -225,67 +218,205 @@ clause_loop:
     return Solution.satisfiable(units);
   }
 
-  public static int print = 3;
 
   /** Returns the best branch. */
-  private int chooseBranch() {
-    double bestScore = Double.NEGATIVE_INFINITY;
-    int bestBranch = vars[0];
-
+  private void chooseBranch() {
+    double[] scores = new double[vars.length];
     for (int i = 0; i < vars.length; i++) {
-      if (forced.contains(vars[i]) || forced.contains(neg(vars[i]))) {
-        continue;
+      scores[i] = 1. + 8. * this.scores.get(vars[i]);
+    }
+
+    for (int i = 0; i < lits.length; i++) {
+      for (int j = 0; j < lits[i].length; j++) {
+        for (int k = 0; k < vars.length; k++) {
+          if (vars[k] == var(lits[i][j])) {
+            scores[k] *= 1. * numClauses /  numUnsatisfied[i];
+            break;
+          }
+        }
       }
+    }
 
-      double p = 1. * assignmentScore[2 * i + 0] / totalScore;
-      double n = 1. * assignmentScore[2 * i + 1] / totalScore;
-      double score = (1. + 2 * this.scores.get(vars[i])) / (1024L * n * p + n + p);
-
-      if (score > bestScore) {
-        bestScore = score;
+    int bestBranch = vars[0];
+    double bestScore = Double.NEGATIVE_INFINITY;
+    for (int i = 0; i < vars.length; i++) {
+      if (scores[i] > bestScore) {
+        bestScore = scores[i];
         bestBranch = vars[i];
       }
     }
 
     if (print > 0) {
-      print--;
-      System.err.println("at " + this + " picked " + bestBranch
-                         + " from " + new TIntArrayList(vars));
+      logger.info("At " + this + " picked " + bestBranch + " ("
+                  + bestScore + " / " + this.scores.get(var(bestBranch))
+                  + ") from " + new TIntArrayList(vars));
     }
 
-    return random.nextBoolean() ? bestBranch : Misc.neg(bestBranch);
-  }
-
-  /** Finds extra forced literals. */
-  private void findExtraForced() throws ContradictionException {
-    final int mask = 0x55555555;
-    TIntIntIterator it = assignment.iterator();
-    for (int size = assignment.size(); size > 0; size--) {
-      it.advance();
-      int literal = it.key();
-      int p = assignment.get(literal);
-      if ((p & (p >> 1) & mask) != 0) {
-        forceLiteral(literal);
-      }
-    }
-  }
-
-  /** Sets literal when a contradiction is found. */
-  private void forceLiteral(final int literal) throws ContradictionException {
-    if (forced.contains(neg(literal))) {
-      throw new ContradictionException();
-    }
-    if (!forced.contains(literal)) {
-      forced.add(literal);
-    }
+    branch = random.nextBoolean() ? bestBranch : neg(bestBranch);
   }
 
   /** Sets initial literal assignment. */
   private void initialAssignment() {
-    assignment = new TIntIntHashMap();
-    for (int i = 0; i < vars.length; i++) {
-      assignment.put(vars[i], 1 << (2 * i));
-      assignment.put(neg(vars[i]), 1 << (2 * i + 1));
+    assignment = new TIntLongHashMap();
+    for (int i = 0; i < lits.length; i++) {
+      for (int j = 0; j < lits[i].length; j++) {
+        assign(lits[i][j], i);
+      }
+    }
+  }
+
+  /** Assigns literal in propagation index. */
+  private void assign(final int literal, final int index) {
+    assignment.put(literal, assignment.get(literal) | (1L << index));
+  }
+  
+  private void findExtraContradictions() {
+    // a and b -> c
+    // a and b -> -c
+    // => a and b -> contradiction
+    TIntLongIterator it = assignment.iterator();
+    for (int size = assignment.size(); size > 0; size--) {
+      it.advance();
+      int l = it.key();
+      long p = assignment.get(l);
+      long n = assignment.get(neg(l));
+
+      if ((p & n) != 0) {
+        for (int j = 0; j < lits.length; j++) {
+          if ((p & n & (1L << j)) != 0) {
+            contradiction[j] = true;
+          }
+        }
+      }
+    }
+  }
+
+  private void addBinary(final int u, final int v) {
+    for (int j = 0; j < lits.length; j++) {
+      if (neg(u) == lits[j][0] || neg(u) == lits[j][1]) {
+        assign(v, j);
+      }
+      if (neg(v) == lits[j][0] || neg(v) == lits[j][1]) {
+        assign(u, j);
+      }
+    }
+  }
+
+  private void findExtraForced() {
+    // In a contradiction any assignment can be assumed
+    long any = 0;
+    for (int i = 0; i < lits.length; i++) {
+      if (contradiction[i]) {
+        any |= 1L << i;
+      }
+    }
+
+    final long mask1 = 0x1111111111111111L;
+    final long mask5 = 0x5555555555555555L;
+    TIntLongIterator it = assignment.iterator();
+    for (int size = assignment.size(); size > 0; size--) {
+      it.advance();
+      int l = it.key();
+      long p = it.value() | any;
+
+      // a and b -> c
+      // a and -b -> c
+      // -a and b -> c
+      // -a and -b -> c
+      // => c
+      if ((p & (p >> 1) & (p >> 2) & (p >> 3) & mask1) != 0) {
+        forced.add(l);
+        continue;
+      }
+    }
+
+    // a and b -> contradiction
+    // => a -> -b
+    for (int i = 0; i < lits.length; i++) {
+      if (contradiction[i]) {
+        addBinary(neg(lits[i][0]), neg(lits[i][1]));
+      }
+    }
+
+    // a and b -> contradiction
+    // a and -b -> contradiction
+    // => neg(a)
+    for (int i = 0; i < lits.length; i += 2) {
+      if (contradiction[i + 0] && contradiction[i + 1]) {
+        forced.add(neg(lits[i][0]));
+      }
+    }
+
+    // a and b -> contradiction
+    // -a and b -> contradiction
+    // => neg(b)
+    for (int i = 0; i < lits.length; i += 4) {
+      if (contradiction[i + 0] && contradiction[i + 2]) {
+        forced.add(neg(lits[i][1]));
+      }
+      if (contradiction[i + 1] && contradiction[i + 3]) {
+        forced.add(lits[i][1]);
+      }
+    }
+
+    forced = new TIntArrayList(new TIntHashSet(forced));
+    for (int i = 0; i < forced.size(); i++) {
+      int literal = forced.get(i);
+      assignment.put(literal, (1L << lits.length) - 1);
+      assignment.put(neg(literal), 0);
+    }
+  }
+
+  private void checkContradiction() throws ContradictionException {
+    // a and b -> contradiction
+    // a and -b -> contradiction
+    // -a and b -> contradiction
+    // -a and -b -> contradiction
+    // => contradiction
+    for (int i = 0; i < lits.length; i += 4) {
+      if (contradiction[i + 0] && contradiction[i + 1]
+          && contradiction[i + 2] && contradiction[i + 3]) {
+        throw new ContradictionException();
+      }
+    }
+  }
+
+  /** Expands instance to include forced literals. */
+  private void addForcedLiterals() {
+    int num = 0;
+
+    for (int i = 0; i < forced.size(); i++) {
+      int literal = forced.getQuick(i);
+      learned.add(encode(1, OR));
+      learned.add(literal);
+      num++;
+    }
+
+    for (int i = 0; i < lits.length; i++) {
+      if (contradiction[i]) {
+        learned.add(encode(2, OR));
+        learned.add(neg(lits[i][0]));
+        learned.add(neg(lits[i][1]));
+        num++;
+      }
+    }
+
+    instance.formula.addAll(learned);
+
+    if (print > 0 && num > 0) {
+      logger.info("Found " + num + " extra clauses at " + this);
+      // if (depth == 0) logger.info("Found " + formulaToString(learned));
+    }
+  }
+
+  /** Updates literal scores based on found contradictions. */
+  private void updateScores() {
+    for (int i = 0; i < lits.length; i++) {
+      for (int j = 0; j < lits[i].length; j++) {
+        if (contradiction[i]) {
+          updateScore(scores, var(lits[i][j]));
+        }
+      }
     }
   }
 
@@ -297,8 +428,8 @@ clause_loop:
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(instance.formula, clause);
-      int delta = 128 >> length;
-      int extra = length == 2 ? 8 : 0;
+      int delta = 1 + (16 >> length);
+      int extra = length == 2 ? 2 : 0;
 
       for (int i = clause; i < clause + length; i++) {
         int literal = instance.formula.getQuick(i);
@@ -307,6 +438,22 @@ clause_loop:
       }
     }
 
+    TIntIntHashMap old = new TIntIntHashMap(scores);
+    it = new ClauseIterator(instance.formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(instance.formula, clause);
+
+      if (length == 2) {
+        int u = instance.formula.getQuick(clause);
+        int v = instance.formula.getQuick(clause + 1);
+
+        scores.put(neg(u), scores.get(neg(u)) + old.get(v));
+        scores.put(neg(v), scores.get(neg(v)) + old.get(u));
+      }
+    }
+
+    // Picks the top scores
     int[] top = new int[NUM_VARIABLES];
     long[] cnt = new long[NUM_VARIABLES];
     int num = 0;
@@ -316,40 +463,50 @@ clause_loop:
       it1.advance();
       int l = it1.key();
 
-      if (l < 0) {
-        continue;
-      }
+      if (l == var(l)) {
+        // A variable's score depends on scores of both phases.
+        int p = scores.get(l);
+        int n = scores.get(neg(l));
+        long c = p * n + p + n;
+        c = (long) (1024. * c / (1. + 4. * this.scores.get(l)));
 
-      // A variable's score depends on scores of both phases.
-      int p = scores.get(l);
-      int n = scores.get(neg(l));
-      long c = 1024L * p * n + p + n;
+        if (num < top.length) {
+          top[num] = l;
+          cnt[num] = c;
+          num++;
+          continue;
+        }
+        
+        if (c > cnt[top.length - 1]) {
+          int pos = top.length - 1;
+          for (; pos > 0 && c > cnt[pos - 1]; pos--) {
+            top[pos] = top[pos - 1];
+            cnt[pos] = cnt[pos - 1];
+          }
 
-      if (num < top.length) {
-        top[num] = l;
-        cnt[num] = c;
-        num++;
-        continue;
+          top[pos] = l;
+          cnt[pos] = c;
+        }
       }
-      
-      if (c <= cnt[top.length - 1]) {
-        continue;
-      }
-
-      int pos = top.length - 1;
-      for (; pos > 0 && c > cnt[pos - 1]; pos--) {
-        top[pos] = top[pos - 1];
-        cnt[pos] = cnt[pos - 1];
-      }
-
-      top[pos] = l;
-      cnt[pos] = c;
     }
 
-    vars = new int[NUM_VARIABLES * (NUM_VARIABLES - 1) / 2][];
-    for (int i = 0; i 
-    
-    vars = java.util.Arrays.copyOf(top, num);
-    assert vars.length > 0;
+    assert num > 0;
+
+    vars = Arrays.copyOf(top, num);
+    lits = new int[2 * num * (num - 1)][];
+    contradiction = new boolean[lits.length];
+    num = 0;
+
+    for (int i = 0; i < vars.length; i++) {
+      for (int j = i + 1; j < vars.length; j++) {
+        lits[num++] = new int[] { vars[i], vars[j] };
+        lits[num++] = new int[] { vars[i], neg(vars[j]) };
+        lits[num++] = new int[] { neg(vars[i]), vars[j] };
+        lits[num++] = new int[] { neg(vars[i]), neg(vars[j]) };
+      }
+    }
+
+    // logger.info("lits is " + Arrays.deepToString(lits));
+    // logger.info("vars is " + Arrays.toString(vars));
   }
 }
