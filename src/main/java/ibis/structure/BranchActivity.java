@@ -49,9 +49,9 @@ public final class BranchActivity extends Activity {
     Skeleton copy2 = instance;
 
     executor.submit(new BlackHoleActivity(
-          identifier(), depth - 1, generation, scores, copy1, branch));
+          identifier(), depth + 1, generation, scores, copy1, branch));
     executor.submit(new BlackHoleActivity(
-          identifier(), depth - 1, generation, scores, copy2, neg(branch)));
+          identifier(), depth + 1, generation, scores, copy2, neg(branch)));
 
     suspend();
   }
