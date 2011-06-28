@@ -1,5 +1,6 @@
 package ibis.structure;
 
+import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.set.hash.TIntHashSet;
 
@@ -378,5 +379,24 @@ public final class Misc {
     }
 
     return filtered;
+  }
+
+  private static int counter = 0;
+
+  public static void updateScore(final TDoubleArrayList scores,
+                                 final int variable) {
+    synchronized (scores) {
+      double old = scores.getQuick(variable);
+      scores.setQuick(variable, old + 0.001 * (1. - old));
+
+      counter++;
+      if (counter >= 1000) {
+        counter = 0;
+
+        for (int i = 1; i < scores.size(); i++) {
+          scores.setQuick(i, scores.getQuick(i) * 0.75);
+        }
+      }
+    }
   }
 }
