@@ -63,14 +63,25 @@ public final class Solution {
 
   public static Solution unknown(final int branch,
                                  final Solution s,
-                                 final Core core) {
+                                 final Core core,
+                                 final boolean learnUnits,
+                                 final boolean learnProxies) {
     assert branch != 0;
     Solution solution = new Solution(UNKNOWN);
 
-    if (!core.units().isEmpty()) {
+    if (!s.learned.isEmpty()
+        || (learnUnits && !core.units().isEmpty())
+        || (learnProxies && !core.proxies().isEmpty())) {
       solution.learned.add(neg(branch));
+
+      if (learnUnits) {
+        solution.learnUnits(core.units(), branch);
+      }
+      if (learnProxies) {
+        solution.learnProxies(core.proxies(), branch);
+      }
+
       solution.learned.addAll(s.learned);
-      solution.learnUnits(core.units(), branch);
       solution.learned.add(0);
     }
 
@@ -191,9 +202,46 @@ public final class Solution {
   public void learnUnits(final TIntArrayList units, final int branch) {
     assert isUnknown();
     for (int i = 0; i < units.size(); i++) {
-      int unit = units.get(i);
-      if (unit != branch) {
-        learned.add(unit);
+      int u = units.getQuick(i);
+      if (var(u) != var(branch)) {
+        learned.add(u);
+        learned.add(0);
+      }
+    }
+  }
+
+  /** Learns a new set of proxies. */
+  public void learnProxies(final TIntArrayList proxies, final int branch) {
+    assert isUnknown();
+    for (int i = 0; i < proxies.size(); i += 2) {
+      int u = proxies.getQuick(i);
+      int v = proxies.getQuick(i + 1);
+
+      if (var(u) != var(branch) && var(v) != var(branch)) {
+        learned.add(neg(u));
+        learned.add(v);
+        learned.add(0);
+        learned.add(0);
+
+        learned.add(neg(v));
+        learned.add(u);
+        learned.add(0);
+        learned.add(0);
+      }
+    }
+  }
+
+  /** Learns a new set of clauses. */
+  public void learnClauses(final TIntArrayList formula) {
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+
+      for (int i = clause; i < clause + length; i++) {
+        learned.add(formula.getQuick(i));
+      }
+      for (int i = clause; i < clause + length; i++) {
         learned.add(0);
       }
     }
@@ -247,36 +295,26 @@ public final class Solution {
     int size = formula.size();
     logger.info("Learned size is " + learned.size());
 
-    addLearnedClauses(formula, 0, new TIntArrayList(), histogram);
+    addLearnedClauses(formula, 0, new TIntArrayList());
     logger.info("Added " + (formula.size() - size) + " new literals");
   }
 
   /** Expands the tree of learned clauses and adds them to formula. */
   private int addLearnedClauses(final TIntArrayList formula, 
                                 final int start,
-                                final TIntArrayList stack,
-                                final TIntDoubleHashMap histogram) {
+                                final TIntArrayList stack) {
     int p = start;
     if (p == learned.size()) {
       return p;
     }
 
     if (learned.get(p) == 0) {
-      if (stack.size() < 8) {
-        double alpha = Configure.ttc[0];
-        double beta = Configure.ttc[1];
-        double gamma = Configure.ttc[2];
-        double delta = sigmoid(alpha + beta * stack.size());
-
-        for (int i = stack.size() - 1; i >= 0; i--) {
-          histogram.adjustOrPutValue(stack.get(i), delta, delta);
-          delta *= gamma;
-        }
-
-        // logger.info("Learned " + stack);
-        formula.add(encode(stack.size(), OR));
-        formula.addAll(stack);
+      if (false || stack.size() < 3) {
+        logger.info("Learned " + stack);
       }
+
+      formula.add(encode(stack.size(), OR));
+      formula.addAll(stack);
       return p + 1;
     }
 
@@ -287,17 +325,10 @@ public final class Solution {
       }
 
       stack.add(l);
-      p = addLearnedClauses(formula, p + 1, stack, histogram);
+      p = addLearnedClauses(formula, p + 1, stack);
       stack.removeAt(stack.size() - 1);
     }
 
     return learned.size();
-  }
-
-
-
-
-  public static double sigmoid(double x) {
-    return 1 / (1 + Math.exp(-x));
   }
 }
