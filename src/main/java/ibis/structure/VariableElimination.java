@@ -13,7 +13,7 @@ import static ibis.structure.Misc.*;
 
 public class VariableElimination {
   private static final Logger logger = Logger.getLogger(VariableElimination.class);
-  private static int MAX_LIMIT = 512;
+  private static int MAX_LIMIT = 1;
 
   private static class Data {
     public int literal;
@@ -85,22 +85,27 @@ public class VariableElimination {
   private Object run() throws ContradictionException {
     Vector<Data> ve = new Vector<Data>();
 
-    for (int limit = 1; limit <= MAX_LIMIT; limit <<= 1) {
-      solver.propagateBinaries();
-      HiddenTautologyElimination.run(solver);
-      SelfSubsumming.run(solver);
-
-      for (int literal = 1; literal <= solver.numVariables; literal++) {
-        Data data = eliminate(literal, limit);
-        if (data != null) {
-          ve.add(data);
-        }
-      }
-    }
+    run(ve, -2);
+    run(ve, -1);
+    run(ve, +1);
 
     SelfSubsumming.run(solver);
     logger.info("Eliminated " + ve.size() + " variables");
     return ve;
+  }
+
+  private void run(final Vector<Data> ve, final int limit)
+      throws ContradictionException {
+    solver.propagateBinaries();
+    HiddenTautologyElimination.run(solver);
+    SelfSubsumming.run(solver);
+
+    for (int literal = 1; literal <= solver.numVariables; literal++) {
+      Data data = eliminate(literal, limit);
+      if (data != null) {
+        ve.add(data);
+      }
+    }
   }
 
   /**
@@ -137,8 +142,7 @@ public class VariableElimination {
     for (int i = 0; i < p.length; i++) {
       for (int j = 0; j < n.length; j++) {
         int length = resolution(store, p[i], n[j], literal);
-        if (length > 16 || store.size() > size + limit) {
-          // Too much.
+        if (store.size() >= size + limit) {
           return null;
         }
       }
@@ -181,15 +185,14 @@ public class VariableElimination {
     // Sets the length and type.
     length = store.size() - storeClause;
     store.setQuick(storeClause - 1, encode(length, OR));
-    cleanLastClause(store, storeClause);
-    return length;
+    return cleanLastClause(store, storeClause);
   }
 
   /**
    * Cleans last clauses added to store, removing it
    * if the clause is a tautology.
    */
-  private void cleanLastClause(final TIntArrayList store,
+  private int cleanLastClause(final TIntArrayList store,
                                final int clause) {
     touched.reset();
 
@@ -199,7 +202,7 @@ public class VariableElimination {
       int u = store.getQuick(i);
       if (touched.contains(neg(u))) {
         store.remove(clause - 1, store.size() - clause + 1);
-        return;
+        return 0;
       } else if (!touched.containsOrAdd(u)) {
         store.setQuick(p, u);
         p++;
@@ -208,6 +211,7 @@ public class VariableElimination {
 
     store.remove(p, store.size() - p);
     store.setQuick(clause - 1, encode(p - clause, OR));
+    return p - clause;
   }
 
   /**
