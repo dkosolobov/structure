@@ -46,14 +46,15 @@ public final class BlackHoleActivity extends Activity {
       dead = graveyard.contains(generation);
     }
 
-    if (depth <= 0 || dead) {
+    if (dead) {
       reply(Solution.unknown());
+      finish();
     } else {
+      // logger.info("at " + this + " branching on " + branch);
       executor.submit(new SolveActivity(
             identifier(), depth, generation, scores, instance, branch));
+      suspend();
     }
-
-    suspend();
   }
 
   static int counter = 0;
