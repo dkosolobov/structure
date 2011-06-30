@@ -25,7 +25,8 @@ public final class SelectBranchActivity extends Activity {
   private static final Logger logger = Logger.getLogger(
       SelectBranchActivity.class);
 
-  private static final int NUM_VARIABLES = 8;
+  private static final int NUM_VARIABLES_ROOT = 15;
+  private static final int NUM_VARIABLES = 2;
   private static final Random random = new Random(1);
 
   public static int print = 0;
@@ -39,7 +40,7 @@ public final class SelectBranchActivity extends Activity {
   /** List of forced literals. */
   private TIntArrayList forced = new TIntArrayList();
   /** Assignments for each literals (2 * num selected variables). */
-  private TIntLongHashMap assignment = null;
+  private TIntIntHashMap assignment = null;
 
   /** Total number of clauses. */
   private int numClauses = 0;
@@ -70,16 +71,23 @@ public final class SelectBranchActivity extends Activity {
 
     Solution solution = null;
     pickVariables();
-    initialAssignment();
+    if (vars.length == 1) {
+      branch = random.nextBoolean() ? vars[0] : neg(vars[0]);
+      executor.submit(new BranchActivity(
+            identifier(), depth, generation, scores, instance, branch));
+      suspend();
+      return;
+    }
 
     try {
-      for (int repeat = 3; repeat > 0; repeat--) {
+      initialAssignment();
+      for (int repeat = 5; repeat > 0; repeat--) {
         int tmp = forced.size();
         propagate();
         findExtraContradictions();
         findExtraForced();
         checkContradiction();
-        repeat += forced.size() > tmp ? 1 : 0;
+        repeat += forced.size() > tmp + 1 ? 1 : 0;
       }
 
       findExtraContradictions();
@@ -115,7 +123,6 @@ public final class SelectBranchActivity extends Activity {
       response.learnClauses(learned);
     }
 
-
     reply(response);
     finish();
   }
@@ -138,17 +145,17 @@ clause_loop:
       int clause = it.next();
       int length = length(instance.formula, clause);
 
-      numClauses += 1 + (16 >> length);
+      numClauses += 1 + (64 >> length);
       Arrays.fill(satisfied, false);
       Arrays.fill(falsified, 0);
 
       for (int i = clause; i < clause + length; i++) {
         int l = instance.formula.getQuick(i);
-        long p = assignment.get(l);
-        long n = assignment.get(neg(l));
+        int p = assignment.get(l);
+        int n = assignment.get(neg(l));
 
         for (int j = 0; j < lits.length; j++) {
-          long mask = 1L << j;
+          int mask = 1 << j;
           if ((n & mask) != 0) {
             falsified[j]++;
           } else if ((p & mask) == 0) {
@@ -172,7 +179,7 @@ clause_loop:
         }
 
         if (!satisfied[j]) {
-          numUnsatisfied[j] += 1 + (16 >> (length - falsified[j]));
+          numUnsatisfied[j] += 1 + (64 >> (length - falsified[j]));
         }
       }
     }
@@ -194,10 +201,10 @@ clause_loop:
 
     // Gets the assignment.
     TIntHashSet units = new TIntHashSet();
-    TIntLongIterator it = assignment.iterator();
+    TIntIntIterator it = assignment.iterator();
     for (int size = assignment.size(); size > 0; size--) {
       it.advance();
-      if ((it.value() & (1L << p)) != 0) {
+      if ((it.value() & (1 << p)) != 0) {
         units.add(it.key());
       }
     }
@@ -224,16 +231,17 @@ clause_loop:
   private void chooseBranch() {
     double[] scores = new double[vars.length];
     for (int i = 0; i < vars.length; i++) {
-      scores[i] = 1. + 1. * depth * this.scores.get(vars[i]);
-    }
-    for (int i = 0; i < lits.length; i++) {
-      scores[i / 2] *= 1. * numClauses /  numUnsatisfied[i];
+      scores[i] = 1. + 3. * this.scores.get(vars[i]);
+      scores[i] *= 1. * numClauses /  numUnsatisfied[2 * i + 0];
+      scores[i] *= 1. * numClauses /  numUnsatisfied[2 * i + 1];
     }
 
     int bestBranch = vars[0];
     double bestScore = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < vars.length; i++) {
-      if (scores[i] > bestScore) {
+      if (scores[i] > bestScore
+          && !contradiction[2 * i + 0]
+          && !contradiction[2 * i + 1]) {
         bestScore = scores[i];
         bestBranch = vars[i];
       }
@@ -250,7 +258,7 @@ clause_loop:
 
   /** Sets initial literal assignment. */
   private void initialAssignment() {
-    assignment = new TIntLongHashMap();
+    assignment = new TIntIntHashMap();
     for (int i = 0; i < lits.length; i++) {
       assign(lits[i], i);
     }
@@ -258,7 +266,7 @@ clause_loop:
 
   /** Assigns literal in propagation index. */
   private void assign(final int literal, final int index) {
-    assignment.put(literal, assignment.get(literal) | (1L << index));
+    assignment.put(literal, assignment.get(literal) | (1 << index));
   }
   
   /** Finds some more contradictions */
@@ -266,7 +274,7 @@ clause_loop:
     // a -> c
     // a -> -c
     // => a -> contradiction
-    TIntLongIterator it = assignment.iterator();
+    TIntIntIterator it = assignment.iterator();
     for (int size = assignment.size(); size > 0; size--) {
       it.advance();
       int l = it.key();
@@ -275,7 +283,7 @@ clause_loop:
 
       if ((p & n) != 0) {
         for (int j = 0; j < lits.length; j++) {
-          if ((p & n & (1L << j)) != 0) {
+          if ((p & n & (1 << j)) != 0) {
             contradiction[j] = true;
           }
         }
@@ -292,8 +300,8 @@ clause_loop:
       }
     }
 
-    final long mask5 = 0x5555555555555555L;
-    TIntLongIterator it = assignment.iterator();
+    final int mask5 = 0x55555555;
+    TIntIntIterator it = assignment.iterator();
     for (int size = assignment.size(); size > 0; size--) {
       it.advance();
       int l = it.key();
@@ -319,7 +327,7 @@ clause_loop:
     forced = new TIntArrayList(new TIntHashSet(forced));
     for (int i = 0; i < forced.size(); i++) {
       int literal = forced.get(i);
-      assignment.put(literal, (1L << lits.length) - 1);
+      assignment.put(literal, (1 << lits.length) - 1);
       assignment.put(neg(literal), 0);
     }
   }
@@ -346,32 +354,19 @@ clause_loop:
       num++;
     }
 
-    TIntArrayList tmp = depth == 0 ? learned : instance.formula;
+    for (int i = 0; i < lits.length; i++) {
+      if (forced.contains(lits[i])) {
+        continue;
+      }
 
-    // At depth 0 adds also eqs
-    final long mask5 = 0x5555555555555555L;
-    TIntLongIterator it = assignment.iterator();
-    for (int size = assignment.size(); size > 0; size--) {
-      it.advance();
-      int u = it.key();
-      long p = assignment.get(u);
-      long n = assignment.get(neg(u));
-
-      if ((p & (n >> 1) & mask5) != 0) {
-        for (int i = 0; i < lits.length; i += 2) {
-          if ((p & (n >> 1) & (1L << i)) != 0) {
-            int v = vars[i / 2];
-            if (u != v) {
-              tmp.add(encode(2, OR));
-              tmp.add(neg(u));
-              tmp.add(v);
-              num++;
-
-              tmp.add(encode(2, OR));
-              tmp.add(u);
-              tmp.add(neg(v));
-              num++;
-            }
+      int p = assignment.get(lits[i]);
+      for (int j = 0; j < lits.length; j++) {
+        if (i != j && !contradiction[j]) {
+          if ((p & (1 << j)) != 0) {
+            learned.add(encode(2, OR));
+            learned.add(neg(lits[j]));
+            learned.add(lits[i]);
+            num++;
           }
         }
       }
@@ -389,10 +384,12 @@ clause_loop:
   private void updateScores() {
     for (int i = 0; i < lits.length; i++) {
       if (contradiction[i]) {
-        updateScore(scores, var(lits[i]));
+        updateScore(scores, depth, var(lits[i]));
       }
     }
   }
+
+  public static int[] dom;
 
   /** Picks at most NUM_VARIABLES for branching. */
   private void pickVariables() {
@@ -402,8 +399,8 @@ clause_loop:
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(instance.formula, clause);
-      int delta = 1 + (128 >> length);
-      int extra = length == 2 ? 8 : 0;
+      int delta = 1 + (32 >> length);
+      int extra = length == 2 ? 6 : 0;
 
       for (int i = clause; i < clause + length; i++) {
         int literal = instance.formula.getQuick(i);
@@ -412,24 +409,32 @@ clause_loop:
       }
     }
 
-    TIntIntHashMap old = new TIntIntHashMap(scores);
     it = new ClauseIterator(instance.formula);
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(instance.formula, clause);
 
       if (length == 2) {
+        final double gamma = 0.3;
         int u = instance.formula.getQuick(clause);
         int v = instance.formula.getQuick(clause + 1);
-        scores.put(neg(u), scores.get(neg(u)) + old.get(v));
-        scores.put(neg(v), scores.get(neg(v)) + old.get(u));
+        scores.put(neg(u), scores.get(neg(u)) + (int) (gamma * scores.get(v)));
+        scores.put(neg(v), scores.get(neg(v)) + (int) (gamma * scores.get(u)));
       }
     }
 
     // Picks the top scores
-    int NUM_VARIABLES = (int) Configure.ttc[0];
-    int[] top = new int[NUM_VARIABLES];
-    long[] cnt = new long[NUM_VARIABLES];
+    int numVariables;
+    if (depth == 0) {
+      numVariables = NUM_VARIABLES_ROOT;
+    } else if (depth < 2) {
+      numVariables = NUM_VARIABLES;
+    } else {
+      numVariables = 1;
+    }
+
+    int[] top = new int[numVariables];
+    long[] cnt = new long[numVariables];
     int num = 0;
 
     TIntIntIterator it1 = scores.iterator();
@@ -441,7 +446,7 @@ clause_loop:
         // A variable's score depends on scores of both phases.
         int p = scores.get(l);
         int n = scores.get(neg(l));
-        long c = p * n + p + n;
+        long c = 1L * p * n + p + n;
 
         if (num < top.length) {
           top[num] = l;
@@ -463,6 +468,7 @@ clause_loop:
       }
     }
 
+    num = Math.min(num, numVariables);
     assert num > 0;
 
     vars = Arrays.copyOf(top, num);
