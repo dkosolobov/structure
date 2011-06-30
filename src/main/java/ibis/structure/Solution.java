@@ -48,11 +48,11 @@ public final class Solution {
   }
 
   public static Solution unsatisfiable(final int branch) {
-    assert branch != 0;
     Solution solution = new Solution(UNSATISFIABLE);
-    solution.learned = new TIntArrayList();
-    solution.learned.add(neg(branch));
-    solution.learned.add(0);
+    if (branch != 0) {
+      solution.learned.add(neg(branch));
+      solution.learned.add(0);
+    }
     return solution;
   }
 
@@ -66,23 +66,24 @@ public final class Solution {
                                  final Core core,
                                  final boolean learnUnits,
                                  final boolean learnProxies) {
-    assert branch != 0;
     Solution solution = new Solution(UNKNOWN);
 
     if (!s.learned.isEmpty()
         || (learnUnits && !core.units().isEmpty())
         || (learnProxies && !core.proxies().isEmpty())) {
-      solution.learned.add(neg(branch));
-
+      if (branch != 0) {
+        solution.learned.add(neg(branch));
+      }
       if (learnUnits) {
         solution.learnUnits(core.units(), branch);
       }
       if (learnProxies) {
         solution.learnProxies(core.proxies(), branch);
       }
-
       solution.learned.addAll(s.learned);
-      solution.learned.add(0);
+      if (branch != 0) {
+        solution.learned.add(0);
+      }
     }
 
     return solution;
@@ -92,15 +93,14 @@ public final class Solution {
     if (s1.isUnknown() && s2.isUnsatisfiable()) {
       return unknown(s2, s1);
     }
-
+ 
     if (s2.learned.isEmpty()) {
       Solution solution = new Solution(UNKNOWN);
       solution.learned = s1.learned;
       return solution;
     }
-
+ 
     Solution solution = new Solution(UNKNOWN);
-
     if (s1.isUnknown()) {
       assert s2.isUnknown();
       solution.learned.addAll(s1.learned);
@@ -249,15 +249,25 @@ public final class Solution {
 
   /** Verifies learned clauses. */
   public void verifyLearned() throws Exception {
-    verifyLearned(0, new TIntArrayList());
+    int start = 0;
+    TIntArrayList stack = new TIntArrayList();
+    while (start < learned.size()) {
+      start = verifyLearned(start, stack);
+    }
   }
 
   private int verifyLearned(final int start,
-                            final TIntArrayList stack)
-      throws Exception {
-    int p = start;
-    if (p == learned.size()) {
-      return p;
+                            final TIntArrayList stack) throws Exception {
+    if (learned.get(start) == 0) {
+      throw new Exception("Unexpected zero at " + start + " in " + learned);
+      
+    }
+
+    stack.add(learned.get(start));
+    int p = start + 1;
+
+    if (p >= learned.size()) {
+      throw new Exception("Unexpected end of tree at " + p + " in " + learned);
     }
 
     if (learned.get(p) == 0) {
@@ -266,55 +276,44 @@ public final class Solution {
           if (var(stack.get(i)) == var(stack.get(j))) {
             throw new Exception(
                 "Duplicate variable " + var(stack.get(i))
-                + " in learned clause " + stack + " on " + learned);
+                + " in learned clause " + stack + " in " + learned);
           }
         }
       }
-
-      return p + 1;
-    }
-
-    while (p < learned.size()) {
-      int l = learned.get(p);
-      if (l == 0) {
-        return p + 1;
+    } else {
+      while (learned.get(p) != 0) {
+        p = verifyLearned(p, stack);
+        if (p >= learned.size()) {
+          throw new Exception("Unexpected end of tree at " + p
+                              + " in " + learned);
+        }
       }
-
-      stack.add(l);
-      p = verifyLearned(p + 1, stack);
-      stack.removeAt(stack.size() - 1);
     }
 
-    return learned.size();
-    
+    stack.removeAt(stack.size() - 1);
+    return p + 1;
   }
 
   /** Adds learned clauses to formula. */
-  public void addLearnedClauses(final TIntArrayList formula,
-                                final TIntDoubleHashMap histogram) {
-    int size = formula.size();
-    logger.info("Learned size is " + learned.size());
-
-    addLearnedClauses(formula, 0, new TIntArrayList());
-    logger.info("Added " + (formula.size() - size) + " new literals");
+  public void addLearnedClauses(final TIntArrayList formula, final int limit) {
+    addLearnedClauses(formula, 0, new TIntArrayList(), limit);
   }
 
   /** Expands the tree of learned clauses and adds them to formula. */
   private int addLearnedClauses(final TIntArrayList formula, 
                                 final int start,
-                                final TIntArrayList stack) {
+                                final TIntArrayList stack,
+                                final int limit) {
     int p = start;
     if (p == learned.size()) {
       return p;
     }
 
     if (learned.get(p) == 0) {
-      if (false || stack.size() < 3) {
-        logger.info("Learned " + stack);
+      if (stack.size() <= limit) {
+        formula.add(encode(stack.size(), OR));
+        formula.addAll(stack);
       }
-
-      formula.add(encode(stack.size(), OR));
-      formula.addAll(stack);
       return p + 1;
     }
 
@@ -325,7 +324,7 @@ public final class Solution {
       }
 
       stack.add(l);
-      p = addLearnedClauses(formula, p + 1, stack);
+      p = addLearnedClauses(formula, p + 1, stack, limit);
       stack.removeAt(stack.size() - 1);
     }
 
