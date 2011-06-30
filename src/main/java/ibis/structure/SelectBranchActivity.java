@@ -25,7 +25,7 @@ public final class SelectBranchActivity extends Activity {
   private static final Logger logger = Logger.getLogger(
       SelectBranchActivity.class);
 
-  private static final int NUM_VARIABLES = 6;
+  private static final int NUM_VARIABLES = 8;
   private static final Random random = new Random(1);
 
   public static int print = 0;
@@ -33,7 +33,7 @@ public final class SelectBranchActivity extends Activity {
   /** Selected variables for branching. */
   private int[] vars = null;
   /** Literals in each propagation. */
-  private int[][] lits = null;  
+  private int[] lits = null;  
   /** True if propagation is contradiction. */
   private boolean[] contradiction = null;
   /** List of forced literals. */
@@ -114,6 +114,7 @@ public final class SelectBranchActivity extends Activity {
     if (response.isUnknown()) {
       response.learnClauses(learned);
     }
+
 
     reply(response);
     finish();
@@ -223,18 +224,10 @@ clause_loop:
   private void chooseBranch() {
     double[] scores = new double[vars.length];
     for (int i = 0; i < vars.length; i++) {
-      scores[i] = 1. + 8. * this.scores.get(vars[i]);
+      scores[i] = 1. + 1. * depth * this.scores.get(vars[i]);
     }
-
     for (int i = 0; i < lits.length; i++) {
-      for (int j = 0; j < lits[i].length; j++) {
-        for (int k = 0; k < vars.length; k++) {
-          if (vars[k] == var(lits[i][j])) {
-            scores[k] *= 1. * numClauses /  numUnsatisfied[i];
-            break;
-          }
-        }
-      }
+      scores[i / 2] *= 1. * numClauses /  numUnsatisfied[i];
     }
 
     int bestBranch = vars[0];
@@ -259,9 +252,7 @@ clause_loop:
   private void initialAssignment() {
     assignment = new TIntLongHashMap();
     for (int i = 0; i < lits.length; i++) {
-      for (int j = 0; j < lits[i].length; j++) {
-        assign(lits[i][j], i);
-      }
+      assign(lits[i], i);
     }
   }
 
@@ -270,10 +261,11 @@ clause_loop:
     assignment.put(literal, assignment.get(literal) | (1L << index));
   }
   
+  /** Finds some more contradictions */
   private void findExtraContradictions() {
-    // a and b -> c
-    // a and b -> -c
-    // => a and b -> contradiction
+    // a -> c
+    // a -> -c
+    // => a -> contradiction
     TIntLongIterator it = assignment.iterator();
     for (int size = assignment.size(); size > 0; size--) {
       it.advance();
@@ -291,17 +283,6 @@ clause_loop:
     }
   }
 
-  private void addBinary(final int u, final int v) {
-    for (int j = 0; j < lits.length; j++) {
-      if (neg(u) == lits[j][0] || neg(u) == lits[j][1]) {
-        assign(v, j);
-      }
-      if (neg(v) == lits[j][0] || neg(v) == lits[j][1]) {
-        assign(u, j);
-      }
-    }
-  }
-
   private void findExtraForced() {
     // In a contradiction any assignment can be assumed
     long any = 0;
@@ -311,7 +292,6 @@ clause_loop:
       }
     }
 
-    final long mask1 = 0x1111111111111111L;
     final long mask5 = 0x5555555555555555L;
     TIntLongIterator it = assignment.iterator();
     for (int size = assignment.size(); size > 0; size--) {
@@ -319,43 +299,20 @@ clause_loop:
       int l = it.key();
       long p = it.value() | any;
 
-      // a and b -> c
-      // a and -b -> c
-      // -a and b -> c
-      // -a and -b -> c
+      // a -> c
+      // -a -> c
       // => c
-      if ((p & (p >> 1) & (p >> 2) & (p >> 3) & mask1) != 0) {
+      if ((p & (p >> 1) & mask5) != 0) {
         forced.add(l);
         continue;
       }
     }
 
-    // a and b -> contradiction
-    // => a -> -b
+    // a -> contradiction
+    // => neg(a)
     for (int i = 0; i < lits.length; i++) {
       if (contradiction[i]) {
-        addBinary(neg(lits[i][0]), neg(lits[i][1]));
-      }
-    }
-
-    // a and b -> contradiction
-    // a and -b -> contradiction
-    // => neg(a)
-    for (int i = 0; i < lits.length; i += 2) {
-      if (contradiction[i + 0] && contradiction[i + 1]) {
-        forced.add(neg(lits[i][0]));
-      }
-    }
-
-    // a and b -> contradiction
-    // -a and b -> contradiction
-    // => neg(b)
-    for (int i = 0; i < lits.length; i += 4) {
-      if (contradiction[i + 0] && contradiction[i + 2]) {
-        forced.add(neg(lits[i][1]));
-      }
-      if (contradiction[i + 1] && contradiction[i + 3]) {
-        forced.add(lits[i][1]);
+        forced.add(neg(lits[i]));
       }
     }
 
@@ -368,14 +325,11 @@ clause_loop:
   }
 
   private void checkContradiction() throws ContradictionException {
-    // a and b -> contradiction
-    // a and -b -> contradiction
-    // -a and b -> contradiction
-    // -a and -b -> contradiction
+    // a -> contradiction
+    // -a -> contradiction
     // => contradiction
-    for (int i = 0; i < lits.length; i += 4) {
-      if (contradiction[i + 0] && contradiction[i + 1]
-          && contradiction[i + 2] && contradiction[i + 3]) {
+    for (int i = 0; i < lits.length; i += 2) {
+      if (contradiction[i] && contradiction[i + 1]) {
         throw new ContradictionException();
       }
     }
@@ -392,12 +346,34 @@ clause_loop:
       num++;
     }
 
-    for (int i = 0; i < lits.length; i++) {
-      if (contradiction[i]) {
-        learned.add(encode(2, OR));
-        learned.add(neg(lits[i][0]));
-        learned.add(neg(lits[i][1]));
-        num++;
+    TIntArrayList tmp = depth == 0 ? learned : instance.formula;
+
+    // At depth 0 adds also eqs
+    final long mask5 = 0x5555555555555555L;
+    TIntLongIterator it = assignment.iterator();
+    for (int size = assignment.size(); size > 0; size--) {
+      it.advance();
+      int u = it.key();
+      long p = assignment.get(u);
+      long n = assignment.get(neg(u));
+
+      if ((p & (n >> 1) & mask5) != 0) {
+        for (int i = 0; i < lits.length; i += 2) {
+          if ((p & (n >> 1) & (1L << i)) != 0) {
+            int v = vars[i / 2];
+            if (u != v) {
+              tmp.add(encode(2, OR));
+              tmp.add(neg(u));
+              tmp.add(v);
+              num++;
+
+              tmp.add(encode(2, OR));
+              tmp.add(u);
+              tmp.add(neg(v));
+              num++;
+            }
+          }
+        }
       }
     }
 
@@ -412,10 +388,8 @@ clause_loop:
   /** Updates literal scores based on found contradictions. */
   private void updateScores() {
     for (int i = 0; i < lits.length; i++) {
-      for (int j = 0; j < lits[i].length; j++) {
-        if (contradiction[i]) {
-          updateScore(scores, var(lits[i][j]));
-        }
+      if (contradiction[i]) {
+        updateScore(scores, var(lits[i]));
       }
     }
   }
@@ -428,8 +402,8 @@ clause_loop:
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(instance.formula, clause);
-      int delta = 1 + (16 >> length);
-      int extra = length == 2 ? 2 : 0;
+      int delta = 1 + (128 >> length);
+      int extra = length == 2 ? 8 : 0;
 
       for (int i = clause; i < clause + length; i++) {
         int literal = instance.formula.getQuick(i);
@@ -447,13 +421,13 @@ clause_loop:
       if (length == 2) {
         int u = instance.formula.getQuick(clause);
         int v = instance.formula.getQuick(clause + 1);
-
         scores.put(neg(u), scores.get(neg(u)) + old.get(v));
         scores.put(neg(v), scores.get(neg(v)) + old.get(u));
       }
     }
 
     // Picks the top scores
+    int NUM_VARIABLES = (int) Configure.ttc[0];
     int[] top = new int[NUM_VARIABLES];
     long[] cnt = new long[NUM_VARIABLES];
     int num = 0;
@@ -468,7 +442,6 @@ clause_loop:
         int p = scores.get(l);
         int n = scores.get(neg(l));
         long c = p * n + p + n;
-        c = (long) (1024. * c / (1. + 4. * this.scores.get(l)));
 
         if (num < top.length) {
           top[num] = l;
@@ -493,20 +466,14 @@ clause_loop:
     assert num > 0;
 
     vars = Arrays.copyOf(top, num);
-    lits = new int[2 * num * (num - 1)][];
+    lits = new int[2 * num];
     contradiction = new boolean[lits.length];
     num = 0;
 
     for (int i = 0; i < vars.length; i++) {
-      for (int j = i + 1; j < vars.length; j++) {
-        lits[num++] = new int[] { vars[i], vars[j] };
-        lits[num++] = new int[] { vars[i], neg(vars[j]) };
-        lits[num++] = new int[] { neg(vars[i]), vars[j] };
-        lits[num++] = new int[] { neg(vars[i]), neg(vars[j]) };
-      }
+      assert vars[i] != 0;
+      lits[num++] = vars[i];
+      lits[num++] = neg(vars[i]);
     }
-
-    // logger.info("lits is " + Arrays.deepToString(lits));
-    // logger.info("vars is " + Arrays.toString(vars));
   }
 }
