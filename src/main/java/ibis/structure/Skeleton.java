@@ -1,9 +1,11 @@
 package ibis.structure;
 
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.iterator.TIntIntIterator;
+import gnu.trove.list.array.TDoubleArrayList;
+import gnu.trove.map.hash.TIntIntHashMap;
 
 import static ibis.structure.Misc.*;
-
 
 public final class Skeleton implements java.io.Serializable {
   public int numVariables;
@@ -70,26 +72,6 @@ public final class Skeleton implements java.io.Serializable {
     }
   }
 
-  private static final int MAX_LENGTH = 16;
-  private static final double[] wOR = new double[MAX_LENGTH];
-  private static final double[] wXOR = new double[MAX_LENGTH];
-  private static final double wBIN;
-
-  static {
-    final double alpha = Configure.ttc[4];
-    final double beta = Configure.ttc[5];
-    final double gamma = Configure.ttc[6];
-
-    wOR[0] = alpha;
-    wXOR[0] = beta;
-    wBIN = gamma;
-
-    for (int i = 1; i < MAX_LENGTH; i++) {
-      wOR[i] = wOR[i - 1] * alpha;
-      wXOR[i] = wXOR[i - 1] * beta;
-    }
-  }
-
   /**
    * Computes scores for every literal.
    *
@@ -99,43 +81,104 @@ public final class Skeleton implements java.io.Serializable {
    *
    * The propagation is aproximated estimated.
    */
-  public double[] evaluateLiterals() {
-    double[] scores = new double[2 * numVariables + 1];
-    ClauseIterator it = new ClauseIterator(formula);
+  public int[] pickVariables(final TDoubleArrayList global,
+                             final int numVariables) {
+    ClauseIterator it;
+
+    // Scores all variables.
+    TIntIntHashMap scores = new TIntIntHashMap();
+    it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
-      int type = type(formula, clause);
-      
-      if (length >= MAX_LENGTH) {
-        continue;
-      }
+      int delta = 1 + (128 >> length);
+      int extra = length == 2 ? 8 : 0;
 
-      if (type == OR) {
-        double delta = wOR[length];
-        for (int i = clause; i < clause + length; i++) {
-          int literal = formula.getQuick(i);
-          scores[neg(literal) + numVariables] += delta;
-        }
-      } else {
-        double delta = wXOR[length];
-        for (int i = clause; i < clause + length; i++) {
-          int literal = formula.getQuick(i);
-          scores[literal + numVariables] += delta;
-          scores[neg(literal) + numVariables] += delta;
-        }
-      } 
-
-      if (length == 2) {
-        int u = formula.get(clause);
-        int v = formula.get(clause + 1);
-
-        scores[neg(u) + numVariables] += wBIN * scores[v + numVariables];
-        scores[neg(v) + numVariables] += wBIN * scores[u + numVariables];
+      for (int i = clause; i < clause + length; i++) {
+        int literal = formula.getQuick(i);
+        scores.adjustOrPutValue(literal, delta, delta);
+        scores.adjustOrPutValue(neg(literal), extra, extra);
       }
     }
 
-    return scores;
+    // Improves scores based on implication graph
+    it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+
+      if (length == 2) {
+        final double coef = 0.8;
+        int u = formula.getQuick(clause);
+        int v = formula.getQuick(clause + 1);
+        scores.put(neg(u), scores.get(neg(u)) + (int) (coef * scores.get(v)));
+        scores.put(neg(v), scores.get(neg(v)) + (int) (coef * scores.get(u)));
+      }
+    }
+
+    // Finds top variables
+    int[] top = new int[numVariables];
+    double[] cnt = new double[numVariables];
+    int num = 0;
+
+    TIntIntIterator it1 = scores.iterator();
+    for (int size = scores.size(); size > 0; size--) {
+      it1.advance();
+      int l = it1.key();
+
+      if (l == var(l)) {
+        // A variable's score depends on scores of both phases.
+        double p = scores.get(l);
+        double n = scores.get(neg(l));
+
+        /*
+        final double wc1 = Configure.ttc[0];
+        final double wp1 = Configure.ttc[1];
+        final double wn1 = Configure.ttc[2];
+
+        final double wc2 = Configure.ttc[3];
+        final double wp2 = Configure.ttc[4];
+        final double wn2 = Configure.ttc[5];
+
+        final double wc3 = Configure.ttc[6];
+        final double wp3 = Configure.ttc[7];
+        final double wn3 = Configure.ttc[8];
+
+        double c = 
+          + wc1 * (pow(p, wp1) * pow(n, wn1) + pow(n, wp1) * pow(p, wn1))
+          + wc2 * (pow(p, wp2) * pow(n, wn2) + pow(n, wp2) * pow(p, wn2))
+          + wc3 * (pow(p, wp3) * pow(n, wn3) + pow(n, wp3) * pow(p, wn3));
+        */
+
+        double pn = p * n;
+        double c = pn * pn * (2. * pn * pn + 2. * pn + p + n);
+
+        if (num < top.length) {
+          top[num] = l;
+          cnt[num] = c;
+          num++;
+          continue;
+        }
+        
+        if (c > cnt[top.length - 1]) {
+          int pos = top.length - 1;
+          for (; pos > 0 && c > cnt[pos - 1]; pos--) {
+            top[pos] = top[pos - 1];
+            cnt[pos] = cnt[pos - 1];
+          }
+
+          top[pos] = l;
+          cnt[pos] = c;
+        }
+      }
+    }
+
+    assert num > 0;
+    return java.util.Arrays.copyOf(top, num);
+  }
+
+  private final double pow(double a, double b) {
+    return Math.pow(a, b);
   }
 
   /** Returns the skeleton as in extended DIMACS format. */
