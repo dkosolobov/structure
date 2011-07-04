@@ -16,7 +16,7 @@ import static ibis.structure.Misc.*;
  * The base activity for all activities.
  */
 public class Activity extends ibis.constellation.Activity {
-  private static final Logger logger = Logger.getLogger(Activity.class);
+  protected static final Logger logger = Logger.getLogger(Activity.class);
 
   /** Parent of this activity. */
   protected ActivityIdentifier parent = null;
@@ -31,7 +31,8 @@ public class Activity extends ibis.constellation.Activity {
   /** A normalizer for the instance to be solver. */
   protected Normalizer normalizer = new Normalizer();
   /** Original instance to be solved. */
-  private Skeleton original = null;
+  protected Skeleton original = null;
+  private boolean replied = false;
 
   /**
    * Creates an activity.
@@ -68,13 +69,16 @@ public class Activity extends ibis.constellation.Activity {
    * @param response solution to send to parent
    */
   protected final void reply(final Solution response) {
+    assert !replied : "Already replied";
+    replied = true;
+
     verify(response);
     executor.send(new Event(identifier(), parent, response));
   }
 
   /** Performs a garbage collector. */
   protected void gc() {
-    instance = null;
+    // instance = null;
   }
 
   /**
@@ -268,6 +272,11 @@ public class Activity extends ibis.constellation.Activity {
   public void suspend() {
     gc();
     super.suspend();
+  }
+
+  @Override
+  public void finish() {
+    super.finish();
   }
 
   @Override
