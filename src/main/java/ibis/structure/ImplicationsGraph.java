@@ -85,7 +85,8 @@ public final class ImplicationsGraph {
     return visited;
   }
 
-  public TIntArrayList propagate(final int... literals) throws ContradictionException {
+  public TIntArrayList propagate(final int... literals)
+      throws ContradictionException {
     return propagate(new TIntArrayList(literals));
   }
 
@@ -317,6 +318,7 @@ public final class ImplicationsGraph {
    */
   public void bfs(final int start, final TIntArrayList seen) {
     assert seen.isEmpty();
+    visited.reset();
     internalBFS(start, seen);
   }
 
