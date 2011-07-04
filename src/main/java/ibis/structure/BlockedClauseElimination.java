@@ -39,30 +39,26 @@ public final class BlockedClauseElimination {
     assert solution.isSatisfiable() && bce != null;
     TIntHashSet units = new TIntHashSet(solution.units());
     ClauseIterator it = new ClauseIterator(bce);
-clauses_loop:
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(bce, clause);
       int literal = bce.get(clause);
 
-      if (!units.contains(neg(literal))) {
-        units.add(literal);
-        continue;
-      }
-
+      boolean satisfied = false;
       for (int i = clause; i < clause + length; i++) {
         int u = bce.getQuick(i);
-
         if (!units.contains(neg(u))) {  // Literal may be missing.
           units.add(u);
         }
         if (units.contains(u)) {
-          continue clauses_loop;
+          satisfied = true;
         }
       }
 
-      units.remove(neg(literal));
-      units.add(literal);
+      if (!satisfied) {
+        units.remove(neg(literal));
+        units.add(literal);
+      }
     }
 
     return Solution.satisfiable(units);
@@ -87,7 +83,7 @@ clauses_loop:
           literal++) {
         int ne = solver.watchLists.get(neg(literal)).size();
         int pe = solver.watchLists.get(literal).size();
-        if (ne > 100 || 1L * ne * pe > 10000L) {
+        if (ne > 128 || 1L * ne * pe > 16384L) {
           // This is a cutoff to avoid very expensive literals.
           continue;
         }

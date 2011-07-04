@@ -34,6 +34,7 @@ public final class BlockedClauseEliminationActivity extends Activity {
     try {
       Solver solver = new Solver(instance);
       bce = BlockedClauseElimination.run(solver);
+
     } catch (ContradictionException e) {
       reply(Solution.unsatisfiable());
       finish();
