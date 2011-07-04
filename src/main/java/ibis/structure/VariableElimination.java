@@ -85,9 +85,9 @@ public class VariableElimination {
   private Object run() throws ContradictionException {
     Vector<Data> ve = new Vector<Data>();
 
-    run(ve, -2);
+    run(ve, 2);
+    run(ve, 0);
     run(ve, -1);
-    run(ve, +1);
 
     SelfSubsumming.run(solver);
     logger.info("Eliminated " + ve.size() + " variables");
@@ -142,7 +142,7 @@ public class VariableElimination {
     for (int i = 0; i < p.length; i++) {
       for (int j = 0; j < n.length; j++) {
         int length = resolution(store, p[i], n[j], literal);
-        if (store.size() >= size + limit) {
+        if (length > 8 || store.size() >= size + limit) {
           return null;
         }
       }
