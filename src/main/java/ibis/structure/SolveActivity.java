@@ -1,6 +1,7 @@
 package ibis.structure;
 
 import gnu.trove.list.array.TDoubleArrayList;
+import gnu.trove.list.array.TIntArrayList;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import org.apache.log4j.Logger;
@@ -21,6 +22,8 @@ public final class SolveActivity extends Activity {
   private int branch;
   /** Core of the instance after simplification. */
   private Core core;
+  /** Histogram of conflicts. */
+  public static TIntArrayList histogram;
 
   /**
    * @param branch branching literal.
@@ -38,8 +41,10 @@ public final class SolveActivity extends Activity {
   /** Adds a branch to instance as an unit clause. */
   private static Skeleton addBranch(final Skeleton instance,
                                     final int branch) {
-    instance.formula.add(encode(1, OR));
-    instance.formula.add(branch);
+    if (branch != 0) {
+      instance.formula.add(encode(1, OR));
+      instance.formula.add(branch);
+    }
     return instance;
   }
 
@@ -51,12 +56,20 @@ public final class SolveActivity extends Activity {
     try {
       normalizer.normalize(instance);
       solver = new Solver(instance);
-
       solver.propagate();
-      HyperBinaryResolution.run(solver);
-      HiddenTautologyElimination.run(solver);
-      solver.renameEquivalentLiterals();
-      SelfSubsumming.run(solver);
+
+      if (instance.size() > 2500) {
+        HyperBinaryResolution.run(solver);
+      }
+
+      if (instance.size() > 16000) {
+        HiddenTautologyElimination.run(solver);
+      }
+
+      if (instance.size() > 1600) {
+        SelfSubsumming.run(solver);
+      }
+
       PureLiterals.run(solver);
       MissingLiterals.run(solver);
 
@@ -78,6 +91,9 @@ public final class SolveActivity extends Activity {
     }
 
     core = normalizer.denormalize(solver.core());
+    assert filter(core.instance().formula, branch).isEmpty();
+
+
     executor.submit(new SplitActivity(
           identifier(), depth, generation, scores, core.instance()));
     suspend();
@@ -92,7 +108,13 @@ public final class SolveActivity extends Activity {
     } else if (response.isUnsatisfiable()) {
       response = Solution.unsatisfiable(branch);
     } else if (response.isUnknown()) {
-      response = Solution.unknown(branch, response, core);
+      response = Solution.unknown(branch, response, core, depth < 3, depth < 2);
+    }
+
+    if (!response.isSatisfiable() && depth < histogram.size()) {
+      synchronized (histogram) {
+        histogram.setQuick(depth, histogram.getQuick(depth) + 1);
+      }
     }
 
     reply(response);
