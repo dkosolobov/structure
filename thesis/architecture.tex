@@ -1,0 +1,120 @@
+\chapter{Architecture}
+
+\section{Constellation}
+
+Constellation's parallel programming model is based on activity spawning.
+Communication is done through message passing among running activities. There
+is no shared memory available, though activities running on the same machine
+could make use of the common address space.  For the SAT Competition 2011
+STRUCTure uses a single machine with up to number of cores
+specified activities running simultaneously.
+
+
+\section{Activities}
+
+An activity goal's is to find a satifying assignment for an instance,
+detect unsatisfiability or learn something new about the instance.
+Some activities can spawn new activities to solve smaller instances.
+Learning is achieved when climbing back on the searching tree.
+
+Activities return to parent a solution to instances which can be
+\emph{SATISFIABLE}, \emph{UNSATISFIABLE} or \emph{UNKOWN}. If
+a satisfying assignment was found the solution includes units,
+otherwise it includes a learning tree. \todo{Define learning tree}
+
+A graph dependecies between activities is shown in figure \ref{fig:activities}.
+
+
+\begin{figure}
+  \centering
+  \includegraphics[width=1.5\linewidth]{activity.pdf}
+  \caption{Activities in STRUCTure}
+  \label{fig:activities}
+\end{figure}
+
+
+\subsection{Initial}
+
+\begin{itemize}
+  \item \emph{Preprocess} Performs some initial preprocessing.
+
+\end{itemize}
+
+
+\subsection{Restart loop}
+
+\begin{itemize}
+  \item \emph{XOR/DVE} extracts XOR gates and performs \emph{Dependent
+  Variable Elimination}
+
+  \item \emph{BCE} performs \emph{Blocked Clause Elimination}
+
+  \item \emph{VE} performs \emph{Variable Elimination}
+
+  \item \emph{Simplify} simplifies the instance.
+
+  \item \emph{Restart} restarts searching at increasing intervals of times.
+  Each instance is part of a generation number. When the timeout expires
+  a death certificate for that generation is issued. When computation returns
+  the learned clauses are added to current instance and the searching starts
+  over with \emph{Blocked Clause Elimination}.
+
+\end{itemize}
+
+
+\subsection{Searching tree}
+
+\begin{itemize}
+  \item \emph{LookAhead} performs a small look ahead at the root
+  of the searching tree. It picks a several variables (around 128 in
+  current implementation) and propagates them (using the \emph{Propagate}
+  activity). This activity's goal is to learn new units and binaries.
+
+  \item \emph{Propagate} propagates a literal $l$ using
+  unit propagation \todo{Describe unit propagation}. If $u$ is propagated from
+  $l$ then the binary $l \rightarrow u$ is true.
+  Propagate activity attemts to learn new units and binaries as follows
+
+  \begin{itemize}
+    \item If an empty clause is discovered then $\neg l$ can be implied.
+
+    \item $(l \rightarrow u) \land (l_0 \rightarrow \neg u) \Rightarrow
+    \neg l \lor \neg l_0$. If two literals $l$ and $l_0$ imply different
+    assignment for the same variable the two literals cannot both be true.
+
+    \item $(l \rightarrow u) \land (\neg l \rightarrow u) \Rightarrow u$. If
+    different phases of the same variable propagate the same literal, $u$,
+    then $u$ must be true.
+
+    \item $(l \rightarrow u) \land (\neg l \rightarrow \neg u)
+    \Rightarrow l \equiv u$
+
+  \end{itemize}
+
+  \item \emph{Split} checks if instance is composed of multiple independent
+  instances. Learns the reunion of the child instances.
+
+  \item \emph{Select} selects next variable for branching.
+
+  \item \emph{Branch} uses the branching variable, $b$ to generate two
+  instances $F_+ = F \cup \{b\}$ and $F_- \cup \{\neg b\}$. If any of
+  $F_+$ or $F_-$ is satisfiable then a satisfying assignment for
+  $F$ is given by the satisfying assignment of the child instance.
+  If both $F_+$ and $F_-$ are unsatisfible then $F$ is unsatisfiable.
+  \todo{How SelfSubSumming is perfomed}
+
+  \item \emph{BlackHole} kills instances part of a dead generation.
+  Death certificates are received from Restart activity and is important
+  that different generations have different identifiers. Solution to
+  a killed instance is \emph{UNKOWN}.
+
+  \item \emph{Solve} attemts to solve the current instance. If a solution
+  is found it is propagated back up on the search tree. If a solution
+  is not found a smaller instance, the \emph{core}, is generated. The solution
+  of the core instance can be used to deduce a solution to the main instance
+  instance a solution to the instance being solved can be deduced. In case
+  of contradiction Solve activity learns last branched literal.
+
+\end{itemize}
+
+
