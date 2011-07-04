@@ -343,6 +343,7 @@ public final class Misc {
       int length = length(formula, clause);
       int type = type(formula, clause);
 
+      assert type != OR || length != 0 : "Found empty OR clause";
       if (type != DELETED && (type != NXOR || length != 0)) {
         formula.setQuick(p++, encode(length, type));
         for (int i = clause; i < clause + length; i++) {
@@ -384,17 +385,23 @@ public final class Misc {
   private static int counter = 0;
 
   public static void updateScore(final TDoubleArrayList scores,
-                                 final int variable) {
+                                 final int depth,
+                                 final int literal) {
     synchronized (scores) {
-      double old = scores.getQuick(variable);
-      scores.setQuick(variable, old + 0.001 * (1. - old));
+      double old = scores.getQuick(var(literal));
+      if (literal > 0) {
+        scores.setQuick(var(literal), old + 0.5 * (1. - old));
+      } else {
+        scores.setQuick(var(literal), old - 0.5 * old);
+      }
 
       counter++;
       if (counter >= 1000) {
         counter = 0;
 
         for (int i = 1; i < scores.size(); i++) {
-          scores.setQuick(i, scores.getQuick(i) * 0.75);
+          double tmp = scores.getQuick(i);
+          scores.setQuick(i, Math.sqrt(0.5 * tmp));
         }
       }
     }

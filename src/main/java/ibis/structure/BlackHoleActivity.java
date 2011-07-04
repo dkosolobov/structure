@@ -63,7 +63,7 @@ public final class BlackHoleActivity extends Activity {
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
     if (response.isUnsatisfiable()) {
-      updateScore(scores, var(branch));
+      updateScore(scores, depth, branch);
     }
 
     reply(response);
