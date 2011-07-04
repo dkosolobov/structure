@@ -45,10 +45,10 @@ public final class LookAheadActivity extends Activity {
     final int step = 16;
     final int total = step * 8;
 
-    int[] vars = instance.pickVariables(total);
-    logger.info("Picked " + new TIntArrayList(vars));
+    int[] vars = instance.pickVariables(scores, total);
     shuffleArray(vars);
 
+    logger.info("Picked " + new TIntArrayList(vars));
     for (int i = 0; i < vars.length; i += step) {
       int num = Math.min(step, vars.length - i);
       int[] send = Arrays.copyOfRange(vars, i, i + num);

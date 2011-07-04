@@ -66,6 +66,7 @@ public final class PropagateActivity extends Activity {
       return;
     }
 
+
     Solution solution = Solution.unknown();
     solution.learnClauses(getClauses());
     reply(solution);
@@ -160,15 +161,6 @@ public final class PropagateActivity extends Activity {
     for (int i = 0; i < lits.length; i += 2) {
       if (contradiction[i] && contradiction[i + 1]) {
         throw new ContradictionException();
-      }
-    }
-  }
-
-  /** Updates literal scores based on found contradictions. */
-  private void updateScores() {
-    for (int i = 0; i < lits.length; i++) {
-      if (contradiction[i]) {
-        updateScore(scores, depth, var(lits[i]));
       }
     }
   }
