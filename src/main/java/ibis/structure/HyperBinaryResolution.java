@@ -16,7 +16,7 @@ import static ibis.structure.Misc.*;
  * then l &ge; b, otherwise if l then clause is contradiction
  */
 public final class HyperBinaryResolution {
-  private static final int BINARIES_LIMIT = 1 << 24;
+  private static final int BINARIES_LIMIT = 1 << 20;
   private static final int TIME_MILLIS_LIMIT = 20000;
   private static final int CACHE_SIZE = 512;
 
@@ -140,6 +140,7 @@ public final class HyperBinaryResolution {
       if (counts[touch] == numLiterals) {
         units.add(neg(literal));
       } else if (counts[touch] + 1 == numLiterals) {
+        /*
         // There is an edge from literal to all literals in clause except one.
         // New implication: literal -> missing
         int missing = clauseSum - sums[touch];
@@ -164,6 +165,7 @@ public final class HyperBinaryResolution {
           binaries.add(neg(literal));
           binaries.add(missing);
         }
+        */
       }
 
       counts[touch] = 0;
