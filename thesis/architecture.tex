@@ -10,7 +10,11 @@ STRUCTure uses a single machine with up to number of cores
 specified activities running simultaneously.
 
 
+\todo{Explain how Constellation influenced design choices}
+
+
 \section{Activities}
+\todo{Split sections into subsubsections}
 
 An activity goal's is to find a satifying assignment for an instance,
 detect unsatisfiability or learn something new about the instance.
@@ -18,7 +22,7 @@ Some activities can spawn new activities to solve smaller instances.
 Learning is achieved when climbing back on the searching tree.
 
 Activities return to parent a solution to instances which can be
-\emph{SATISFIABLE}, \emph{UNSATISFIABLE} or \emph{UNKOWN}. If
+\emph{SATISFIABLE}, \emph{UNSATISFIABLE} or \emph{UNKNOWN}. If
 a satisfying assignment was found the solution includes units,
 otherwise it includes a learning tree. \todo{Define learning tree}
 
@@ -27,7 +31,7 @@ A graph dependecies between activities is shown in figure \ref{fig:activities}.
 
 \begin{figure}
   \centering
-  \includegraphics[width=1.5\linewidth]{activity.pdf}
+  \includegraphics[width=0.9\linewidth]{activity.eps}
   \caption{Activities in STRUCTure}
   \label{fig:activities}
 \end{figure}
@@ -63,6 +67,7 @@ A graph dependecies between activities is shown in figure \ref{fig:activities}.
 
 
 \subsection{Searching tree}
+\label{ssec:searching-tree}
 
 \begin{itemize}
   \item \emph{LookAhead} performs a small look ahead at the root
@@ -94,7 +99,8 @@ A graph dependecies between activities is shown in figure \ref{fig:activities}.
   \item \emph{Split} checks if instance is composed of multiple independent
   instances. Learns the reunion of the child instances.
 
-  \item \emph{Select} selects next variable for branching.
+  \item \emph{Select} selects next variable for branching. \todo{Explain
+  how a variable is selected}
 
   \item \emph{Branch} uses the branching variable, $b$ to generate two
   instances $F_+ = F \cup \{b\}$ and $F_- \cup \{\neg b\}$. If any of
@@ -106,7 +112,7 @@ A graph dependecies between activities is shown in figure \ref{fig:activities}.
   \item \emph{BlackHole} kills instances part of a dead generation.
   Death certificates are received from Restart activity and is important
   that different generations have different identifiers. Solution to
-  a killed instance is \emph{UNKOWN}.
+  a killed instance is \emph{UNKNOWN}.
 
   \item \emph{Solve} attemts to solve the current instance. If a solution
   is found it is propagated back up on the search tree. If a solution

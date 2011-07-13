@@ -1,0 +1,124 @@
+\chapter{Instances}
+\label{app:instances}
+
+
+To evaluate STRUCTure I used instances from SAT Competition 2009
+(\url{\http://www.satcompetition.org}). Complete benchmark set can be
+downloaded from \url{http://www.cril.univ-artois.fr/SAT09/}. The
+benchmark is composed from instances from previous
+competitions and new instances submitted by solvers
+authors.  Instances are from three categories (quoted from
+\url{http://www.satcompetition.org/2011/rules.pdf}):
+
+
+\begin{quote}
+  \begin{itemize}
+    \item \emph{Application} Instances encoding various “application”
+    problems in CNF.  These instances are typically large (containing up
+    to tens of million of variables and clauses). The motivation behind
+    this category is to provide hints about the kind of application
+    SAT solvers may be useful for.
+
+    \item \emph{Crafted} Crafted Instances that are often designed to
+    give a hard time to SAT solvers, or represent otherwise problems
+    which are challenging to typical SAT solvers (including, e.g.,
+    instances arising from difficult puzzle games).  These benchmarks
+    are typically small. The motivation behind this category is to
+    highlight current challenge problem domains that reveal the limits
+    of current SAT solver technology.
+
+
+    \item \emph{Random} Randomly generated uniform k-SAT formulas.
+    This category is motivated by the fact that the instances can be
+    fully characterized, and furthermore, its connections especially
+    to statistical physics.
+
+  \end{itemize}
+\end{quote}
+
+
+For small tests and optimization I used instances listed in table
+\ref{tbl:easy-instances}. These instances were solved by all solvers
+that made it in the final phase of SAT Competition 2009 main track.
+
+{
+  \small
+  \centering
+
+  \begin{longtable}{| l | c c c |}
+    \hline
+    \textbf{Intance name} & \textbf{Sat?} & \textbf{\# vars} & \textbf{\# clses} \\ 
+    \hline
+    \endfirsthead
+    \hline
+    \textbf{Intance name} & \textbf{Sat?} & \textbf{\# vars} & \textbf{\# clses} \\ 
+    \hline
+    \endhead
+    \hline
+    \endfoot
+    \endlastfoot
+
+    SAT09/APPLICATIONS/aprove09/AProVE09-01.cnf & SAT & 81870 & 318353 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-03.cnf & SAT & 59231 & 206299 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-05.cnf & SAT & 14685 & 49510 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-07.cnf & SAT & 8567 & 28936 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-10.cnf & SAT & 67186 & 245335 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-11.cnf & SAT & 20192 & 78082 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-12.cnf & SAT & 27495 & 102011 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-13.cnf & SAT & 7606 & 26317 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-17.cnf & SAT & 33894 & 108759 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-19.cnf & SAT & 30537 & 112780 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-21.cnf & SAT & 29964 & 91044 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-22.cnf & SAT & 11557 & 38505 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-24.cnf & SAT & 61164 & 209228 \\
+    SAT09/APPLICATIONS/aprove09/AProVE09-25.cnf & SAT & 37821 & 124485 \\
+    SAT09/APPLICATIONS/bioinfo/q\_query\_3\_l37\_lambda.cnf & SAT & 26241 & 128361 \\
+    SAT09/APPLICATIONS/bioinfo/q\_query\_3\_l38\_lambda.cnf & SAT & 26986 & 132388 \\
+    SAT09/APPLICATIONS/bioinfo/q\_query\_3\_l39\_lambda.cnf & SAT & 27735 & 136449 \\
+    SAT09/APPLICATIONS/bitverif/minor/minor032.cnf & UNSAT & 4210 & 12053 \\
+    SAT09/APPLICATIONS/satComp09\_BioInstances/rpoc\_xits\_17\_SAT.cnf & SAT & 2718 & 215000 \\
+    SAT07/industrial/babic/hsatv17/hsat\_vc11803.cnf & UNSAT & 276427 & 798348 \\
+    SAT07/industrial/babic/hsatv17/hsat\_vc11813.cnf & UNSAT & 312628 & 905106 \\
+    SAT07/industrial/babic/xinetd/xinetd\_vc56703.cnf & UNSAT & 110923 & 286428 \\
+    SATRACES/cmu-bmc-barrel6.cnf & UNSAT & 2306 & 8931 \\
+    SATRACES/cmu-bmc-longmult15.cnf & UNSAT & 7807 & 24351 \\
+    SATRACES/een-tip-sat-texas-tp-5e.cnf & SAT & 17985 & 52128 \\
+    SATRACES/een-tip-uns-nusmv-t5.B.cnf & UNSAT & 59265 & 170983 \\
+    SATRACES/manol-pipe-c9.cnf & UNSAT & 15214 & 45082 \\
+    SATRACES/manol-pipe-g6bi.cnf & UNSAT & 23891 & 69895 \\
+    SATRACES/schup-l2s-abp4-1-k31.cnf & UNSAT & 14809 & 48483 \\
+    SAT09/CRAFTED/modcircuits/owp\_4vars\_5gates.cnf & UNSAT & 267 & 23747 \\
+    SAT09/CRAFTED/parity-games/instance\_n2\_i2\_pp.cnf & UNSAT & 27 & 53 \\
+    SAT09/CRAFTED/parity-games/instance\_n2\_i3\_pp.cnf & UNSAT & 39 & 80 \\
+    SAT09/CRAFTED/parity-games/instance\_n3\_i3\_pp\_ci\_ce.cnf & SAT & 525 & 2336 \\
+    SAT09/CRAFTED/parity-games/instance\_n3\_i3\_pp.cnf & SAT & 525 & 2276 \\
+    SAT09/CRAFTED/parity-games/instance\_n3\_i4\_pp\_ci\_ce.cnf & UNSAT & 696 & 3122 \\
+    SAT09/CRAFTED/parity-games/instance\_n4\_i4\_pp\_ci\_ce.cnf & SAT & 1572 & 9175 \\
+    SAT09/CRAFTED/parity-games/instance\_n4\_i4\_pp.cnf & SAT & 1572 & 9007 \\
+    SAT09/CRAFTED/parity-games/instance\_n4\_i5\_pp.cnf & UNSAT & 1960 & 11270 \\
+    SAT09/CRAFTED/parity-games/instance\_n5\_i5\_pp.cnf & SAT & 3655 & 26264 \\
+    SAT09/CRAFTED/ramseycube/Q3inK08.cnf & SAT & 28 & 1680 \\
+    SAT09/CRAFTED/sgen/sat/sgen1-sat-140-100.cnf & SAT & 140 & 336 \\
+    SAT09/CRAFTED/sgen/unsat/sgen1-unsat-61-100.cnf & UNSAT & 61 & 132 \\
+    SAT09/CRAFTED/sgi/satsgi-n17himBHm20-p0-q146.cnf & SAT & 340 & 5967 \\
+    SAT09/CRAFTED/sgi/satsgi-n18himBHm21-p0-q167.cnf & SAT & 378 & 7011 \\
+    SAT09/CRAFTED/sgi/satsgi-n19himBHm22-p0-q181.cnf & SAT & 418 & 8170 \\
+    SAT09/CRAFTED/sgi/satsgi-n22himBHm24-p0-q209.cnf & SAT & 528 & 11638 \\
+    SAT09/CRAFTED/sgi/satsgi-n22himBHm25-p0-q229.cnf & SAT & 550 & 12397 \\
+    SAT09/CRAFTED/sgi/satsgi-n23himBHm25-p0-q219.cnf & SAT & 575 & 13248 \\
+    SAT09/CRAFTED/sgi/satsgi-n23himBHm26-p0-q248.cnf & SAT & 598 & 14076 \\
+    SAT09/CRAFTED/sgi/satsgi-n23himBHm27-p0-q251.cnf & SAT & 621 & 14927 \\
+    SAT09/CRAFTED/sgi/satsgi-n25himBHm27-p0-q251.cnf & SAT & 675 & 16900 \\
+    SAT09/CRAFTED/sgi/satsgi-n25himBHm29-p0-q290.cnf & SAT & 725 & 18875 \\
+    SAT09/CRAFTED/sgi/satsgi-n28himBHm30-p0-q333.cnf & SAT & 840 & 23548 \\
+    SAT09/CRAFTED/sgi/sgi-difficult4.cnf & SAT & 483 & 15156 \\
+    SAT07/crafted/spence/medium/s57-100.cnf & UNSAT & 57 & 124 \\
+    SAT07/crafted/spence/medium/s61-100.cnf & UNSAT & 61 & 132 \\
+    SAT07/crafted/spence/medium/s65-100.cnf & UNSAT & 65 & 140 \\
+    SAT07/crafted/spence/medium/s69-100.cnf & UNSAT & 69 & 148 \\
+    \hline
+
+    \caption{Easy instances from SAT09} \\
+    \label{tbl:easy-instances}
+  \end{longtable}
+}

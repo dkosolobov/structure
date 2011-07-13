@@ -1,13 +1,30 @@
 \documentclass[a4paper]{report}
 
 \usepackage[utf8]{inputenc}
-\usepackage{graphicx}
 \usepackage{todonotes}
+\usepackage{epstopdf}
+
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{graphicx}
 \usepackage{paralist}
+\usepackage{subfig}
+\usepackage{longtable}
+\usepackage{url}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\newtheorem{mydef}{Definition}
+\newtheorem{myprop}{Proposition}
+
+\newcommand{\I}{\mathfrak{I}}
 
 \begin{document}
 
-\title{STRUCTure: A Distributed SAT Solver}
+\title{STRUCTure: Towards a Distributed SAT Solver}
 \author{Alexandru Mosoi}
 
 \maketitle
@@ -15,9 +32,19 @@
 
 \include{abstract}
 \include{introduction}
+\include{basics}
+\include{literature}
 \include{architecture}
 \include{reasoning}
+\include{results}
+\include{future}
 \include{conclusions}
+
+\bibliographystyle{alpha}
+\bibliography{thesis}
+
+\appendix
+\include{easy-instances}
 
 \end{document}
 
