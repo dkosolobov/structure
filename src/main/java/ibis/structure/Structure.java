@@ -35,28 +35,18 @@ class Structure {
     return executors;
   }
 
+  private static Skeleton readInput() {
+    try {
+      return Reader.parseURL(Configure.inputFile);
+    } catch (Exception e) {
+      logger.error("Cannot read input file", e);
+      return null;
+    }
+  }
+
   public static void main(String[] args) throws Exception {
     if (!Configure.configure(args)) {
       return;
-    }
-
-    // Reads input and opens output
-    Skeleton instance = null;
-    try {
-      instance = Reader.parseURL(Configure.inputFile);
-    } catch (Exception e) {
-      logger.error("Cannot read input file", e);
-      System.exit(1);
-    }
-
-    PrintStream output = System.out;
-    if (Configure.outputFile != null) {
-      try {
-        output = new PrintStream(new FileOutputStream(Configure.outputFile));
-      } catch (Exception e) {
-        logger.error("Cannot open output file", e);
-        System.exit(1);
-      }
     }
 
     // Activates Constellation.
@@ -64,29 +54,33 @@ class Structure {
         ConstellationFactory.createConstellation(createExecutors());
     constellation.activate();
 
-    // Creates the thread pool
-    // HyperBinaryResolution.createThreadPool();
-
     // Starts the computation
     Solution solution = null;
-    try {
-      if (Configure.verbose) {
-        displayHeader();
+    if (constellation.isMaster()) {
+      displayHeader();
+
+      PrintStream output = System.out;
+      if (Configure.outputFile != null) {
+        try {
+          output = new PrintStream(new FileOutputStream(Configure.outputFile));
+        } catch (Exception e) {
+          logger.error("Cannot open output file", e);
+          System.exit(1);
+        }
       }
-      if (constellation.isMaster()) {
-        solution = solve(constellation, instance);
+
+      Skeleton instance = readInput();
+      if (instance == null) {
+        return;
       }
-    } catch (Throwable e) {
-      logger.error("Caught unhandled exception", e);
-      solution = Solution.unknown();
-    } finally {
+      solution = solve(constellation, instance);
+
       final long endTime = System.currentTimeMillis();
       output.println("c Elapsed time " + (endTime - Configure.startTime) / 1000.);
       solution.print(output);
-
-      constellation.done();
-      System.exit(solution.exitcode());
     }
+
+    constellation.done();
   }
 
   private static Solution solve(Constellation constellation, Skeleton instance) {
