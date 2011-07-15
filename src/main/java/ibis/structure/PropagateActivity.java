@@ -316,8 +316,6 @@ public final class PropagateActivity extends Activity {
             learned.add(lits[j]);
             learned.add(neg(l));
             num++;
-
-            logger.info("eq " + l + " " + lits[j]);
           }
         }
       }
