@@ -36,6 +36,7 @@ public final class XORActivity extends Activity {
       dve = DependentVariableElimination.run(
           instance.numVariables, instance.formula, xorGates);
       instance.formula.addAll(xorGates);
+      instance.expandSmallXOR();
     } catch (ContradictionException e) {
       reply(Solution.unsatisfiable());
       finish();
