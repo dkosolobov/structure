@@ -29,6 +29,7 @@ public final class SimplifyActivity extends Activity {
   public void initialize() {
     Solver solver = null;
     Solution solution = null;
+    Normalizer normalizer = new Normalizer();
 
     try {
       normalizer.normalize(instance);

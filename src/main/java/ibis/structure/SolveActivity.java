@@ -22,8 +22,6 @@ public final class SolveActivity extends Activity {
   private int branch;
   /** Core of the instance after simplification. */
   private Core core;
-  /** Histogram of conflicts. */
-  public static TIntArrayList histogram;
 
   /**
    * @param branch branching literal.
@@ -52,24 +50,15 @@ public final class SolveActivity extends Activity {
   public void initialize() {
     Solver solver = null;
     Solution solution = null;
+    Normalizer normalizer = new Normalizer();
 
     try {
       normalizer.normalize(instance);
       solver = new Solver(instance);
       solver.propagate();
-
-      if (instance.size() > 2500) {
-        HyperBinaryResolution.run(solver);
-      }
-
-      if (instance.size() > 16000) {
-        HiddenTautologyElimination.run(solver);
-      }
-
-      if (instance.size() > 1600) {
-        SelfSubsumming.run(solver);
-      }
-
+      HyperBinaryResolution.run(solver);
+      HiddenTautologyElimination.run(solver);
+      SelfSubsumming.run(solver);
       PureLiterals.run(solver);
       MissingLiterals.run(solver);
 
@@ -109,12 +98,6 @@ public final class SolveActivity extends Activity {
       response = Solution.unsatisfiable(branch);
     } else if (response.isUnknown()) {
       response = Solution.unknown(branch, response, core, depth < 3, depth < 2);
-    }
-
-    if (!response.isSatisfiable() && depth < histogram.size()) {
-      synchronized (histogram) {
-        histogram.setQuick(depth, histogram.getQuick(depth) + 1);
-      }
     }
 
     reply(response);

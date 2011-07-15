@@ -132,8 +132,6 @@ public final class RestartActivity extends Activity {
     logger.info("Spawning " + generation + " for " + ttl + " seconds");
     logger.info("Instance has " + tmp.size() + " / " + instance.formula.size());
 
-    SolveActivity.histogram = new TIntArrayList(new int[100]);
-
     executor.submit(new LookAheadActivity(
           identifier(), generation, scores, instance.clone()));
 
@@ -162,8 +160,6 @@ public final class RestartActivity extends Activity {
 
     long endTime = System.currentTimeMillis();
     logger.info("Ran for " + (endTime - startTime) / 1000. + " seconds");
-    logger.info("Histogram is " + SolveActivity.histogram);
-
     response.addLearnedClauses(instance.formula, 1000);
     executor.submit(new BlockedClauseEliminationActivity(
           identifier(), scores, instance));

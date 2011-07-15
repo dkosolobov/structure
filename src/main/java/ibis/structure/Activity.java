@@ -28,10 +28,9 @@ public class Activity extends ibis.constellation.Activity {
   protected TDoubleArrayList scores = null;
   /** Instance to be solved. */
   protected Skeleton instance = null;
-  /** A normalizer for the instance to be solver. */
-  protected Normalizer normalizer = new Normalizer();
   /** Original instance to be solved. */
   protected Skeleton original = null;
+  /** True if activity was already replied. */
   private boolean replied = false;
 
   /**
