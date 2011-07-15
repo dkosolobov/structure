@@ -21,7 +21,7 @@ import static ibis.structure.Misc.*;
  * <li><tt>UNKNOWN</tt> a solution was not found, more branching is required.</li>
  * </ul>
  */
-public final class Solution {
+public final class Solution implements java.io.Serializable {
   private static final Logger logger = Logger.getLogger(RestartActivity.class);
 
   private static final int SATISFIABLE = 10;
