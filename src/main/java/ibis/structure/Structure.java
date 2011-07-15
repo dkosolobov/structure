@@ -35,28 +35,18 @@ class Structure {
     return executors;
   }
 
-  public static void main(String[] args) throws Exception {
-    if (!Configure.configure(args)) {
-      return;
-    }
-
-    // Reads input and opens output
-    Skeleton instance = null;
+  private static Skeleton readInput() {
     try {
-      instance = Reader.parseURL(Configure.inputFile);
+      return Reader.parseURL(Configure.inputFile);
     } catch (Exception e) {
       logger.error("Cannot read input file", e);
-      System.exit(1);
+      return null;
     }
+  }
 
-    PrintStream output = System.out;
-    if (Configure.outputFile != null) {
-      try {
-        output = new PrintStream(new FileOutputStream(Configure.outputFile));
-      } catch (Exception e) {
-        logger.error("Cannot open output file", e);
-        System.exit(1);
-      }
+  public static void main(String[] args) throws Exception {
+    if (!Configure.configure(args)) {
+      System.exit(1);
     }
 
     // Activates Constellation.
@@ -64,29 +54,34 @@ class Structure {
         ConstellationFactory.createConstellation(createExecutors());
     constellation.activate();
 
-    // Creates the thread pool
-    // HyperBinaryResolution.createThreadPool();
-
     // Starts the computation
-    Solution solution = null;
-    try {
-      if (Configure.verbose) {
-        displayHeader();
-      }
-      if (constellation.isMaster()) {
-        solution = solve(constellation, instance);
-      }
-    } catch (Throwable e) {
-      logger.error("Caught unhandled exception", e);
-      solution = Solution.unknown();
-    } finally {
-      final long endTime = System.currentTimeMillis();
-      output.println("c Elapsed time " + (endTime - Configure.startTime) / 1000.);
-      solution.print(output);
+    if (constellation.isMaster()) {
+      displayHeader();
 
-      constellation.done();
-      System.exit(solution.exitcode());
+      Skeleton instance = readInput();
+      if (instance == null) {
+        System.exit(1);
+      }
+
+      PrintStream output = System.out;
+      if (Configure.outputFile != null) {
+        try {
+          output = new PrintStream(new FileOutputStream(Configure.outputFile));
+        } catch (Exception e) {
+          logger.error("Cannot open output file " + Configure.outputFile
+                       + " for writing", e);
+          System.exit(1);
+        }
+      }
+
+      final long startTime = System.currentTimeMillis();
+      Solution solution = solve(constellation, instance);
+      final long endTime = System.currentTimeMillis();
+      output.println("c Elapsed time " + (endTime - startTime) / 1000.);
+      solution.print(output);
     }
+
+    constellation.done();
   }
 
   private static Solution solve(Constellation constellation, Skeleton instance) {
