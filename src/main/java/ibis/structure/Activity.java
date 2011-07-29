@@ -20,6 +20,8 @@ public class Activity extends ibis.constellation.Activity {
 
   /** Parent of this activity. */
   protected ActivityIdentifier parent = null;
+  /** Master tracer identifier. */
+  protected ActivityIdentifier tracer = null;
   /** Depth of the search. */
   protected int depth = Integer.MAX_VALUE;
   /** Instance generation. */
@@ -43,12 +45,14 @@ public class Activity extends ibis.constellation.Activity {
    * @param instance instance to be solved
    */
   protected Activity(final ActivityIdentifier parent,
+                     final ActivityIdentifier tracer,
                      final int depth,
                      final long generation,
                      final TDoubleArrayList scores,
                      final Skeleton instance) {
     super(UnitActivityContext.DEFAULT, true);
     this.parent = parent;
+    this.tracer = tracer;
     this.depth = depth;
     this.generation = generation;
     this.scores = scores;
@@ -170,7 +174,7 @@ public class Activity extends ibis.constellation.Activity {
           } catch (Exception e) {
             e.printStackTrace();
           }
-          logger.info("Satisfiable instance\n");
+          logger.info("Satisfiable instance " + original.hash() + " in " + this.getClass().getName());
           System.exit(1);
         }
       }

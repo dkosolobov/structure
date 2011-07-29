@@ -17,16 +17,17 @@ public final class XORActivity extends Activity {
   private TIntArrayList dve;
 
   public XORActivity(final ActivityIdentifier parent,
+                     final ActivityIdentifier tracer,
                      final TDoubleArrayList scores,
                      final Skeleton instance) {
-    super(parent, 0, 0, scores, instance);
+    super(parent, tracer, 0, 0, scores, instance);
   }
 
   @Override
   public void initialize() {
     if (!Configure.xor) {
       executor.submit(new BlockedClauseEliminationActivity(
-            parent, scores, instance));
+            parent, tracer, scores, instance));
       finish();
       return;
     }
@@ -44,12 +45,13 @@ public final class XORActivity extends Activity {
     }
 
     executor.submit(new BlockedClauseEliminationActivity(
-          identifier(), scores, instance));
+          identifier(), tracer, scores, instance));
     suspend();
   }
 
   @Override
   public void process(final Event e) throws Exception {
+    logger.info("XOR finished ***************** parent is " + parent);
     Solution response = (Solution) e.data;
     response = DependentVariableElimination.restore(dve, response);
     reply(response);

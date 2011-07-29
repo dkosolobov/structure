@@ -20,9 +20,10 @@ public final class SimplifyActivity extends Activity {
   private Core core = null;
 
   public SimplifyActivity(final ActivityIdentifier parent,
+                          final ActivityIdentifier tracer,
                           final TDoubleArrayList scores,
                           final Skeleton instance) {
-    super(parent, 0, 0, scores, instance.clone());
+    super(parent, tracer, 0, 0, scores, instance.clone());
   }
 
   @Override
@@ -62,12 +63,15 @@ public final class SimplifyActivity extends Activity {
 
     core = solver.core();
     normalizer.denormalize(core);
-    executor.submit(new RestartActivity(identifier(), scores, core.instance()));
+    executor.submit(new RestartActivity(
+          identifier(), tracer, scores, core.instance()));
     suspend();
   }
 
   @Override
   public void process(final Event e) throws Exception {
+    logger.info("In simplify processing");
+
     Solution solution = (Solution) e.data;
     if (solution.isSatisfiable()) {
       solution = core.merge(solution);

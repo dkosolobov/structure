@@ -27,18 +27,19 @@ public final class SolveActivity extends Activity {
    * @param branch branching literal.
    */
   public SolveActivity(final ActivityIdentifier parent,
+                       final ActivityIdentifier tracer,
                        final int depth,
                        final long generation,
                        final TDoubleArrayList scores,
                        final Skeleton instance,
                        final int branch) {
-    super(parent, depth, generation, scores, addBranch(instance, branch));
+    super(parent, tracer, depth, generation, scores, branch(instance, branch));
     this.branch = branch;
   }
 
   /** Adds a branch to instance as an unit clause. */
-  private static Skeleton addBranch(final Skeleton instance,
-                                    final int branch) {
+  private static Skeleton branch(final Skeleton instance,
+                                 final int branch) {
     if (branch != 0) {
       instance.formula.add(encode(1, OR));
       instance.formula.add(branch);
@@ -84,7 +85,7 @@ public final class SolveActivity extends Activity {
 
 
     executor.submit(new SplitActivity(
-          identifier(), depth, generation, scores, core.instance()));
+          identifier(), tracer, depth, generation, scores, core.instance()));
     suspend();
   }
 

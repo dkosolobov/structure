@@ -34,12 +34,13 @@ public final class BranchActivity extends Activity {
    * @param branch branching literal.
    */
   public BranchActivity(final ActivityIdentifier parent,
+                        final ActivityIdentifier tracer,
                         final int depth,
                         final long generation,
                         final TDoubleArrayList scores,
                         final Skeleton instance,
                         final int branch) {
-    super(parent, depth, generation, scores, instance);
+    super(parent, tracer, depth, generation, scores, instance);
     this.branch = branch;
   }
 
@@ -49,9 +50,11 @@ public final class BranchActivity extends Activity {
     Skeleton copy2 = instance;
 
     executor.submit(new BlackHoleActivity(
-          identifier(), depth + 1, generation, scores, copy1, branch));
+          identifier(), tracer, depth + 1,
+          generation, scores, copy1, branch));
     executor.submit(new BlackHoleActivity(
-          identifier(), depth + 1, generation, scores, copy2, neg(branch)));
+          identifier(), tracer, depth + 1,
+          generation, scores, copy2, neg(branch)));
 
     suspend();
   }

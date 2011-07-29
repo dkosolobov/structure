@@ -38,9 +38,10 @@ public final class PropagateActivity extends Activity {
   private int[] numUnsatisfied = null;
 
   public PropagateActivity(final ActivityIdentifier parent,
+                           final ActivityIdentifier tracer,
                            final Skeleton instance,
                            final int[] vars) {
-    super(parent, 0, 0, null, instance);
+    super(parent, tracer, 0, 0, null, instance);
     this.vars = vars;
   }
 

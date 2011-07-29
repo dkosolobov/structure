@@ -19,11 +19,12 @@ public final class SelectBranchActivity extends Activity {
   private static final Random random = new Random(1);
 
   public SelectBranchActivity(final ActivityIdentifier parent,
+                              final ActivityIdentifier tracer,
                               final int depth,
                               final long generation,
                               final TDoubleArrayList scores,
                               final Skeleton instance) {
-    super(parent, depth, generation, scores, instance);
+    super(parent, tracer, depth, generation, scores, instance);
   }
 
   @Override
@@ -33,7 +34,7 @@ public final class SelectBranchActivity extends Activity {
     branch = random.nextDouble() < score ? branch : neg(branch);
 
     executor.submit(new BranchActivity(
-          parent, depth, generation, scores, instance, branch));
+          parent, tracer, depth, generation, scores, instance, branch));
 
     finish();
     return;

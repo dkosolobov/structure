@@ -33,10 +33,11 @@ public final class LookAheadActivity extends Activity {
 
 
   public LookAheadActivity(final ActivityIdentifier parent,
+                           final ActivityIdentifier tracer,
                            final long generation,
                            final TDoubleArrayList scores,
                            final Skeleton instance) {
-    super(parent, 0, generation, scores, instance);
+    super(parent, tracer, 0, generation, scores, instance);
     this.solution = Solution.unknown();
   }
 
@@ -52,7 +53,8 @@ public final class LookAheadActivity extends Activity {
     for (int i = 0; i < vars.length; i += step) {
       int num = Math.min(step, vars.length - i);
       int[] send = Arrays.copyOfRange(vars, i, i + num);
-      executor.submit(new PropagateActivity(identifier(), instance, send));
+      executor.submit(new PropagateActivity(
+            identifier(), tracer, instance, send));
       numChunks++;
     }
 
@@ -64,8 +66,6 @@ public final class LookAheadActivity extends Activity {
   public void process(final Event e) {
     Solution response = (Solution) e.data;
 
-    numChunks--;
-
     if (!solved) {
       if (!response.isUnknown()) {
         solved = true;
@@ -75,15 +75,16 @@ public final class LookAheadActivity extends Activity {
       }
     }
 
+    numChunks--;
     if (numChunks == 0) {
       if (!solved) {
         TIntArrayList learned = new TIntArrayList();
         solution.addLearnedClauses(learned, 10);
         instance.formula.addAll(learned);
-        // logger.info("Learned\n" + formulaToString(learned));
 
+        logger.info("Staring generation " + generation + ". Good luck!");
         executor.submit(new SplitActivity(
-              identifier(), 0, generation,
+              identifier(), tracer, 0, generation,
               scores, instance.clone()));
         suspend();
       } else {

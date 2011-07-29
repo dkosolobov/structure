@@ -36,18 +36,19 @@ public final class SplitActivity extends Activity {
   private TIntObjectHashMap<Skeleton> subInstances = null;
 
   public SplitActivity(final ActivityIdentifier parent,
+                       final ActivityIdentifier tracer,
                        final int depth,
                        final long generation,
                        final TDoubleArrayList scores,
                        final Skeleton instance) {
-    super(parent, depth, generation, scores, instance);
+    super(parent, tracer, depth, generation, scores, instance);
   }
 
   @Override
   public void initialize() {
     if (!Configure.split) {
       executor.submit(new SelectBranchActivity(
-            parent, depth, generation, scores, instance));
+            parent, tracer, depth, generation, scores, instance));
       finish();
       return;
     }
@@ -61,7 +62,7 @@ public final class SplitActivity extends Activity {
 
     if (!isSplit()) {
       executor.submit(new SelectBranchActivity(
-            parent, depth, generation, scores, instance));
+            parent, tracer, depth, generation, scores, instance));
       finish();
       return;
     }
@@ -74,7 +75,7 @@ public final class SplitActivity extends Activity {
     for (int size = subInstances.size(); size > 0; size--) {
       it.advance();
       executor.submit(new SelectBranchActivity(
-            identifier(), depth, generation, scores, it.value()));
+            identifier(), tracer, depth, generation, scores, it.value()));
     }
 
     suspend();

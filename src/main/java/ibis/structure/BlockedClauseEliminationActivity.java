@@ -17,16 +17,17 @@ public final class BlockedClauseEliminationActivity extends Activity {
   private TIntArrayList bce = null;
 
   public BlockedClauseEliminationActivity(final ActivityIdentifier parent,
+                                          final ActivityIdentifier tracer,
                                           final TDoubleArrayList scores,
                                           final Skeleton instance) {
-    super(parent, 0, 0, scores, instance);
+    super(parent, tracer, 0, 0, scores, instance);
   }
 
   @Override
   public void initialize() {
     if (!Configure.bce) {
       executor.submit(new VariableEliminationActivity(
-            parent, scores, instance));
+            parent, tracer, scores, instance));
       finish();
       return;
     }
@@ -42,7 +43,7 @@ public final class BlockedClauseEliminationActivity extends Activity {
     }
 
     executor.submit(new VariableEliminationActivity(
-          identifier(), scores, instance));
+          identifier(), tracer, scores, instance));
     suspend();
   }
 

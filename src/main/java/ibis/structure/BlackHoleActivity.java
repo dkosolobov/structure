@@ -17,32 +17,35 @@ public final class BlackHoleActivity extends Activity {
       BlackHoleActivity.class);
 
   /** A set of dead generations. */
-  private static final TLongHashSet graveyard = new TLongHashSet();
-
+  private static TLongHashSet graveyard = new TLongHashSet();
+  /** Branch (for SolveActivity). */
   private int branch;
 
   /** Checks and removes instances from dead generation. */
   public BlackHoleActivity(final ActivityIdentifier parent,
+                           final ActivityIdentifier tracer,
                            final int depth,
                            final long generation,
                            final TDoubleArrayList scores,
                            final Skeleton instance,
                            final int branch) {
-    super(parent, depth, generation, scores, instance);
+    super(parent, tracer, depth, generation, scores, instance);
     this.branch = branch;
   }
 
   /** Sets generation kill as dead. */
-  public static void moveToGraveyard(final long kill) {
-    synchronized (graveyard) {
+  public static void killGeneration(final long kill) {
+    synchronized (BlackHoleActivity.class) {
       graveyard.add(kill);
     }
   }
 
   @Override
   public void initialize() {
+    TracerSlave.registerSlave(tracer);
+
     boolean dead;
-    synchronized (graveyard) {
+    synchronized (BlackHoleActivity.class) {
       dead = graveyard.contains(generation);
     }
 
@@ -50,14 +53,11 @@ public final class BlackHoleActivity extends Activity {
       reply(Solution.unknown());
       finish();
     } else {
-      // logger.info("at " + this + " branching on " + branch);
       executor.submit(new SolveActivity(
-            identifier(), depth, generation, scores, instance, branch));
+            identifier(), tracer, depth, generation, scores, instance, branch));
       suspend();
     }
   }
-
-  static int counter = 0;
 
   @Override
   public void process(final Event e) throws Exception {

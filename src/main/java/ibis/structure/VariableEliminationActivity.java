@@ -19,15 +19,17 @@ public final class VariableEliminationActivity extends Activity {
   private Core core = null;
 
   public VariableEliminationActivity(final ActivityIdentifier parent,
+                                     final ActivityIdentifier tracer,
                                      final TDoubleArrayList scores,
                                      final Skeleton instance) {
-    super(parent, 0, 0, scores, instance);
+    super(parent, tracer, 0, 0, scores, instance);
   }
 
   @Override
   public void initialize() {
     if (!Configure.ve) {
-      executor.submit(new SimplifyActivity(parent, scores, instance));
+      executor.submit(new SimplifyActivity(
+            parent, tracer, scores, instance));
       finish();
       return;
     }
@@ -39,11 +41,13 @@ public final class VariableEliminationActivity extends Activity {
 
       core = solver.core();
       executor.submit(new SimplifyActivity(
-            identifier(), scores, core.instance()));
+            identifier(), tracer, scores, core.instance()));
 
       gc();
       suspend();
     } catch (ContradictionException e) {
+      logger.info("Contradiction in VE");
+      e.printStackTrace();
       reply(Solution.unsatisfiable());
       finish();
     }
@@ -52,7 +56,6 @@ public final class VariableEliminationActivity extends Activity {
   @Override
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
-
     if (response.isSatisfiable()) {
       response = core.merge(response);
       response = VariableElimination.restore(ve, response);

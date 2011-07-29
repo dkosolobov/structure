@@ -12,13 +12,14 @@ public final class PreprocessActivity extends Activity {
       PreprocessActivity.class);
 
   public PreprocessActivity(final ActivityIdentifier parent,
+                            final ActivityIdentifier tracer,
                             final Skeleton instance) {
-    super(parent, 0, 0, null, instance);
+    super(parent, tracer, 0, 0, null, instance);
   }
 
   @Override
   public void initialize() throws Exception {
-    executor.submit(new XORActivity(parent, null, instance));
+    executor.submit(new XORActivity(parent, tracer, null, instance));
     finish();
   }
 }

@@ -34,19 +34,21 @@ public final class RestartActivity extends Activity {
   private static final int DEPTH = 0;
 
   private static final Logger logger = Logger.getLogger(RestartActivity.class);
-  private static final Random random = new Random(1);
+  private static final Random random = new Random();
 
   /** Current generation time to live. */
   private static int ttl = INITIAL_TTL;  // TODO: should not be static
+  /** Timer to restart. */
+  private transient Timer timer;
   /** Starting time. */
   private long startTime;
 
   public RestartActivity(final ActivityIdentifier parent,
+                         final ActivityIdentifier tracer,
                          final TDoubleArrayList scores,
                          final Skeleton instance) {
-    super(parent, 0, guid(), scores, instance);
-
-    sortBinaries();
+    super(parent, tracer, 0, guid(), scores, instance);
+    // sortBinaries();
   }
 
   /**
@@ -119,30 +121,22 @@ public final class RestartActivity extends Activity {
 
     startTime = System.currentTimeMillis();
 
-    TIntHashSet tmp = new TIntHashSet();
-    ClauseIterator it = new ClauseIterator(instance.formula);
-    while (it.hasNext()) {
-      int clause = it.next();
-      int length = length(instance.formula, clause);
-      for (int i = clause; i < clause + length; i++) {
-        tmp.add(var(instance.formula.getQuick(i)));
-      }
-    }
-
     logger.info("Spawning " + generation + " for " + ttl + " seconds");
-    logger.info("Instance has " + tmp.size() + " / " + instance.formula.size());
+    logger.info("Instance has " + instance.countVariables()
+                + " / " + instance.size());
 
     executor.submit(new LookAheadActivity(
-          identifier(), generation, scores, instance.clone()));
+          identifier(), tracer, generation, scores, instance.clone()));
 
     if (ttl < MAX_TTL) {
       TimerTask task = new TimerTask() {
         public void run() {
-          BlackHoleActivity.moveToGraveyard(generation);
+          TracerMaster.killGeneration(executor, tracer, generation);
         }
       };
 
-      (new Timer()).schedule(task, ttl * 1000L);
+      timer = new Timer();
+      timer.schedule(task, ttl * 1000L);
       ttl += EXTRA_TTL;
     }
 
@@ -153,6 +147,9 @@ public final class RestartActivity extends Activity {
   public void process(final Event e) throws Exception {
     Solution response = (Solution) e.data;
     if (!response.isUnknown()) {
+      timer.cancel();
+      TracerMaster.killGeneration(executor, tracer, generation);
+
       reply(response);
       finish();
       return;
@@ -160,9 +157,11 @@ public final class RestartActivity extends Activity {
 
     long endTime = System.currentTimeMillis();
     logger.info("Ran for " + (endTime - startTime) / 1000. + " seconds");
-    response.addLearnedClauses(instance.formula, 1000);
+    if (Configure.learn) {
+      response.addLearnedClauses(instance.formula, 1000);
+    }
     executor.submit(new BlockedClauseEliminationActivity(
-          identifier(), scores, instance));
+          identifier(), tracer, scores, instance));
     suspend();
   }
 }
