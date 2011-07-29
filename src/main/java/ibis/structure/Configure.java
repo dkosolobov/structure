@@ -6,13 +6,12 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
+import ibis.constellation.Executor;
 
 
 public class Configure {
   private static final Logger logger = Logger.getLogger(Structure.class);
 
-  /** Start time of program. */
-  public static long startTime = System.currentTimeMillis();
   /** Path to input file. */
   public static String inputFile = null;
   /** Path to output file. */
@@ -32,15 +31,24 @@ public class Configure {
   /** True to split instances when possible. */
   public static boolean split = true;
   /** True to extract xor gates and enable dependent variable elimination. */
-  public static boolean xor = false;
+  public static boolean xor = true;
   /** True to run blocked clause elimination. */
   public static boolean bce = true;
   /** True to enable variable elimination. */
   public static boolean ve = true;
+  /** True to enable learning. */
+  public static boolean learn = true;
   /** Number of hyper binary resolutions to perform. 0 to disable. */
   public static boolean hbr = true;
   /** Threshold for transitive closure. */
-  public static double[] ttc = {1024};
+  public static double[] ttc = { 0.50, 1.00, 1.00,
+                                 1.00, 1.00, 0.00,
+                                 0.00, 0.00, 0.00 };
+
+  /** Context for local jobs. */
+  public static String localContext;
+  /** Executor for local jobs. */
+  public static Executor localExecutor;
 
   public static boolean configure(String[] args) {
     Options options = new Options();
@@ -56,6 +64,8 @@ public class Configure {
     options.addOption("nosplit", false, "disable splitting");
     options.addOption("noxor", false, "disable xor gates extraction");
     options.addOption("nobce", false, "disable blocked clause elimination");
+    options.addOption("nove", false, "disable variable elimination");
+    options.addOption("nolearn", false, "disable learning");
     options.addOption("nohbr", false, "disable hyper binary resolutions");
     options.addOption("ttc", true, "some coefficients");
 
@@ -96,6 +106,8 @@ public class Configure {
     split = split && !cl.hasOption("nosplit");
     xor = xor && !cl.hasOption("noxor");
     bce = bce && !cl.hasOption("nobce");
+    ve = ve && !cl.hasOption("nove");
+    learn = learn && !cl.hasOption("nolearn");
     hbr = hbr && !cl.hasOption("nohbr");
 
     if (cl.hasOption("ttc")) {
