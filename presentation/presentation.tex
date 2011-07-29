@@ -1,0 +1,585 @@
+\documentclass[mathserif,serif]{beamer}
+
+\usepackage{url}
+\usepackage{amssymb}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+
+
+\begin{document}
+
+\title{STRUCTure: Towards a Distributed Boolean Satisfiability Solver}
+\author{Alexandru Mosoi \\
+        \url{ami650@few.vu.nl}}
+
+
+\begin{frame}
+  \titlepage
+
+  \begin{flushright}
+    Supervisor: Jason Maassen \url{jason@cs.vu.nl} \\
+    Supervisor: Kees Verstoep \url{c.verstoep@vu.nl} 
+  \end{flushright}
+\end{frame}
+
+\begin{frame}{Layout}
+  \tableofcontents
+\end{frame}
+
+\section{Introduction}
+
+\begin{frame}{Problem Definition}
+  A \textcolor{red}{\textbf{Boolean formula}}, $F : \mathbb{B}^n \rightarrow
+  \mathbb{B}$, is in Conjuctive Normal Form if
+  it is a conjuction of disjunctions of literals.
+
+  \begin{itemize}
+    \item Variable: $1 \ldots N$
+    \begin{itemize}
+      \item Can take one of two truth values $True$ or $False$
+    \end{itemize}
+    \item Literal: $a$ or $\neg a$, $a$ variable
+    \begin{itemize}
+      \item $1, \neg 3$
+    \end{itemize}
+    \item Clause: $u_1 \lor u_2 \ldots \lor u_k$, $u_i$ literals
+    \begin{itemize}
+      \item $1 \lor 2 \lor \neg 4 \lor \neg 5 \lor 7$
+    \end{itemize}
+    \item Formula: $C_1 \land C_2 \ldots \land C_m$, $C_i$ clauses
+    \begin{itemize}
+      \item \textcolor{red}{$\mathbf{(1 \lor \neg 2) \land (1 \lor 3) \land (2 \lor 3 \lor 5)}$}
+    \end{itemize}
+    \item Any formula can be transformed such that clauses have at most 3
+    literals ($3-SAT$ which is in NP).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Goal}
+  \begin{block}{Goal}
+    \centering \large
+    Find a \textcolor{red}{satifying assignment} for any Boolean formula
+    in CNF, or return that formula is inconsistent
+  \end{block}
+
+  \begin{block}{Example}
+    \begin{itemize}
+      \item $(1 \lor \neg 2) \land (1 \lor 3) \land (2 \lor 3 \lor 5)$
+      \item 1 = False, 2 = False, 3 = True, 5 = False
+      \item $\neg 1, \neg 2, 3, \neg 5$
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Importance}
+  \begin{block}{Academia}
+    \begin{itemize}
+      \item One of Karp's 21 \textbf{NP-complete} problem
+      \footnote{Richard M. Karp (1972). \emph{Reducibility Among Combinatorial Problems}. \url{http://www.cs.berkeley.edu/~luca/cs172/karp.pdf}}
+      \item Other NP-complete problems can be reduced to $3-SAT$
+      \begin{itemize}
+        \item e.g: graph coloring, vertex cover
+      \end{itemize}
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Industry}
+    \begin{itemize}
+      \item Circuit encoding of Boolean logic
+      \footnote{G. Audemard, L. Saıs. \emph{Circuit Based Encoding of CNF formula}}
+      \begin{itemize}
+        \item planning, synthesis, biology, verification, testing, routing, ...
+      \end{itemize}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Parallelization}
+  \begin{itemize}
+    \item State-of-art solvers are \emph{sequential}
+    \begin{itemize}
+      \item but they are wicked fast
+    \end{itemize}
+    \item Current approaches to parallelism:
+    \begin{itemize}
+      \item Run same solvers with different settings
+      \begin{itemize}
+        \item Pingeling, SAT4J \footnote{SAT4J. \url{http://www.sat4j.org/}}
+      \end{itemize}
+      \item Share database of learned clauses (usually limited to units and,
+      maybe, binaries)
+      \begin{itemize}
+        \item Pingeling \footnote{Pingeling. \url{http://fmv.jku.at/papers/Biere-FMV-TR-10-1.pdf}}
+        and Cryptominisat \footnote{Cryptominisat.  \url{http://www.msoos.org/cryptominisat2}}
+      \end{itemize}
+      \item Don't scale well
+    \end{itemize}
+
+    \item We want: \emph{Horizontal scalability}
+    \footnote{\emph{Horizontal scalability} is Scalability in number of cpus}
+    \begin{itemize}
+      \item Replicated (not shared) memory
+      \item Less synchronization
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+
+\section{Architecture of STRUCTure}
+
+\begin{frame}{Layout}
+  \tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}{Types of solvers}
+\let\thefootnote\relax\footnote{
+Davis, Martin; Logemann, George, and Loveland, Donald (1962). \emph{A Machine Program for Theorem Proving}}
+
+  \begin{columns}[T]
+    \begin{column}[T]{0.4\textwidth}
+      \centering
+      \only<1>{\includegraphics[width=\textwidth]{data/solvers}}
+      \only<2>{\includegraphics[width=\textwidth]{data/solvers-cdcl}}
+      \only<3>{\includegraphics[width=\textwidth]{data/solvers-la}}
+    \end{column}
+
+    \begin{column}[T]{0.7\textwidth}
+      \begin{itemize}
+        \item Backtracking (DPLL)
+        \only<1> {
+          \begin{itemize}
+            \item Pick a variable, $u$
+            \item For both polarities $u, \neg u$:
+            \begin{itemize}
+              \item Simplify the formula
+              \item If f. is empty return solution \\
+              (empty formula is consistent)
+              \item else if f. is inconsistent \textcolor{red}{backtrack} \\
+              (found a \emph{conflict}) 
+              \item else \textcolor{red}{recurse}
+            \end{itemize}
+          \end{itemize}
+        }
+
+        \item Conflict Driven/Clause Learning
+        \only<2>{
+          \begin{itemize}
+            \item Searches conflicts
+            \item \emph{Learns} new clauses to \emph{reduce} search space
+            \item Maintain a database of learned clauses
+          \end{itemize}
+        }
+        \item Look-ahead
+        \only<3>{
+          \begin{itemize}
+            \item Picks variables which \emph{simplify} the formula
+            as much as possible 
+            \item Eventually the formula is \emph{empty} (consistent)
+            or contains an \emph{empty clause} (inconsistent)
+          \end{itemize}
+        }
+        \item<3> STRUCTure is Look-ahead + Clause Learning
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+\begin{frame}{Constellation}
+  \let\thefootnote\relax\footnote{J. Maassen, F.J. Seinstra, H.E. Bal,
+  \emph{Context Aware Many-Task Computing with Ibis/Constellation}}
+
+  \begin{columns}[t]
+    \begin{column}[T]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{data/constellation}
+    \end{column}
+
+    \begin{column}[T]{0.7\textwidth}
+      \begin{itemize}
+        \only<1> {
+          \item Computational model based on activities which:
+          \begin{itemize}
+            \item perform work
+            \item spawn new activities
+            \item send/process events to/from other activities
+          \end{itemize}
+        }
+
+        \only<2> {
+          \item Each node (machine) has a fixed number of executors
+          (threads) which run activities.
+          \item \emph{Work stealing}
+          \begin{itemize}
+            \item Local: \emph{small jobs}
+            \item Remote: \emph{large jobs}
+          \end{itemize}
+        }
+
+        \only<3> {
+          \item Advantage:
+          \begin{itemize}
+            \item Easy to parallelize (no synchronization)
+            \item Scalable
+          \end{itemize}
+          \item Disadvantage:
+          \begin{itemize}
+            \item No \emph{shared memory} or \emph{broadcasting}
+            \item \emph{No cancel}
+          \end{itemize}
+        }
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Architecture of STRUCTure}
+  \centering
+  \includegraphics[width=0.8\textwidth]{data/activity}
+\end{frame}
+
+\begin{frame}{XOR Gates and Dependent Variable Removal
+\footnote{M.J.H. Heule. \emph{Towards a lookahead sat solver for general purposes.}}
+\footnote{J.A. Roy, I.L. Markov. \emph{Restoring circuit structure from sat instances}.}}
+
+  \begin{columns}[t]
+    \begin{column}[T]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{data/xordvr}
+    \end{column}
+
+    \begin{column}[T]{0.8\textwidth}
+      \begin{itemize}
+        \item Many instances encode several logical gates: \emph{OR, AND, XOR}.
+        \item \emph{XOR} with $N$ inputs: \textcolor{red}{$\mathbf{2^{N}}$} CNF
+        clauses of \textcolor{red}{$N + 1$} literals
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+  \begin{block}{Idea}
+    \emph{Decode} XOR gates from formula and use them as eqns. in $\mathbb{Z}_2$.
+  \end{block}
+
+  \begin{block}{Dependent Variable Removal}
+    \begin{itemize}
+      \item Variable is dependent if it appears \emph{only} in XOR gates.
+      \item Can be removed together with some clauses.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Restart Loop}
+  \begin{center}
+    \includegraphics[width=0.6\textwidth]{data/restart}
+  \end{center}
+
+  \begin{block}{Idea}
+    Restart computation, maybe a different variable selection order
+    leads faster to a solution.
+  \end{block}
+
+  \begin{block}{How}
+    \begin{itemize}
+      \item Simplifies the formula
+      \only<1>{
+        \begin{itemize}
+          \item Blocked Clause Elimination
+          \footnote{M Jarvisalo, A. Biere, M. Heule, \emph{Blocked Clause Elimination}}
+          \item Variable Elimination
+          \item Simplify
+        \end{itemize}
+      }
+      \only<2>{
+        \item \textcolor{red}{Starts} and \textcolor{red}{stops} searching after some time
+        \item Extend formula with \textcolor{red}{learned clauses}
+      }
+    \end{itemize}
+  \end{block}
+
+\end{frame}
+
+\begin{frame}{Searching}
+  \begin{columns}[t]
+    \begin{column}[T]{0.3\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{data/seaching}
+    \end{column}
+
+    \begin{column}[T]{0.8\textwidth}
+      \begin{itemize}
+        \item \emph{Split} divides formula into a disjunction of 
+        independent smaller formulas
+        \item \emph{Select} picks a variable for branching
+        \begin{itemize}
+          \item analysis of clauses in which the variables appear
+        \end{itemize}
+        \item \emph{Branch} is the backtracking step
+        \item \emph{BlackHole} filters out instances from old restarts
+        \item \emph{Solve} simplifies the formula with newest added branch
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Learning}
+  \begin{columns}[t]
+    \begin{column}[T]{0.5\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{data/learning}
+    \end{column}
+
+    \begin{column}[T]{0.6\textwidth}
+      \begin{itemize}
+        \item \emph{Conflict}: cannot assign selected literals \textcolor{red}{$1, 2, \neg 4$}
+        \item $\overline{(1 \land 2 \land \neg 4)} \equiv (\neg 1 \lor \neg 2 \lor 4)$
+        \item $(\neg 1 \lor 2), (1 \lor 3)$
+        \item Next time no need to search the same space again.
+        \item Assign $\neg 1$ then $3$ must be false
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Look-ahead}
+  \begin{columns}[t]
+    \begin{column}[T]{0.4\textwidth}
+      \includegraphics[width=\textwidth]{data/lookahead}
+    \end{column}
+
+    \begin{column}[T]{0.7\textwidth}
+      \includegraphics[width=\textwidth]{data/lookahead-tree}
+    \end{column}
+  \end{columns}
+
+  \begin{block}{Idea}
+    \begin{itemize}
+      \item Perform search from root until depth 1
+      \item \emph{Learn units} and sometimes binaries
+      \begin{itemize}
+        \item unit = clause of length 1 = variable assignment
+      \end{itemize}
+      \item Then solve problem with newest clauses
+    \end{itemize}
+  \end{block}
+
+\end{frame}
+
+
+\section{Experimental Results}
+
+\begin{frame}{Layout}
+  \tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}{Instances}
+    \begin{itemize}
+      \item 678 instances taken from SAT Competition 2009
+      \item \textbf{170 instances} solvable by STRUCTure
+      \begin{itemize}
+        \item Sequential champions go to about 250
+      \end{itemize}
+      \item Timelimit: \textbf{15 minutes}
+      \begin{itemize}
+        \item SAT Competition limit is 20 minutes
+        \item Enough to understand performance
+      \end{itemize}
+
+      \item Evaluation was done on DAS-4 cluster at VU
+      \url{http://www.cs.vu.nl/das4/}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{1 to 8 CPUs (1 node)}
+  \begin{itemize}
+    \item using a subset of \textbf{175 instances}
+  \end{itemize}
+  \centering
+  \includegraphics[width=0.6\textwidth,angle=-90]{data/1machine}
+\end{frame}
+
+\begin{frame}{1 to 8 nodes (1 CPU)}
+  \begin{itemize}
+    \item using a subset of \textbf{175 instances}
+  \end{itemize}
+  \centering
+  \includegraphics[width=0.6\textwidth,angle=-90]{data/1cpu}
+\end{frame}
+
+\begin{frame}{Superimposed}
+  \begin{itemize}
+    \item using a subset of \textbf{175 instances}
+  \end{itemize}
+  \centering
+  \includegraphics[width=0.6\textwidth,angle=-90]{data/superimposed}
+\end{frame}
+
+\begin{frame}{1 to 8 nodes (8 CPUs)}
+  \begin{itemize}
+    \item using a subset of \textbf{175 instances}
+  \end{itemize}
+  \centering
+  \includegraphics[width=0.6\textwidth,angle=-90]{data/8cpu}
+\end{frame}
+
+\begin{frame}{Disabling various strategies}
+  \includegraphics[width=0.6\textwidth,angle=-90]{data/nc}
+\end{frame}
+
+\begin{frame}{Selected instances}
+  \small
+
+  \begin{tabular}{l | c c | c c c c}
+    & & & \multicolumn{4}{c}{Workers (Time:\textcolor{red}{speedup})} \\
+    \hline
+    Instance & & & 1 & 2 & 4 & 8 \\
+    \hline
+    countbitsrotate016 & U & 1n & 666:\textcolor{red}{1} & 363:\textcolor{red}{1.8} & 189:\textcolor{red}{3.5} & 105:\textcolor{red}{6.3} \\
+                              & & 1c/n & 666:\textcolor{red}{1} & 397:\textcolor{red}{1.7} & 247:\textcolor{red}{2.7} & 191:\textcolor{red}{3.5} \\
+    \hline
+    AProVE09-19 & S & 1n & 129:\textcolor{red}{1} & 65:\textcolor{red}{2.0} & 29:\textcolor{red}{4.4} & 20:\textcolor{red}{6.5} \\
+                & & 1c/n & 129:\textcolor{red}{1} & 117:\textcolor{red}{1.1} & 70:\textcolor{red}{1.8} & 62:\textcolor{red}{2.1} \\
+    \hline
+    \hline
+    instance\_n5\_i6\_pp\_ci\_ce & U & 1n & 242:\textcolor{red}{1} & 94:\textcolor{red}{2.6} & 59:\textcolor{red}{4.1} & 36:\textcolor{red}{6.7}  \\
+                                 & & 1c/n & 242:\textcolor{red}{1} & 114:\textcolor{red}{2.1} & 116:\textcolor{red}{2.1} & 99:\textcolor{red}{2.4} \\
+    \hline
+    instance\_n5\_i5\_pp & S & 1n & 102:\textcolor{red}{1} & 65:\textcolor{red}{1.6} & 49:\textcolor{red}{2.1} & 32:\textcolor{red}{3.2} \\
+                         & & 1c/n & 102:\textcolor{red}{1} & 61:\textcolor{red}{1.7} & 52:\textcolor{red}{2.0} & 30:\textcolor{red}{3.4} \\
+    \hline
+    \hline
+    unif-k3-$\ldots$ & U & 1n & 1886:\textcolor{red}{1} & 951:\textcolor{red}{2.0} & 484:\textcolor{red}{3.9} & 245:\textcolor{red}{7.7} \\
+                       & & 1c/n & 1886:\textcolor{red}{1} & 992:\textcolor{red}{1.9} & 589:\textcolor{red}{3.2} & 375:\textcolor{red}{5.0} \\
+    \hline
+    unif-k3-$\ldots$ & S & 1n & 237:\textcolor{red}{1} & 91:\textcolor{red}{2.6} & 43:\textcolor{red}{5.5} & 13:\textcolor{red}{18.2} \\
+                       & & 1c/n & 237:\textcolor{red}{1} & 51:\textcolor{red}{4.6} & 68:\textcolor{red}{3.5} & 24:\textcolor{red}{9.9} \\
+    \hline
+    \hline
+  \end{tabular}
+
+  \bigskip
+  S = Satisfiable, U = Unsatisfiable \\
+  1n = 1 node, \# cpus varies \\
+  1c/n = 1 cpu / node, \# nodes varies \\
+\end{frame}
+
+\section{Future work}
+
+\begin{frame}{Future work}
+  \begin{itemize}
+    \item Find a better variable selection algorithm    
+    \item Remove learned clauses
+    \item Reduce the amount of data replication
+    \begin{itemize}
+      \item current \emph{overhead} from 10\% on big instances, to 40\% on small hard instances
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\section{Conclusions}
+
+\begin{frame}{Conclusions}
+  \begin{itemize}
+    \item I built a sat solver with horizontal scalability
+    \begin{itemize}
+      \item 1 node/1 core performance sacrificed
+    \end{itemize}
+    \item with good distributed learning.
+    \item \emph{ManySat} type solvers
+    \footnote{ManySat run multiple solvers in parallel}
+    \begin{itemize}
+      \item \emph{don't scale}
+      \item good performance because of \emph{specialization}
+    \end{itemize}
+    \item Constellation makes parallelization very easy
+    \begin{itemize}
+      \item As long as your program fits Constellation model, but
+      \item \emph{No cancellation} can be a problem when you want to stop
+      \item \emph{Process event and wait} model creates inefficiencies.
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Questions?}
+  \begin{block}{Contact}
+    \begin{itemize}
+      \item Can be downloaded from \\ \url{https://github.com/brtzsnr/structure}
+      \item I can be contacted at \\ \url{brtzsnr@gmail.com}
+    \end{itemize}
+  \end{block}
+
+
+  %\begin{block}{Thank you}
+    %\begin{itemize}
+      %\item Kees Verstoep for offering me the position of
+      %student assitantship in autumn 2009 to work on sat solving.
+    %\end{itemize}
+  %\end{block}
+\end{frame}
+
+
+\begin{frame}{XOR Gates and Dependent Variable Removal
+\footnote{M.J.H. Heule. \emph{Towards a lookahead sat solver for general purposes.}}
+\footnote{J.A. Roy, I.L. Markov. \emph{Restoring circuit structure from sat instances}.}}
+
+  \begin{columns}[t]
+    \begin{column}[T]{0.3\textwidth}
+      \includegraphics[width=\textwidth]{data/xordvr}
+    \end{column}
+
+    \begin{column}[T]{0.8\textwidth}
+      \begin{itemize}
+        \item Many instances encode several logical gates: \emph{OR, AND, XOR}.
+        \item \emph{XOR} with $N$ inputs: \textcolor{red}{$\mathbf{2^{N}}$} CNF
+        clauses of \textcolor{red}{$N + 1$} literals
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+  \begin{block}{Idea}
+    \emph{Decode} XOR gates from formula and use them as eqns. in $\mathbb{Z}_2$.
+  \end{block}
+
+  \begin{block}{Dependent Variable Removal}
+    \begin{itemize}
+      \item If a variable appears in exactly \emph{one XOR gate} then the XOR gate
+      \emph{can be removed} from the formula
+        \begin{itemize}
+          \item because the variable can always be set to satisfy
+        \end{itemize}
+      \item Gaussian Elimination used to get more dependent vars
+      \begin{itemize}
+        \item Pick a variable in a gate and knock it out from other gates.
+      \end{itemize}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+
+\begin{frame}{Dependendent Variable Removal}
+  \begin{table}
+    \framebox{
+      \begin{tabular}{l c c}
+        Instance
+        \footnote{SAT07/crafted/Difficult/contest05/jarvisalo/mod2-rand3bip-sat-$\ldots$.reshuffled-07.cnf}
+        \footnote{SAT07/crafted/Medium/contest05/jarvisalo/mod2-rand3bip-sat-$\ldots$.reshuffled-07.cnf}
+        
+        & CryptoMinisat 2.6 & STRUCTure \\
+        \hline
+        $\ldots$270-2.sat05-2249$\ldots$ & - & 0.319 \\
+        $\ldots$270-1.sat05-2248$\ldots$ & - & 0.306 \\
+        $\ldots$250-3.sat05-2220$\ldots$ & - & 0.296 \\
+        $\ldots$230-2.sat05-2189$\ldots$ & 497.877 & 0.291 \\
+        $\ldots$280-1.sat05-2263$\ldots$ & 272.806 & 0.286 \\
+        $\ldots$280-3.sat05-2265$\ldots$ & - & 0.283 \\
+        $\ldots$280-2.sat05-2264$\ldots$ & - & 0.281 \\
+        $\ldots$210-2.sat05-2159$\ldots$ & 50.196 & 0.246 \\
+        $\ldots$220-1.sat05-2173$\ldots$ & 44.195 & 0.231
+      \end{tabular}
+    }
+    \caption{Times on some instances containing many Dependent Variables}
+  \end{table}
+\end{frame}
+
+
+\end{document}
