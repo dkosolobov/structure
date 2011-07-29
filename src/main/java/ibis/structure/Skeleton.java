@@ -3,6 +3,7 @@ package ibis.structure;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.iterator.TIntIntIterator;
 import gnu.trove.list.array.TDoubleArrayList;
+import gnu.trove.set.hash.TIntHashSet;
 import gnu.trove.map.hash.TIntIntHashMap;
 
 import static ibis.structure.Misc.*;
@@ -33,19 +34,44 @@ public final class Skeleton implements java.io.Serializable {
     return new Skeleton(numVariables, new TIntArrayList(formula));
   }
 
-  /** Expands small XOR gates. */
-  public void expandSmallXOR() {
-    if (!Configure.xor) {
-      return;
+  public int countVariables() {
+    TIntHashSet tmp = new TIntHashSet();
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+      for (int i = clause; i < clause + length; i++) {
+        tmp.add(var(formula.getQuick(i)));
+      }
+    }
+    return tmp.size();
+  }
+
+  public int hash() {
+    int hash = 0;
+
+    ClauseIterator it = new ClauseIterator(formula);
+    while (it.hasNext()) {
+      int clause = it.next();
+      int length = length(formula, clause);
+
+      for (int i = clause; i < clause + length; i++) {
+        hash ^= Misc.hash(formula.get(i)) * length;
+      }
     }
 
+    return hash;
+  }
+
+  /** Expands small XOR gates. */
+  public void expandSmallXOR() {
     ClauseIterator it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
       int type = type(formula, clause);
 
-      if (type != OR && length <= 3) {
+      if (type != OR) {
         for (int i = 0; i < (1 << length); i++) {
           boolean sign = false;
           for (int j = 0; j < length; j++) {
@@ -128,8 +154,8 @@ public final class Skeleton implements java.io.Serializable {
 
       if (l == var(l)) {
         // A variable's score depends on scores of both phases.
-        double p = scores.get(l);
-        double n = scores.get(neg(l));
+        double p0 = 1., p1 = scores.get(l);
+        double n0 = 1., n1 = scores.get(neg(l));
 
         /*
         final double wc1 = Configure.ttc[0];
@@ -149,9 +175,12 @@ public final class Skeleton implements java.io.Serializable {
           + wc2 * (pow(p, wp2) * pow(n, wn2) + pow(n, wp2) * pow(p, wn2))
           + wc3 * (pow(p, wp3) * pow(n, wn3) + pow(n, wp3) * pow(p, wn3));
         */
-
-        double pn = p * n;
-        double c = pn * pn * (2. * pn * pn + 2. * pn + p + n);
+        double p2 = p1 * p1, p4 = p2 * p2, p5 = p4 * p1, p6 = p5 * p1;
+        double n2 = n1 * n1, n4 = n2 * n2, n5 = n4 * n1, n6 = n5 * n1;
+        double c = 
+          + 216 * (p4 * n2 + n4 * p2)
+          + 298 * (p6 * n5 + n6 * p5)
+          + 494 * (p1 * n0 + n1 * p0);
 
         if (num < top.length) {
           top[num] = l;
