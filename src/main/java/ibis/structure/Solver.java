@@ -31,8 +31,6 @@ public final class Solver {
   /** Constructor. */
   public Solver(final Skeleton instance)
       throws ContradictionException {
-    instance.expandSmallXOR();
-
     numVariables = instance.numVariables;
     formula = instance.formula;
     units = new TIntHashSet();
