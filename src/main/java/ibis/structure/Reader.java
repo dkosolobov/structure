@@ -36,6 +36,7 @@ public final class Reader {
    */
   public static Skeleton parseURL(String url)
       throws IOException, ParseException {
+    logger.info("Reading from " + url);
     InputStream source = null;
     try {
       if (url.startsWith("http://")) {
