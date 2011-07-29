@@ -71,9 +71,6 @@ public final class Solution implements java.io.Serializable {
     if (!s.learned.isEmpty()
         || (learnUnits && !core.units().isEmpty())
         || (learnProxies && !core.proxies().isEmpty())) {
-      if (branch != 0) {
-        solution.learned.add(neg(branch));
-      }
       if (learnUnits) {
         solution.learnUnits(core.units(), branch);
       }
@@ -81,9 +78,11 @@ public final class Solution implements java.io.Serializable {
         solution.learnProxies(core.proxies(), branch);
       }
       solution.learned.addAll(s.learned);
-      if (branch != 0) {
-        solution.learned.add(0);
-      }
+    }
+
+    if (branch != 0 && !solution.learned.isEmpty()) {
+      solution.learned.insert(0, neg(branch));
+      solution.learned.add(0);
     }
 
     return solution;
