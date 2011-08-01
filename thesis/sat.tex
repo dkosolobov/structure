@@ -1,0 +1,483 @@
+\chapter{SAT}
+
+\section{Basic Concepts}
+
+\begin{mydef}
+  \emph{Boolean space} is $\mathbb{B} = \{ True, False \}$.
+\end{mydef}
+
+\begin{mydef}
+  A \emph{Boolean formula} $F$ is a function of $n$ \emph{boolean variables}.
+  $F : \mathbb{B}^n \rightarrow \mathbb{B}$.
+\end{mydef}
+
+\begin{mydef}
+  A Boolean formula $F : \mathbb{B}^n \rightarrow \mathbb{B}$ is
+  \emph{consistent} (or satisfiable) if there is an assignment of
+  variables such that the formula evaluates to \emph{True}
+  ($\exists u_1, \ldots u_n$ such that $F(u_1, \ldots, u_n) = True$).
+  F is said to be \emph{inconsistent} (or unsatisfiable) if
+  there is no such assignment.
+\end{mydef}
+
+\begin{mydef}
+  Two formulas $F_1$ and $F_2$ are logically \emph{equivalent},
+  $F_1 \equiv F_2$, if any satisfying assignment of one formula is
+  a satisfying assignment of the other.
+\end{mydef}
+
+\begin{mydef}
+  A \emph{propositional} Boolean formula is a Boolean formula that contains only
+  logic operations \textbf{and} (conjunction, denoted with $\land$),
+  \textbf{or} (disjunction, denoted with $\lor$) and \textbf{not}
+  (negation, denoted with $\neg$).
+\end{mydef}
+
+A propositional Boolean formula is in \emph{conjunctive normal form}
+(CNF), if:
+\begin{itemize}
+  \item It is a conjunction of \emph{clauses};
+  \item Each clause is a disjunction of one more \emph{literals};
+  \item A literal is an occurrence of a Boolean variable or its negation.
+  If the literal is the occurrence of the variable
+  then it has \emph{positive polarity}, otherwise it has \emph{negative
+  polarity}.
+\end{itemize}
+
+Small letters $u, v, t, \ldots$ or small letters with indices $u_0,
+u_1, \ldots$ will be used to indicate variables and literals (the
+distinction will be obvious in the context). In examples
+indices $1, 2, \ldots$ will be used to indicate variables.
+
+We will denote clauses as sets for literals $C = \{ u_1, u_2, \ldots,
+u_k \}$ and formulas as a set of clauses $F = \{ C_1, C_2, \ldots,
+C_m \} $.  An example of formula is
+\[
+F(u, v, t) = (u \lor v \lor t) \land (\neg u \lor \neg v)
+\]
+or as sets
+\[
+F = \{ \{u, v, t\}, \{\neg u, \neg v)\}\}
+\]
+
+\begin{mydef}
+  A clause is a \emph{tautology} if it contains a literal, $u$, and its negation
+  $\neg u$. A clause of length 0 is an \emph{empty clause}; a clause of length 1
+  is a \emph{unit clause}; a clause of length 2 is a \emph{binary clause}. 
+\end{mydef}
+
+\begin{myprop}
+  A formula containing 0 clauses is consistent.
+\end{myprop}
+
+\begin{myprop}
+  A formula containing an empty clause ($\emptyset \in F$) is inconsistent.
+\end{myprop}
+
+\begin{myprop}
+  A binary clause is equivalent with two implications.
+  $u \lor v \equiv \neg u \rightarrow v \equiv \neg v \rightarrow u$.
+\end{myprop}
+
+\begin{myprop}[Equivalent literals]
+  \label{myprop:equivalent-literals}
+  $(u \rightarrow v) \land (v \rightarrow u) \Rightarrow (u \leftrightarrow v)$.
+\end{myprop}
+
+\begin{mydef}[Resolution]
+  \label{mydef:resolution}
+  $(u \lor v_1 \lor \ldots \lor v_{k_v})
+  \land (\neg u \lor t_1 \lor \ldots \lor t_{k_t})
+  \Rightarrow (u_1 \lor \ldots \lor u_{k_u} \lor t_1 \lor \ldots \lor t_{k_t})$
+\end{mydef}
+\todo{Improve proposition}
+
+\begin{mydef}
+  The \emph{implication graph} of a formula $F$ is an oriented graph
+  $\I_F = (V, E)$ where $V$ is the set of all literals and $E = \{(u,
+  v) \in V \times V | \{\neg u, v\} \in F\}$ (E contains all implications in $F$).
+\end{mydef}
+
+We will denote $u \rightsquigarrow v$ if there is a path from $u$
+to $v$ in $\I_F$. If $u \rightsquigarrow v$ then $F$ contains a chain
+of implications $u \rightarrow u_1 \rightarrow \ldots \rightarrow u_i
+\rightarrow v, i \ge 0$.
+
+\begin{myprop}
+  $u \rightarrow v \equiv u \rightsquigarrow v$.
+\end{myprop}
+
+\begin{myprop}[Equivalent literals in $\I_F$]
+  \label{myprop:equivalent-literals-in-if}
+  $u \leftrightsquigarrow v \iff u \leftrightarrow v$
+\end{myprop}
+
+
+\section{Reasonings}
+
+\subsection{Boolean Constraint Propagation}
+\label{ssec:bcp}
+
+Boolean constraint propagation (BCP) was introduced in
+\cite{Davis:1960:CPQ:321033.321034} as the process of simplifying
+a formula after a variable assignment.
+
+\begin{mydef}
+  \emph{Boolean constraint propagation} of a formula, $BCP(F)$, is the formula
+  resulted from repeating the process of propagating unit clauses until
+  fixed point. If $\{ u \} \in F$ is a unit clause then propagation of literal
+  $u$ is performed according to two rules:
+  \begin{enumerate}
+    \item $\neg u$ is removed from every clause containing it; and
+    \item every clause containing literal $u$ is removed from $F$.
+  \end{enumerate}
+\end{mydef}
+
+\begin{mydef}
+$UP(F)$ is the set of literals propagated during $BCP(F)$.
+\end{mydef}
+
+We will denote the boolean constraint propagation of a literal $u$ in a
+formula $F$ with $BCP(F, u) \equiv BCP(F \cup \{\{ u \}\})$
+and similarly $UP(F, u) \equiv UP(F \cup \{\{ u \}\})$. Example:
+
+\begin{align}
+  F &= t \land \neg u \land (u \lor t \lor z) \land (u \lor v \lor \neg t \lor z) \\
+  BCP(F) &= (v \lor z) \\
+  UP(F) &= \{ t, \neg u \}
+\end{align}
+
+\begin{myprop}
+  $F$ and its boolean constraint propagation $BCP(F)$ are equivalent. $F \equiv BCP(F)$. 
+\end{myprop}
+
+\begin{myprop}
+  $F$ is inconsistent iff $BCP(F)$ is inconsistent.
+  $\emptyset \in BCP(F) \Rightarrow F \equiv F \cup \emptyset$.
+\end{myprop}
+
+\begin{myprop}
+  If propagation of a literal is inconsistent then any satisfying
+  assignment of $F$ must contain the negation of that literal.
+  $\emptyset \in BCP(F, u) \Rightarrow F \equiv F \cup \{\neg u\}$.
+\end{myprop}
+
+\begin{myprop}
+  Under $F$ implication $u \rightarrow v$ is valid if $v$ is propagated
+  during boolean constraint propagation of literal $u$.
+  $v \in UP(F, u) \Rightarrow F \equiv F \cup \{\neg u, v\}$.
+\end{myprop}
+
+
+\subsection{Equivalent Literals Renaming}
+\label{ssec:eqlr}
+
+From proposition \ref{myprop:equivalent-literals-in-if} if $u \rightsquigarrow v$
+and $v \rightsquigarrow u$ then $u$ and $v$ are equivalent.
+Consider the implication graph: $u \rightsquigarrow v$ and $v \rightsquigarrow u$
+if and only if $u$ and $v$ are in the same strongly connected component.
+
+\begin{myprop}
+  If $u \leftrightsquigarrow v$ then every occurrence of $v$ can be replaced
+  with $v$. More generally, in the implication graph each strongly
+  connected component can be collapsed to a single literal and, in
+  the formula every literal from the component can be replaced with
+  the new literal.
+\end{myprop}
+
+
+\subsection{Hidden Literal Addition}
+
+\emph{Hidden Literal Addition} ($HLA(F, C)$) was introduced in
+\cite{Heule:2010:CEP:1928380.1928406} as a technique to enlarge a clause $C$
+in a formula $F$ with new literals $L$, such that $F \equiv F \setminus \{C\} \
+\cup \{ C \cup L \}$. By itself this enlargement is not useful, but it
+is used by other simplification algorithms.
+
+\begin{mydef}
+  $HLA(F, C)$ is the unique clause resulting from repeating the following
+  clause extension steps until a fixed point: if there is a literal $u_0 \in C$
+  and a literal $v$ such that $\neg v \rightsquigarrow u \text{ in } \I_F$
+  extend $C$ with $\neg v$, $C := C \cup \{ \neg v \}$.
+\end{mydef}
+
+\begin{myprop}
+  $F \equiv F \setminus \{C\} \cup \{HLA(F, C)\}$ for $C \in F$.
+\end{myprop}
+
+To find extension of a clause, $C$, we can perform a search in the implication
+graph, $G_F$, starting from negation of literals in clause. $HLA(F, C)$ will
+be the set of negations of the visited literals.
+
+For example for clause $C = \{ 2, \neg 4, 3\}$
+and implication graph in figure \ref{fig:hla}
+$HLA(F, C) = \{2, \neg 4, \mathbf{\neg 5, \neg 6}, 3, \mathbf{\neg 2} \}$.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.4\linewidth]{dia/hla}
+  \caption{An implication graph}
+  \label{fig:hla}
+\end{figure}
+
+
+\subsection{Hidden Tautology Elimination (HTE)}
+\label{ssec:hte}
+
+\emph{Hidden Tautology Elimination} eliminates certain clauses that
+are satisfied regardless of value of an arbitrary variable. Such
+clauses are redundant and can be removed from the Boolean formula
+preserving the satisfiability.
+
+\begin{myprop}[TE]
+  \label{myprop:removal-of-tautologies}
+  A formula $F$ is equivalent with $F$ with all tautologies removed.
+  $F \equiv F \setminus \{ C \in F | C \text{ is tautology}\}$.
+\end{myprop}
+
+\begin{myprop}[HTE]
+  $HLA(F, C) \text{ is a tautology} \Rightarrow F \equiv F \setminus \{C\}$.
+\end{myprop}
+
+\begin{proof}
+  Following from proposition \ref{myprop:removal-of-tautologies},
+  if $HLA(F, C)$ is a tautology it can be removed from formula.
+  $F \equiv F \setminus \{C\} \cup \{HLA(F, C)\} \equiv F \setminus \{C\}$
+\end{proof}
+
+For example for clause $C = \{ 2, \neg 4, 3\}$ and implication graph
+in figure \ref{fig:hla} $HLA(F, C) = \{2, \neg 4, \mathbf{\neg 5,
+\neg 6}, 3, \mathbf{\neg 2} \}$.  If variable $2$ is $True$ then
+$C$ is satisfied. If variable $2$ is $False$ then $3$ is $True$
+($\neg 2 \rightarrow 3$) so $C$ is satisfied.
+
+
+\subsection{Pure Literal Rule (PL)}
+\label{ssec:pl}
+
+Pure literal rule was first described in \cite{Davis:1960:CPQ:321033.321034}
+as follows:
+
+\begin{mydef}[Pure Literal Rule]
+  If a variable $u$ occurs in formula $F$ in CNF only positively, or
+  if $u$ occurs only negatively, then all clauses which contain $u$
+  may be deleted. The resulting formula $F'$ is insonsistent
+  if and only if $F$ is. (If $F'$ is empty, then if is consistent).
+  The polarity that appears in $F$ is called \emph{pure literal}.
+\end{mydef}
+
+
+\subsection{Hyper Binary Resolution}
+\label{ssec:hbr}
+
+Hyper resolution is realized by applying binary resolution repeatedly.
+
+\todo{HBR versus lookahead}
+
+\begin{myprop}[Hyper-unary resolution]
+  $(u \rightarrow \neg v_1) \land \ldots
+  \land (u \rightarrow \neg v_n) \land (v_1 \lor \dots \lor v_n)
+  \Rightarrow \neg u$
+\end{myprop}
+
+\begin{myprop}[Hyper-binary resolution]
+  $(u \rightarrow \neg v_1) \land \ldots
+  \land (u \rightarrow \neg v_n)
+  \land (v_1 \lor \dots \lor v_n \lor t) \Rightarrow (\neg u \lor t)$
+\end{myprop}
+
+The algorithm \ref{alg:hyper-resolution} applies hyper-unary
+and hyper-binary resolutions on a CNF formula. In practice, many
+binary clauses generated are redundant (e.g. two consecutive runs
+of hyper-binary resolution will generate almost the same clauses)
+so the usefulness of HBR is not clear.
+\todo{Make tests with HBR enabled and HBR disabled}
+
+
+\subsection{Subsumming and Self-Subsumming}
+\label{ssec:sss}
+
+\begin{myprop}[Subsumming]
+  If a clause includes another clause then the former is satisfied whenever the
+  later is satisfied.
+  $C_1, C_2 \in F \land C_1 \subseteq C_2 \Rightarrow F \equiv F \setminus \{
+  C_2 \}$
+\end{myprop}
+
+\begin{myprop}[Self-subsumming]
+  $\begin{array}{rl}
+    \neg u \lor v_1 \lor \ldots \lor v_i &\lor v_{i+1} \lor \ldots \lor v_n \\
+    u \lor v_1 \lor \ldots \lor v_i & \\
+    \hline
+    v_1 \lor \ldots \lor v_i &\lor v_{i+1} \lor \ldots \lor v_n \\
+    u \lor v_1 \lor \ldots \lor v_i &
+  \end{array}$
+
+  If a clause is almost included in another clause except one literal whose
+  polarity is reversed that literal can be removed from the larger clause.
+\end{myprop}
+
+\todo{Not finished}
+
+
+\subsection{XOR Gates Extraction}
+\label{ssec:xor-extraction}
+
+Many encoded circuits have XOR and XNOR gates which are equation
+in $\mathbb{Z}_2$ (figure \ref{tbl:xor-formula}). The method
+to encode a X(N)OR gate into CNF clauses is described in
+\cite{Roy_restoringcircuit}.
+
+\begin{table}
+  \centering
+  \framebox{
+    \begin{tabular}{ll}
+      \emph{Gate type} & \emph{Boolean formula} \\
+      \hline
+      \text{XOR} & $0 = u_0 \oplus \ldots \oplus u_{n-1}$ \\
+      \text{XNOR} & $1 = u_0 \oplus \ldots \oplus u_{n-1}$ \\
+    \end{tabular}
+  }
+
+  \caption{XOR/XNOR gates}
+  \label{tbl:xor-formula}
+\end{table}
+
+Encoding a XOR gate with $n$ inputs and one output in a CNF
+formula requires $2^n$ clauses of length $n + 1$, one literal
+for each input or output.  Every clause contains an odd number of
+negations resulting in $2^n$ different combinations. Encoding a
+XNOR gate is similar, except that clauses will contain an even
+number of negations.
+
+
+Negating an input (i.e. one of the literals) in the X(N)OR gate is
+equivalent with reversing the type of gate (XOR $\leftrightarrow$
+XNOR). To specify a gate will use only variables without
+negations and its type.  Example of encodings are given in table
+\ref{tbl:xor-encoding}.
+
+Extracting X(N)OR gates shorten the formula considerable. 32
+clauses of 6 literals each will be replaced by a single gate of 6
+variables. However, many reasoning algorithms ignore X(N)OR gates
+which makes the algorithms less powerful.
+
+\begin{table}
+  \centering
+  \framebox{
+    \begin{tabular}{ll}
+      \emph{X(N)OR gate} & \emph{Encoding} \\
+      \hline
+      $0 = u \oplus v$ & $(\neg u \lor v) \land (u \lor \neg v)$ \\
+      $1 = u \oplus v \oplus t$ & $(u \lor v \lor t) \land (\neg u \lor \neg v \lor t) \land
+      (\neg u \lor v \lor \neg t) \land (u \lor \neg v \lor \neg t)$ 
+    \end{tabular}
+  }
+
+  \caption{Example of CNF encodings of XOR and XNOR gates}
+  \label{tbl:xor-encoding}
+\end{table}
+
+
+\todo{Add citation for algorithm (Cryptominisat?)}
+
+\begin{mydef}[Summing X(N)OR gates]
+  If $C_0: a = u_0 \oplus \ldots \oplus u_{n-1}$ and $C_1: b =
+  v_0 \oplus \ldots \oplus v_{m-1}$ are two X(N)OR gates let $C_0
+  \bigoplus C_1: a \oplus b = u_0 \oplus \ldots \oplus u_{n-1}
+  \oplus v_0 \oplus \ldots \oplus v_{m-1}$. \footnote{Note that
+  under $\mathbb{Z}_2$, $z \oplus z = 0$, so if a variable appears
+  twice in the right side of the equation it can be removed.}
+\end{mydef}
+
+\begin{myprop}
+  \label{myprop:xor-sum}
+  Let $C_0, C_1 \in F$ be two X(N)OR gates. $F \equiv F \setminus \{C_1\} \cup
+  \{C_0 \bigoplus C_1\}$.
+\end{myprop}
+
+According to the last proposition the X(N)OR gates in a
+formula $F$ can be handled as a system of linear equations in
+$\mathbb{Z}_2$. Multiple X(N)OR gates can be summed together to
+knock out variables.
+
+The reverse of \ref{myprop:xor-sum} is also true and in fact is used
+to split large XOR gates which otherwise would generate too many
+disjunctive clauses. If $a = u_0 \oplus \ldots \oplus u_{n-1}$ where
+$a \in \{0, 1\}$, then an extra variable, $z$, called \emph{mutex}, can
+be used to split it in two smaller X(N)OR gates 
+$a = u_0 \oplus \ldots \oplus u_{k} \oplus z \land 0 = z \oplus u_{k + 1} \oplus
+\ldots \oplus u_{n}$.
+
+
+\subsection{Dependent Variable Removal (DVR)}
+\label{ssec:dvr}
+
+\emph{Dependent Variable Removal} is a technique introduced in
+\cite{mine:march} which simplifies Boolean formulas containing XOR gates.
+It removes redundant variables used to encode XOR gates.
+
+\begin{mydef}
+  A variable is called \emph{dependent} with respect to $F$ if it
+  appears only in XOR gates.
+\end{mydef}
+
+A mutex (recall from previous subsection that mutexes are used to split
+large XOR gates into smaller gates) is a dependent variable since it
+always appears in two XOR gates.
+\todo{mutex is not the right word.}
+
+\begin{myprop}[DVR]
+  \label{myprop:dvr-single}
+  Let $u$ be a variable that appears in exactly one XOR gate $C
+  \in F$. If $F \setminus \{C\}$ is consistent if and only if $F$
+  is consistent.
+\end{myprop}
+
+\begin{proof}
+  Any satisfying assignment of $F$ is a satisfying assignment of $F
+  \setminus \{ C \}$.
+
+  Given that $C$ is a XOR gate, the $u$ can be assigned from
+  a satisfying assignment of $F \setminus \{C\}$ such that $C$ is
+  satisfied $\Rightarrow F$ is satisfied.
+\end{proof}
+
+
+Let $u$ be a dependent variable that appears in $k + 1$ XOR gates
+$C_0, ..., C_k \in F$. Let $C'_i = C_i \bigoplus C_0$ for $i = 1,
+\ldots, k$.  Applying proposition \ref{myprop:xor-sum} repeatedly we
+obtain $F \equiv F' = F \setminus \{C_{1}, ..., C_k\} \cup \{C'_{1},
+..., C'_k\}$. This is basically a single step from Gaussian
+elimination applied on a system of equations in $\mathbb{Z}_2$.
+
+Furthermore, from proposition \ref{myprop:dvr-single}, $C_0$ can be
+removed from $F'$ preserving satisfiability. Applying this algorithm
+repeatedly removes all dependent variables (including mutexes).
+
+
+\subsection{Blocked Clause Elimination}
+\label{ssec:bce}
+
+Blocked clauses are introduced in
+\cite{Kullmann:1999:NMD:312269.312271} and are used to improve
+the theortical complixity of the algorithm for solving 3-SAT to
+$O(1.5044\ldots^n)$. Blocked clauses are a set of clauses that can
+be removed from formula without affecting its satisfiability.
+
+\todo{define resolvent for literal}
+
+\begin{mydef}A clause $C$ is called blocked for literal $l$ with
+respect to formula $F$ iff all resolvets of $C$ with $C' \in F$
+for $\neg u \in C'$ are tautological, i.e., iff
+
+\[
+  v \in C \land \forall C' \in F (\neg u \in C' \Rightarrow \exists \neg v \in C'
+  (\neg v \not = \neg u \land v \in C))
+\]
+\end{mydef}
+
+\subsection{Variable Elimination}
+\label{ssec:ve}
+
+

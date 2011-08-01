@@ -1,4 +1,3 @@
- 
 .PHONY: all
 all: thesis.pdf
 
@@ -6,10 +5,15 @@ all: thesis.pdf
 clean:
 	rm -f thesis.pdf
 
+.PHONY: thesis.pdf
 thesis.pdf: thesis.tex          \
 						abstract.tex        \
 						introduction.tex    \
+						literature.tex      \
+						sat.tex             \
 						architecture.tex    \
-						reasoning.tex       \
-						conclusions.tex
-	pdflatex $^
+						results.tex         \
+						conclusions.tex     \
+						easy-instances.tex  \
+						algorithms.tex
+	latex thesis.tex; dvipdf thesis.dvi

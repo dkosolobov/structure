@@ -1,5 +1,98 @@
 \chapter{Introduction}
 
+\section{Background and Motivation}
+
+The Boolean satisfiability problem asks a satisfying a
+satisfiability assignment for any Boolean formula or determine
+that no such assignment exists and formula is inconsistent.
+
+A Boolean formula is said to be in conjunctive normal form (or CNF)
+if it is a conjuction of disjunction of literals. A clause
+is a disjuntion of literal. $k$-SAT is the problem
+of finding a satisfying assignment for a CNF formula where all
+clauses have at most $k$ literals.
+
+SAT was established as the first NP-complete problem
+\cite{Cook:1971:CTP:800157.805047}. It is known that
+$2$-SAT is in P \cite{karp}, while for $k \ge 3$ the best
+known algorithm, due to Sch\"{o}ning, runs in $O((2\frac{k -
+1}{k})^n \cdot poly(n))$ where $n$ is the number of variables
+\cite{Schoning:1999:PAK:795665.796524}.
+ 
+Many problems such as "independent set" are proven to be NP-complete
+by encoding in polynomial time SAT as inputs to that problem. There
+have many failed attempts to find polynomial time algorithms
+for $k$-SAT to prove that P=NP.  \footnote{The following site
+lists numerous attempts at providing a polynomial solution to
+SAT. \url{http://www.win.tue.nl/~gwoegi/P-versus-NP.htm}}
+
+SAT has applications in Computer Aided Design, planning, routing,
+software testing, synthesis, theorem proving or computational
+biology \cite{Smith_diagnosis, Soeken:2010:VUM:1870926.1871248,
+demoura2008z3, Corblin07asat-based}. While industrial problems
+can be quite large (on order of tens of thousands of variables)
+some classes, such as \emph{Automatic Test Pattern Generation},
+are very easy to solve in practice (running time $O(n^3)$) because
+they exhibit hidden structure easily exploitable by current SAT
+solvers \cite{Prasad:1999:WAE:309847.309857}.
+
+For example an interesting problem is coloring vertices
+of an undirected graph with at most $k$ colors such that no
+two adjacent vertices have the same color (e.g. see figure
+\ref{fig:color-graph}). This problem can be easily encoded
+$k$-SAT. For example coloring with three colors:
+\begin{itemize}
+  \item To each vertex assign three variables (one for each color): $u, v, t$
+  \item Each vertex has at least three color: $(u \lor v \lor t)$.
+  \item Each vertex cannot use two colors:
+  $(\neg u \lor v) \land (\neg u \lor t)$ etc.
+  \item Two adjacent vertices, $A$ and $B$, must have different colors:
+  $(\neg u_A \lor \neg u_B) \land (\neg v_B \lor \neg v_B) \land (\neg t_B \lor \neg t_B)$.
+\end{itemize}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.3\linewidth]{dia/color-graph.eps}
+  \caption{Graph Coloring problem can be reduced to SAT}
+  \label{fig:color-graph}
+\end{figure}
+
+
+\section{Case for parallelism}
+
+State of the art sequential solvers are fast, but there have been
+no recent algorithmic improvement which provided major speedups
+gains. In contrast new applications challenge modern SAT solvers
+with more complex problems.
+
+The lack of performance increase is accentuated by the recent
+architecture shift from uni-core to multi-cores systems. Few
+years ago we hit the thermal wall: increasing frequency leads to
+higher power consumption and more heat generated. While Moore's law
+continued processor manufactures used the extra transistors to build
+multi-core chips.  SAT solvers need to adapt to the new paradigm.
+
+\emph{Horizontal scalability} is the ability to perform tasks faster
+when more nodes or CPUs are added to the distributed process. There
+are two main ways to scale horizontally:
+\begin{inparaenum}[a)]
+  \item increase CPUs per node; or
+  \item adding multiple nodes to the distributed process.
+\end{inparaenum} Each of these have different implications
+on how development of a parallel SAT solver.
+
+STRUCTure aims at parallelizing the search and not reasoning
+algorithms. Indeed some reasonings such as Pure Literal Rule (see
+\ref{ssec:pl}) are inherently sequential and cannot be parallelized
+on general case \cite{Johannsen:2005:CPL:1166822.1166834}. Even if
+some parallelization can be obtained the gain is marginal because
+STRUCTure has only few sequential points.
+
+In order to scale we need to avoid distributed shared memory,
+broadcasting and synchronization. Constellation, the distributed
+framework STRUCTure is built on, provides a scalable message passing
+distributed programming model.
+
 \section{Contributions}
 
 \section{Overview}

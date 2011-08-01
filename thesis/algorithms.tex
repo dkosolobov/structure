@@ -1,0 +1,117 @@
+\chapter{Algorithms}
+
+\begin{algorithm}[h]
+  \begin{algorithmic}
+    \REQUIRE{$F$ a Boolean formula in CNF}
+    \ENSURE{$F_{u_1}, \ldots, F_{u_n} \text{ such that } F = F_{u_1} \land \ldots \land F_{u_n}$}
+
+    \STATE $D \gets$ disjoint sets // \cite{Tarjan:1975:EGB:321879.321884}
+    \FOR[for every clause in formula]{$C \in F$}
+      \STATE $u \gets$ a variable in clause C
+      \FOR[for every variable in clause]{$v \in C$}
+        \STATE $D.join(u, v)$
+      \ENDFOR
+    \ENDFOR
+
+    \FOR[for every clause in formula]{$C \in F$}
+      \STATE $u \gets$ a variable in clause C
+      \STATE $i \gets D.find(u)$
+      \STATE $F_i \gets F_i \cup C$
+    \ENDFOR
+  \end{algorithmic}
+
+  \caption{Splitting a Boolean formula}
+  \label{alg:split}
+\end{algorithm}
+
+\begin{algorithm}[h]
+  \begin{algorithmic}
+    \REQUIRE{$F$ a Boolean formula in CNF}
+    \ENSURE{extracts the XOR gates}
+
+    \STATE Remove identical clauses in $F$.
+
+    \FOR[for every clause in formula]{$C \in F$}
+      \STATE $i \gets$ index of $C$ in $F$
+      \STATE $n_{xor}, n_{xnor} \gets 0, 0$
+
+      \FOR{$C_j \in F$ such that $C_j$ has the same variables as $C$}
+        \IF{$C_j$ has odd number of negations}
+          \STATE $n_{xor} \gets n_{xor} + 1$
+        \ELSE
+          \STATE $n_{xnor} \gets n_{xnor} + 1$
+        \ENDIF
+      \ENDFOR
+
+      \STATE $n \gets |C|$
+      \IF[Found a XOR gate]{$n_{xor} = 2^{n-1}$}
+        \PRINT XOR gate with variables of $C$
+        \STATE Remove clauses composing the XOR gate
+      \ENDIF
+
+      \IF[Found a XNOR gate]{$n_{xor} = 2^{n-1}$}
+        \PRINT XNOR gate with variables of C
+        \STATE Remove clauses composing the XNOR gate
+      \ENDIF
+    \ENDFOR
+  \end{algorithmic}
+
+  \caption{Extract X(N)OR gates}
+  \label{alg:extract-xnor-gates}
+\end{algorithm}
+
+\begin{algorithm}[h]
+  \begin{algorithmic}
+    \REQUIRE{$F$ a Boolean formula in CNF with XOR gates}
+    \ENSURE{$F$ without dependent variables}
+
+    \STATE $S \gets \emptyset$ // $S$ is the set of independent variables
+    \FOR[for every clause (not gate)]{$C \in F$}
+      \STATE $S \gets S \cup C$
+    \ENDFOR
+
+    \FOR[for every variable in $F$]{$u$ variable in $F$}
+      \IF[$u$ is dependent]{$u \not \in S$}
+        \STATE $C \gets$ smallest XOR gate containing $u$
+        \FOR[for every other gate containing $u$]{$C', u \in C'$}
+          \STATE $F \gets F \setminus \{C'\} \cup \{C \bigoplus C'\}$
+        \ENDFOR
+      \ENDIF
+    \ENDFOR
+  \end{algorithmic}
+
+  \caption{Dependent Variable Removal}
+  \label{alg:hyper-resolution}
+\end{algorithm}
+
+\begin{algorithm}[h]
+  \begin{algorithmic}
+    \REQUIRE{$F$ a Boolean formula in CNF}
+    \ENSURE{new units, binaries}
+
+    \STATE $\Sigma_0, \Sigma_0' \gets \{\}, 0$
+    \STATE $\Sigma_1, \Sigma_1' \gets \{\}, 0$
+    \FOR[for every clause in formula]{$C \in F$}
+      \FOR[for every literal in clause]{$u \in C$}
+        \STATE $\Sigma_0' \gets \Sigma_0' + 1$
+        \STATE $\Sigma_1' \gets \Sigma_1' + u$
+        \FORALL[for every neighbour of literal]{$v$ s.t. $v \rightarrow \neg u$}
+          \STATE $\Sigma_0[v] \gets \Sigma_0[v] + 1$
+          \STATE $\Sigma_1[v] \gets \Sigma_1[v] + u$
+        \ENDFOR
+      \ENDFOR
+      \FORALL{literals $u$}
+        \IF[Hyper-unary resolution]{$\Sigma_0[u] = \Sigma_0'$}
+          \PRINT{new unit $u$}
+        \ELSIF[Hyper-binary resolution]{$\Sigma_0[u] = \Sigma_0' - 1$}
+          \STATE $v \gets \Sigma_1' - \Sigma_1[u]$
+          \PRINT{new binary $u \lor v$}
+        \ENDIF
+      \ENDFOR
+    \ENDFOR
+  \end{algorithmic}
+
+  \caption{Hyper resolution}
+  \label{alg:hyper-resolution}
+\end{algorithm}
+

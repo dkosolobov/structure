@@ -2,125 +2,402 @@
 
 \section{Constellation}
 
-Constellation's parallel programming model is based on activity spawning.
-Communication is done through message passing among running activities. There
-is no shared memory available, though activities running on the same machine
-could make use of the common address space.  For the SAT Competition 2011
-STRUCTure uses a single machine with up to number of cores
-specified activities running simultaneously.
+Constellation is a distributed programming framework developed at VU University
+Amsterdam \cite{mine:constellation}. In Constellation the unit of work is
+an activity. Activities can perform some work, spawn new activities,
+send messages to other activities and process incoming messages
+(see figure \ref{fig:constellation}).
 
+Constellation doesn't provide any shared memory mechanism, but
+activities running on the same node are free to use the common
+address space. Moreover, broadcasting or cancellation are not
+available, but are needed in STRUCTure (see \ref{sssec:blackhole})
+to stop the search.
 
-\todo{Explain how Constellation influenced design choices}
+Constellation works by running a fixed number of worker threads
+on each node which execute activities.  Workers maintain a
+queue of events (such as new activities or messages passed) which are
+processed in LIFO order \footnote{LIFO stands for last-in-first-out}.
+
+When a thread runs out of work it attempts to steal more
+jobs first from other workers on the same node, and then from
+other workers on different nodes.  Local steals are performed
+in LIFO order, while remote steals are performed in FIFO order
+\footnote{FIFO stands for first-in-first-out}. Remote steals are
+slower than local steals because they involve network communication
+and they are performed only at regular intervals.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.4\linewidth]{dia/constellation}
+  \caption{In Constellation activities spawn new
+  activities and communicate by message passing.
+  Activities can be executed on any node (represented by
+  distinct color) participating in the distributed process.}
+  \label{fig:constellation}
+\end{figure}
 
 
 \section{Activities}
-\todo{Split sections into subsubsections}
 
-An activity goal's is to find a satifying assignment for an instance,
-detect unsatisfiability or learn something new about the instance.
-Some activities can spawn new activities to solve smaller instances.
-Learning is achieved when climbing back on the searching tree.
+In STRUCTure an activity's goal is to find a satisfying assignment
+for an instance, prove unsatisfiability or learn something new
+about the instance. Some activities can spawn new activities to
+solve smaller instances.  Learning is achieved when climbing back
+on the searching tree.
 
 Activities return to parent a solution to instances which can be
-\emph{SATISFIABLE}, \emph{UNSATISFIABLE} or \emph{UNKNOWN}. If
+\textsf{SATISFIABLE}, \textsf{UNSATISFIABLE} or \textsf{UNKNOWN}. If
 a satisfying assignment was found the solution includes units,
-otherwise it includes a learning tree. \todo{Define learning tree}
+otherwise it includes learned clauses from conflicts.
 
-A graph dependecies between activities is shown in figure \ref{fig:activities}.
-
+Figure \ref{fig:activities} gives a top view of STRUCTure's
+architecture showings the dependencies among activities.
+STRUCTure has 4 main components discussed in next subsections:
+\begin{itemize}
+  \item \emph{Circuit Preprocessing} reverts and simplifies 
+  part of the original logic circuit
+  \item \emph{Restart Loop} deals with simplification,
+  starting and stopping search and clause learning.
+  \item \emph{Look-Ahead} attempts to learn top level units and binaries.
+  \item \emph{Search Loop} performs a distributed solution search.
+\end{itemize}
 
 \begin{figure}
   \centering
   \includegraphics[width=0.9\linewidth]{activity.eps}
-  \caption{Activities in STRUCTure}
+  \caption{Activities in STRUCTure. Rectangles represent activities, arrows
+  show dependence among activities.}
   \label{fig:activities}
 \end{figure}
 
 
-\subsection{Initial}
+\subsection{Circuit Preprocessing}
 
-\begin{itemize}
-  \item \emph{Preprocess} Performs some initial preprocessing.
+Many industrial applications encode logic circuits as CNF formulas.
+All gates except XOR gates require a number of clauses linear in
+the number of inputs and are handled easily by most solvers. On
+the other hand, XOR gates require an exponential number of clauses
+and many solvers have difficulty handling them.
 
-\end{itemize}
+This part of the solver attempts to reverse and simplify part of the
+original circuit using XOR gates extraction and dependent variable
+removal described in \ref{ssec:xor-extraction} and \ref{ssec:dvr}.
 
-
-\subsection{Restart loop}
-
-\begin{itemize}
-  \item \emph{XOR/DVE} extracts XOR gates and performs \emph{Dependent
-  Variable Elimination}
-
-  \item \emph{BCE} performs \emph{Blocked Clause Elimination}
-
-  \item \emph{VE} performs \emph{Variable Elimination}
-
-  \item \emph{Simplify} simplifies the instance.
-
-  \item \emph{Restart} restarts searching at increasing intervals of times.
-  Each instance is part of a generation number. When the timeout expires
-  a death certificate for that generation is issued. When computation returns
-  the learned clauses are added to current instance and the searching starts
-  over with \emph{Blocked Clause Elimination}.
-
-\end{itemize}
+Unfortunately, many reasoning algorithms do not handle XOR gates
+well so the after DVR the remaining gates are turned back into CNF
+clauses. There is room for improvement because DVR will eliminate
+variables introduced to split large XOR gates so formula might get
+much larger.
 
 
-\subsection{Searching tree}
+\subsection{Restart Loop}
+
+Restart Loop does three things:
+\begin{inparaenum}[a)]
+  \item simplifies the formula;
+  \item starts and stops distributed search; and
+  \item adds learned clauses and repeats the process with the enlarged formula.
+\end{inparaenum} Each iteration of the loop is called a
+\emph{generation}. The enlarged formula is passed through the
+simplification steps to strengthen the learned clauses and simplify
+formula with the new information.
+
+\emph{Blocked clauses elimination} activity (BCE) performs
+blocked clause elimination to eliminate redundant clauses (see
+\ref{ssec:bce}). \emph{Variable elimination} activity (VE) performs
+variable elimination to eliminate many redundant variable (see
+\ref{ssec:ve}). \emph{Simplify} activity is similar to Solve
+activity from the searching backtrack (see \ref{sssec:solve}).
+Subsection \ref{sssec:blackhole}, BlackHole activity, describes
+How the distributed computation is stopped.
+
+Currently the time to live of a generation is fixed to 10 second
+plus 5 seconds for each new generation. \todo{Make tests to improve
+restart} The restart loop is sequential, but because generation
+periods increase and the first iteration is the most expensive the
+fraction of time spent in the loop decreases with larger problems.
+
+
+\subsection{Look-Ahead}
+
+\emph{Look-Ahead}'s goal is to learn new units and binaries.
+It performs a small look ahead at the root of the searching tree. It
+picks several variables (around 128 in current implementation)
+and propagates them using the \emph{Propagate} activity.
+
+Given a variable $u$ Propagate activity performs boolean constraint
+propagations on $u$ and $\neg u$. Variables to be tested are chosen
+by Look-Ahead activity using the same variable selection heuristic
+used for branching (see \ref{ssec:branching}).
+
+If $u, u_0, u_1, \ldots$ are propagated literals and $v, v_0, v_1,
+\ldots \in UP(F, u)$ then Propagate activity learns the clauses in table
+\ref{tbl:propagate-learn}. There are plenty of other binary clauses
+to be learned (one for each literal $\in UP(F, u)$), but many of them
+are redundant and don't improve performance if added to formula.
+
+\begin{table}
+  \centering
+  \framebox{
+    \begin{tabular}{c c c}
+      initial & propagated & learned \\
+      \hline
+      \hline
+      $u$ & $\emptyset$ & $\neg u$ \\
+      \hline
+      $u$ & $v$ & $v$ \\
+      $\neg u$ & $v$ & \\
+      \hline
+      $u$ & $v$ & $u \leftrightarrow v$ \\
+      $\neg u$ & $\neg v$ & \\
+      \hline
+      $u$ & $u_0$ & $u \rightarrow u_0$ \\
+      $u_0$ & &
+    \end{tabular}
+  }
+  \caption{Learned units and binaries by Propagate activity}
+  \label{tbl:propagate-learn}
+\end{table}
+
+
+
+\subsection{Searching Backtrack}
 \label{ssec:searching-tree}
 
+The \emph{Searching backtrack} component searches for a solution.
+When stopped it found a solution or learned a bunch of new clauses.
+At the top of search tree there are not enough activities to occupy
+all participating workers, but as more activities are spawned and
+distributed more nodes join in.
+
+In Constellation local steals are performed in LIFO order which means
+that smaller jobs (more variables assigned) are stolen first. On
+the other hand remote steals are performed in FIFO order corresponding
+to larger jobs (less variables assigned) are stolen first.
+
+The steal type's effect on the search is interesting. Adding
+more nodes makes the search go more in breadth, while adding more
+CPUs per node makes search go more in depth. On some satisfiable
+instances this means that more nodes will close in on more solutions,
+while more CPUs per node will close in faster on fewer solutions.
+Inconsistent formulas should not be affected.
+
+\subsubsection{Split}
+
+The formula $F$ in the next example is a conjunction of two
+independent formulas $F_1$ and $F_2$. $F$ is consistent only if both
+$F_1$ and $F_2$ are consistent. If $F_1$ or $F_2$ are inconsistent
+then $F$ is inconsistent.
+
+\begin{align}
+  F &= (1 \lor 2 \lor 3) \land (1 \lor \neg 4) \land (5 \lor \neg 6) \land (6 \lor \neg 7) \\
+  F_1 &= (1 \lor 2 \lor 3) \land (1 \lor \neg 4) \\
+  F_2 &= (5 \lor \neg 6) \land (6 \lor \neg 7) \\
+  F &= F_1 \land F_2
+\end{align}
+
+\begin{myprop}
+  If $F(u_1, \ldots, u_{k_1}, \ldots, u_{k_2}, \ldots, u_{k_n}) =
+  F_1(u_1, \ldots, u_{k_1}) \land \ldots \land F_n(u_{k_{n-1}+1},
+  \ldots, u_{k_n})$ for $1 < k_1 < \ldots <k_n$ then $F$
+  is consistent whenever all instances $F_1, \ldots, F_n$
+  are consistent.
+\end{myprop}
+
+Split activity implements the algorithm \ref{alg:split} and provides
+an opportunity for parallelization.
+
+
+\subsubsection{Select}
+\label{ssec:branching}
+
+The goal of \emph{Split} activity is to choose a branching variable
+which will be assigned with both $True$ and $False$. It is preferable
+that both polarities reduce the formula as much as possible after
+propagation.  If for example, $\{ u \}$ is an unit clause then
+choosing $u$ for branching is pointless because branch $\neg u$
+will return a contradiction, while branch $u$ will not reduce the
+formula further.
+
+March \cite{mine:march} suggests doing one forward backtracking
+step on a fixed number of variables (i.e. look-ahead) in order to:
+\begin{inparaenum}[a)]
+  \item learn new units and binaries and
+  \item estimate size of formula after branching.
+\end{inparaenum} The branching variable is picked such that
+the formula is simplified as much as possible.
+
+In STRUCTure performing look-ahead at every branch gives worse
+performance. My intuition is that look-ahead is very expensive
+compared to simply assigning a score based on clauses in which a
+variable is present. Moreover, the additional reasoning in STRUCTure
+before branching might outperform benefits of learning new units.
+
+To determine the best variable for branching a measure $H_u$
+is computed for every variable.  $H_u$ was inspired by a similar
+measure in \cite{mine:oksolver}. The variable with the highest
+score is selected for branching.
+
+$H_u$ is computed based on measures of both variable's polarities
+$S_u, S_{\neg u}$. $T_u$ is how much a formula is reduced if literal
+$u$ is assigned without looking at propagations ($u \rightarrow
+v$). $S_u$ improves on $T_u$ by including scores of implied units.
+
+\begin{align}
+  T_u &= \sum_{u \in C \in F}{2^{-|C|}} + \sum_{u \in C \in F, |C| = 2}{2^{-4}} \\
+  S_u &= T_u + \sum_{\{ u \rightarrow v \} \in F}{T_v}
+\end{align}
+
+$T_u$ favors literals that appear in many short clauses.
+$S_u$ favors literals for which implications appear in many short clauses.
+Finally $H_u$ is computed using the following function:
+
+\begin{align}
+  H_u &= G(S_u, S_{\neg u}) \\
+  G(p, n) &= \sum_{i=1}^{n}{(F_i(p, n) + F_i(n, p))} \\
+  F_i(p, n) &= a_i \cdot p^{b_i} \cdot n^{c_i}, a_i, b_i, c_i \in \mathbb{Z} \\
+  G, F_i &: \mathbb{R} \times \mathbb{R} \rightarrow \mathbb{R}, i = 1 \ldots n
+\end{align}
+
+$G$ is a generalization of the formula used in other
+look-ahead solvers such as \cite{mine:march}: $G'(p, n) =
+1024 \times p \cdot n + p + n$. A couple of properties $G$ must have are:
+\begin{inparaenum}[a)]
+  \item it must be easy (and fast) to compute (e.g. no exponentiation or logarithm); and
+  \item it must be symmetrical.
+\end{inparaenum}
+
+
+For $n = 3$ and $a_i, b_i, c_i \in \mathbb{Z}_5$ best results were
+obtained for polynomial:
+\begin{align}
+  G(p, n) &=  p^2 \cdot n^2 \cdot (2 \cdot p^2 \cdot n^2 + 2 \cdot p \cdot n + p + n)
+\end{align}
+Increasing ranges for $n, a_i, b_i, c_i$ did not result in
+significant better performance.
+
+
+\subsubsection{Branch}
+
+\emph{Branch} activity uses the branching variable, $b$, to generate
+two instances $F_+ = F \cup \{b\}$ and $F_- \cup \{\neg b\}$ and attempts
+to solve both of them.
+
+\begin{myprop}
+  If $F$ is a CNF formula and $u$ is a branching variable
+  $F$ is consistent if and only if $F_+$ or $F_-$ are consistent.
+\end{myprop}
+
+If a solution is found branch activity forwards it to parent before
+remaining branch (if any) is completed. Constellation cannot cancel
+activities, but local executors perform events in LIFO order so
+the solution is propagated fast to Restart activity which will stop
+the computation.
+
+
+\subsubsection{BlackHole}
+\label{sssec:blackhole}
+
+\emph{BlackHole} activity kills instances at the end of one
+generation by immediately returning \textsf{UNKNOWN} instead of to
+solving them.
+
+\emph{BlackHole} hits the limits of Constellation distributed
+model because in order to stop current computation all instances of
+BlackHole activity on all nodes must know that the computation has
+ended, but activities know little about nodes executing them. In
+a shared memory model this is a matter of flipping a flag, but with
+different address spaces the Restart activity must broadcast its
+intent to stop the distributed computation.
+
+In STRUCTure broadcast is implemented like in figure
+\ref{fig:broadcast}.  All instances are accompanied by an
+identifier of an unique \emph{TracerMaster} activity responsible for
+broadcasting stop notifications. On every node a \emph{TracerSlave}
+activity is responsible for receiving the notifications. When a
+node executes its first activity TracerSlave registers itself to
+TracerMaster which maintains a list of all available slaves. At the
+end of current generation Register activity contacts TracerMaster
+which contacts all registered Slaves.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.5\linewidth]{dia/broadcast}
+  \caption{Broadcast is implemented with
+  TracerSlave on each node and a single TracerMaster}
+  \label{fig:broadcast}
+\end{figure}
+
+
+\subsubsection{Solve}
+\label{sssec:solve}
+
+\emph{Solve} activity attempts to find a satisfying assignment for
+received formula. If a solution (i.e.  formula is determined to be
+consistent or inconsistent) is found it is propagated back up on
+the search tree. If the formula is inconsistent it is called that
+a \emph{conflict} was reached with current variable assignments.
+
+If the satisfiability of formula cannot be determined the activity
+generates a smaller formula, the \emph{core}. The solution of the
+core is used to reconstruct a solution of the original
+formula.
+
+In the original backtracking algorithm in
+\cite{Davis:1960:CPQ:321033.321034} this activity corresponds to
+the Boolean constraint propagation step, but STRUCTure performs
+additional simplification steps:
 \begin{itemize}
-  \item \emph{LookAhead} performs a small look ahead at the root
-  of the searching tree. It picks a several variables (around 128 in
-  current implementation) and propagates them (using the \emph{Propagate}
-  activity). This activity's goal is to learn new units and binaries.
-
-  \item \emph{Propagate} propagates a literal $l$ using
-  unit propagation \todo{Describe unit propagation}. If $u$ is propagated from
-  $l$ then the binary $l \rightarrow u$ is true.
-  Propagate activity attemts to learn new units and binaries as follows
-
-  \begin{itemize}
-    \item If an empty clause is discovered then $\neg l$ can be implied.
-
-    \item $(l \rightarrow u) \land (l_0 \rightarrow \neg u) \Rightarrow
-    \neg l \lor \neg l_0$. If two literals $l$ and $l_0$ imply different
-    assignment for the same variable the two literals cannot both be true.
-
-    \item $(l \rightarrow u) \land (\neg l \rightarrow u) \Rightarrow u$. If
-    different phases of the same variable propagate the same literal, $u$,
-    then $u$ must be true.
-
-    \item $(l \rightarrow u) \land (\neg l \rightarrow \neg u)
-    \Rightarrow l \equiv u$
-
-  \end{itemize}
-
-  \item \emph{Split} checks if instance is composed of multiple independent
-  instances. Learns the reunion of the child instances.
-
-  \item \emph{Select} selects next variable for branching. \todo{Explain
-  how a variable is selected}
-
-  \item \emph{Branch} uses the branching variable, $b$ to generate two
-  instances $F_+ = F \cup \{b\}$ and $F_- \cup \{\neg b\}$. If any of
-  $F_+$ or $F_-$ is satisfiable then a satisfying assignment for
-  $F$ is given by the satisfying assignment of the child instance.
-  If both $F_+$ and $F_-$ are unsatisfible then $F$ is unsatisfiable.
-  \todo{How SelfSubSumming is perfomed}
-
-  \item \emph{BlackHole} kills instances part of a dead generation.
-  Death certificates are received from Restart activity and is important
-  that different generations have different identifiers. Solution to
-  a killed instance is \emph{UNKNOWN}.
-
-  \item \emph{Solve} attemts to solve the current instance. If a solution
-  is found it is propagated back up on the search tree. If a solution
-  is not found a smaller instance, the \emph{core}, is generated. The solution
-  of the core instance can be used to deduce a solution to the main instance
-  instance a solution to the instance being solved can be deduced. In case
-  of contradiction Solve activity learns last branched literal.
-
+  \item Boolean constraint propagation (\ref{ssec:bcp});
+  \item Hyper Unit Resolution (\ref{ssec:hbr});
+  \item Equivalent Literal Renaming (\ref{ssec:eqlr});
+  \item Hidden Tautology Elimination (\ref{ssec:hte});
+  \item Subsumming and Self-Subsumming (\ref{ssec:sss});
+  \item Pure Literal Rule (\ref{ssec:pl}).
 \end{itemize}
 
+
+\subsubsection{Learning}
+\label{sssec:learning}
+
+When the searching backtrack encounter a conflict the current
+variable assignment cannot lead to a satisfying assignment.
+Take for example the searching tree in figure \ref{fig:learning}.
+Assignment of literals $1, 2, \neg 4$ lead to a conflict so at
+least one of the variables must have a different value and hence the
+clause $\neg 1 \lor \neg 2 \lor 4$.  In a future generation when 2
+out of the 3 variables involved in the conflict are assigned the same
+value the last variable is constrained to have a different value.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.5\linewidth]{dia/learning}
+  \caption{Conflicts are transformed into clauses by forbidding
+  same variable assignment.
+  $\overline{(1 \land 2 \land \neg 4)} \equiv (\neg 1 \lor \neg 2 \lor 4)$}
+  \label{fig:learning}
+\end{figure}
+
+Now consider two conflicts $C_1 = \{ \neg 1, \neg 2, 4 \}$ and
+$C_2 = \{ \neg 1, 2 \}$.  By applying resolution (see definition
+\ref{mydef:resolution}) clause $C_3 = \{ \neg 1, 4 \}$ is obtained
+which is a subset of $C_1$; therefore $C_1$ can be replaced by $C_3$
+strengthening the learned clause. Similarly conflicts
+$C_4 = \{ 1, 3, 5 \}$ and $C_5 = \{1, 3, \neg 5\}$ are merged
+into $C_6 = \{ 1, 3 \}$.
+
+\begin{myprop}
+  If assignment of literals $u_1, \ldots u_i$, $i \ge 0$, leads to
+  a conflict then the \emph{conflict clause} $\{ \neg u_1, \ldots
+  \neg u_i \}$ must be satisfied by any satisfiable assignment of
+  the original formula.
+\end{myprop}
+
+\begin{myprop}
+  If $C_1 = \{ v_1, \ldots, v_i, \mathbf{u} \}$ and $C_2 = \{
+  v_1, \ldots, v_i, \mathbf{\neg u}, v_{i+1}, \ldots v_{i+j} \}$
+  are two conflict clauses, $i, j \ge 0$, then $C = \{ v_1, v_2,
+  \ldots, v_{i+j} \}$ must also be satisfied.
+\end{myprop}
 

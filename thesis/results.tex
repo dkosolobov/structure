@@ -1,11 +1,80 @@
 \chapter{Experimental Results}
 
+\section{Setup}
+
+STRUCTure was evaluated on DAS-4 (\url{http://www.cs.vu.nl/das4/})
+cluster at VU University Amsterdam (\url{http://www.few.vu.nl}). The
+cluster is composed of 74 machines with dual quad core Intel E5620
+processors running at 2.4GHz and 24GB of memory. This setup allows
+evaluation of different types of parallelization:
+\begin{inparaenum}[1)]
+  \item when more nodes are added and
+  \item when more CPUs per node are added.
+\end{inparaenum}
+
+With hyper threading enabled each node has 16 logical
+processors. Most tests don't use all node's processors and
+Constellation will not spawn more than specified number of threads.
+However Java Virtual Machine will use the additional computing
+power for things like Parallel Garbage Collector.
+
+STRUCTure was evaluated using problems from SAT Competition
+2009 (\url{http://www.satcompetition.org/2009/}). These instances
+are divided in three categories:
+\begin{itemize}
+  \item Formulas in \emph{application} category encode different
+  problems and are typically very large (up to tens of millions
+  of variables and clauses)
+  \item \emph{Crafted} SAT instances are generally small and
+  designed to stress solvers.
+  \item \emph{Random} instances contain random $k$-SAT formulas.
+\end{itemize}
+
+Instances are also divided depending on their difficulty:
+\begin{itemize}
+  \item \emph{easy} instances were solved by all solvers in
+  the competition;
+  \item \emph{medium} instances were solved by at least one solver; and
+  \item \emph{hard} instances were not solved by any solver.
+\end{itemize}.
+
+STRUCTure was evaluated on 678 medium difficulty instances.
+The time limit to solve a single instances was 15 minutes.  The time
+limit in SAT Competitions is usually 20 minutes, but the rules
+of DAS-4 cluster allow only 15 minutes jobs during the day time.
+With extra 5 minutes STRUCTure can solve only few extra instances
+so the additional time is not required to understand performance
+an scalability.
+
+
+With a timeout of 15 minutes, STRUCTure can solve about 170 problems
+on a single DAS-4 node, but champions go to about 250.
+
+
+
+\section{Performance of Reasonings}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.75\textwidth]{data/branching.eps}
+  \caption{Branching with look ahead}
+  \label{fig:branching-w-la}
+\end{figure}
+
+\section{Parallel and Distributed Performance}
+
 \begin{enumerate}
-\item 1 machine, 1..48 threads
-
-\item 1..48 machines, 1 thread
-
-\item 1..48 machines, 16 threads
-
+  \item 1 machine, 1..8 threads
+  \item 1..8 machines, 1 thread
+  \item 1..8 machines, 8 threads
+  \item Pick an instances and run it on up to 48 threads
 \end{enumerate}
 
+
+\section{Other}
+
+Distribution of size of learned clauses 
+
+Distribution of depth
+
+Distribution of instances size
