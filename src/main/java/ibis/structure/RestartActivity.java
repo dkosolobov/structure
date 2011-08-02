@@ -122,8 +122,8 @@ public final class RestartActivity extends Activity {
                 + instance.variables().size() + " variables and "
                 + instance.formula.size() + " literals");
 
-    executor.submit(new LookAheadActivity(
-          identifier(), tracer, generation, scores, instance.clone()));
+    executor.submit(new SplitActivity(
+          identifier(), tracer, 0, generation, scores, instance.clone()));
 
     if (ttl < MAX_TTL) {
       TimerTask task = new TimerTask() {
