@@ -13,8 +13,8 @@ import static ibis.structure.Misc.*;
 
 public class VariableElimination {
   private static final Logger logger = Logger.getLogger(VariableElimination.class);
-  private static int MAX_LIMIT = 1;
 
+  /** Stores information how to compute value of literal. */
   private static class Data {
     public int literal;
     public TIntArrayList clauses;
@@ -27,19 +27,20 @@ public class VariableElimination {
 
   private final Solver solver;
   private final TouchSet touched;
+  /** Vector of eliminated variables and information to compute their value. */
+  private final Vector<Data> eliminated;
 
   private VariableElimination(final Solver solver) {
     this.solver = solver;
     touched = new TouchSet(solver.numVariables);
+    eliminated = new Vector<Data>();
   }
 
   public static Object run(final Solver solver) throws ContradictionException {
     return (new VariableElimination(solver)).run();
   }
 
-  /**
-   * Computes the value of eliminated variables.
-   */
+  /** Computes values of eliminated variables. */
   public static Solution restore(final Object ve_, final Solution solution) {
     if (!solution.isSatisfiable() || ve_ == null) {
       return solution;
@@ -83,28 +84,22 @@ public class VariableElimination {
    * the values of the original instance.
    */
   private Object run() throws ContradictionException {
-    Vector<Data> ve = new Vector<Data>();
-
-    run(ve, 2);
-    run(ve, 0);
-    run(ve, -1);
+    run(2);
+    run(0);
+    run(-1);
 
     SelfSubsumming.run(solver);
-    logger.info("Eliminated " + ve.size() + " variables");
-    return ve;
+    return eliminated;
   }
 
-  private void run(final Vector<Data> ve, final int limit)
+  private void run(final int limit)
       throws ContradictionException {
     solver.propagateBinaries();
     HiddenTautologyElimination.run(solver);
     SelfSubsumming.run(solver);
 
     for (int literal = 1; literal <= solver.numVariables; literal++) {
-      Data data = eliminate(literal, limit);
-      if (data != null) {
-        ve.add(data);
-      }
+      eliminate(literal, limit);
     }
   }
 
@@ -112,7 +107,7 @@ public class VariableElimination {
    * Attempts to eliminate a literal such that the formula
    * doesn't increase more than limit.
    */
-  private Data eliminate(final int literal, final int limit)
+  private void eliminate(final int literal, final int limit)
       throws ContradictionException {
     assert !solver.isLiteralAssigned(literal);
 
@@ -121,20 +116,20 @@ public class VariableElimination {
     int size = 0;
 
     if (p.length == 0 && n.length == 0) {
-      return null;
+      return;
     }
 
     // Clauses must be short enough and not XORs.
     for (int i = 0; i < p.length; i++) {
       size += length(solver.formula, p[i]) + 1;
       if (type(solver.formula, p[i]) != OR) {
-        return null;
+        return;
       }
     }
     for (int i = 0; i < n.length; i++) {
       size += length(solver.formula, n[i]) + 1;
       if (type(solver.formula, n[i]) != OR) {
-        return null;
+        return;
       }
     }
 
@@ -143,14 +138,14 @@ public class VariableElimination {
       for (int j = 0; j < n.length; j++) {
         int length = resolution(store, p[i], n[j], literal);
         if (length > 8 || store.size() >= size + limit) {
-          return null;
+          return;
         }
       }
     }
 
     TIntArrayList clauses = removeLiteral(literal, p, n);
     solver.watchLists.append(store);
-    return new Data(literal, clauses);
+    eliminated.add(new Data(literal, clauses));
   }
 
   /**
