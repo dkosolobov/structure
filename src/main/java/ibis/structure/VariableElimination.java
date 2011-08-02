@@ -119,16 +119,22 @@ public class VariableElimination {
       return;
     }
 
-    // Clauses must be short enough and not XORs.
+    // Clauses must be leng enough and not XORs.
     for (int i = 0; i < p.length; i++) {
       size += length(solver.formula, p[i]) + 1;
       if (type(solver.formula, p[i]) != OR) {
+        return;
+      }
+      if (length(solver.formula, p[i]) == 1) {
         return;
       }
     }
     for (int i = 0; i < n.length; i++) {
       size += length(solver.formula, n[i]) + 1;
       if (type(solver.formula, n[i]) != OR) {
+        return;
+      }
+      if (length(solver.formula, n[i]) == 1) {
         return;
       }
     }
