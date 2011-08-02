@@ -289,6 +289,7 @@ public final class PropagateActivity extends Activity {
       }
     }
 
+    /*
     // Searches equivalent literals
     final int mask5 = 0x55555555;
     it = assignment.iterator();
@@ -322,6 +323,7 @@ public final class PropagateActivity extends Activity {
         }
       }
     }
+    */
 
     logger.info("Found " + numUnits + " units and "
                 + numBinaries + " binaries");
