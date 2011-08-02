@@ -87,7 +87,6 @@ public final class DependentVariableElimination {
       int index = dve.lastIndexOf(literal);
       dve.setQuick(index, dve.getQuick(dve.size() - 1));
       dve.setQuick(dve.size() - 1, literal);
-
       dve.add(encode(length, type));
     }
 
@@ -214,7 +213,11 @@ public final class DependentVariableElimination {
       }
     }
 
-    return largest + smallest - 2 >= 8 ? -1 : bestClause;
+    if (clauses.size() != 1 && largest + smallest - 2 >= 8) {
+      return -1;
+    }
+
+    return bestClause;
   }
 
   /**
