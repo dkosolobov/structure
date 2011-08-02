@@ -46,11 +46,12 @@ public final class LookAheadActivity extends Activity {
   @Override
   public void initialize() {
     final int step = 16;
-    final int total = step * 8;
+    final int total = step * Configure.lookAheadSize;
 
     int[] vars = instance.pickVariables(scores, total);
     shuffleArray(vars);
 
+    logger.info("Tried " + total + " variables");
     logger.info("Picked " + new TIntArrayList(vars));
     for (int i = 0; i < vars.length; i += step) {
       int num = Math.min(step, vars.length - i);
@@ -60,8 +61,12 @@ public final class LookAheadActivity extends Activity {
       numChunks++;
     }
 
-    assert numChunks > 0;
-    suspend();
+    if (numChunks == 0) {
+      executor.submit(new SimplifyActivity(parent, tracer, scores, instance));
+      finish();
+    } else {
+      suspend();
+    }
   }
 
   @Override
@@ -79,21 +84,17 @@ public final class LookAheadActivity extends Activity {
     }
 
     numChunks--;
+    assert numChunks >= 0;
     if (numChunks == 0) {
       if (!solved) {
         TIntArrayList learned = new TIntArrayList();
         solution.addLearnedClauses(learned, 10);
         instance.formula.addAll(learned);
-
-        executor.submit(new RestartActivity(
-              identifier(), tracer, scores, instance));
+        executor.submit(new SimplifyActivity(parent, tracer, scores, instance));
       }
 
-      suspend();
-    } else if (numChunks == -1) {
       finish();
     } else {
-      assert numChunks > 0;
       suspend();
     }
   }

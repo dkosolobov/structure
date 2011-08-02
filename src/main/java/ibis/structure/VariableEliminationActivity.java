@@ -30,7 +30,7 @@ public final class VariableEliminationActivity extends Activity {
   @Override
   public void initialize() {
     if (!Configure.ve) {
-      executor.submit(new SimplifyActivity(parent, tracer, scores, instance));
+      executor.submit(new LookAheadActivity(parent, tracer, scores, instance));
       finish();
       return;
     }
@@ -40,7 +40,7 @@ public final class VariableEliminationActivity extends Activity {
       ve = VariableElimination.run(solver);
 
       core = solver.core();
-      executor.submit(new SimplifyActivity(
+      executor.submit(new LookAheadActivity(
             identifier(), tracer, scores, core.instance()));
 
       suspend();

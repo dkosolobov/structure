@@ -57,7 +57,7 @@ public final class SimplifyActivity extends Activity {
 
     core = solver.core();
     normalizer.denormalize(core);
-    executor.submit(new LookAheadActivity(
+    executor.submit(new RestartActivity(
           identifier(), tracer, scores, core.instance()));
     suspend();
   }
