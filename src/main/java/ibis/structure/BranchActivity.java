@@ -49,9 +49,13 @@ public final class BranchActivity extends Activity {
     Skeleton copy1 = instance.clone();
     Skeleton copy2 = instance;
 
+
+    addBranch(copy1, branch);
     executor.submit(new BlackHoleActivity(
           identifier(), tracer, depth + 1,
           generation, scores, copy1, branch));
+
+    addBranch(copy2, neg(branch));
     executor.submit(new BlackHoleActivity(
           identifier(), tracer, depth + 1,
           generation, scores, copy2, neg(branch)));
@@ -88,5 +92,13 @@ public final class BranchActivity extends Activity {
       reply(Solution.unknown(responses[0], responses[1]));
     }
     finish();
+  }
+
+  /** Adds a branch to instance as an unit clause. */
+  private static void addBranch(final Skeleton instance,
+                                final int branch) {
+    assert branch != 0;
+    instance.formula.add(encode(1, OR));
+    instance.formula.add(branch);
   }
 }

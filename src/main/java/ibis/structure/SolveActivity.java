@@ -24,7 +24,7 @@ public final class SolveActivity extends Activity {
   private Core core;
 
   /**
-   * @param branch branching literal.
+   * @param branch last branching literal.
    */
   public SolveActivity(final ActivityIdentifier parent,
                        final ActivityIdentifier tracer,
@@ -33,18 +33,8 @@ public final class SolveActivity extends Activity {
                        final TDoubleArrayList scores,
                        final Skeleton instance,
                        final int branch) {
-    super(parent, tracer, depth, generation, scores, branch(instance, branch));
+    super(parent, tracer, depth, generation, scores, instance);
     this.branch = branch;
-  }
-
-  /** Adds a branch to instance as an unit clause. */
-  private static Skeleton branch(final Skeleton instance,
-                                 final int branch) {
-    if (branch != 0) {
-      instance.formula.add(encode(1, OR));
-      instance.formula.add(branch);
-    }
-    return instance;
   }
 
   @Override
@@ -56,6 +46,7 @@ public final class SolveActivity extends Activity {
     try {
       normalizer.normalize(instance);
       solver = new Solver(instance);
+
       solver.propagate();
       HyperBinaryResolution.run(solver);
       HiddenTautologyElimination.run(solver);
