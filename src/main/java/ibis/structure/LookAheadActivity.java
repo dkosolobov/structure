@@ -34,10 +34,9 @@ public final class LookAheadActivity extends Activity {
 
   public LookAheadActivity(final ActivityIdentifier parent,
                            final ActivityIdentifier tracer,
-                           final long generation,
                            final TDoubleArrayList scores,
                            final Skeleton instance) {
-    super(parent, tracer, 0, generation, scores, instance);
+    super(parent, tracer, 0, 0, scores, instance);
     this.solution = Solution.unknown();
   }
 
@@ -74,7 +73,8 @@ public final class LookAheadActivity extends Activity {
         solved = true;
         reply(response);
       } else {
-        solution = Solution.unknown(solution, response);
+        // Merges learned clauses.
+        solution = Solution.unknown(solution, response, false);
       }
     }
 
@@ -85,18 +85,12 @@ public final class LookAheadActivity extends Activity {
         solution.addLearnedClauses(learned, 10);
         instance.formula.addAll(learned);
 
-        logger.info("Staring generation " + generation + ". Good luck!");
-        executor.submit(new SplitActivity(
-              identifier(), tracer, 0, generation,
-              scores, instance.clone()));
-        suspend();
-      } else {
-        finish();
+        executor.submit(new RestartActivity(
+              identifier(), tracer, scores, instance));
       }
+
+      suspend();
     } else if (numChunks == -1) {
-      if (!solved) {
-        reply(solution);
-      }
       finish();
     } else {
       assert numChunks > 0;

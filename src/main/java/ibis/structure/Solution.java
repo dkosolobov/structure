@@ -88,9 +88,15 @@ public final class Solution implements java.io.Serializable {
     return solution;
   }
 
-  public static Solution unknown(final Solution s1, final Solution s2) {
+  /**
+   * Joins two slutions, at least one is unknown.
+   */
+  public static Solution unknown(final Solution s1,
+                                 final Solution s2,
+                                 final boolean branched) {
+    assert s1.isUnknown() || s2.isUnknown();
     if (s1.isUnknown() && s2.isUnsatisfiable()) {
-      return unknown(s2, s1);
+      return unknown(s2, s1, branched);
     }
  
     if (s2.learned.isEmpty()) {
@@ -100,13 +106,17 @@ public final class Solution implements java.io.Serializable {
     }
  
     Solution solution = new Solution(UNKNOWN);
-    if (s1.isUnknown()) {
+    if (s1.isUnknown() || !branched) {
       assert s2.isUnknown();
       solution.learned.addAll(s1.learned);
       solution.learned.addAll(s2.learned);
     } else {
       assert s1.isUnsatisfiable();
-      assert s1.learned.size() == 2: "Learned size is " + s1.learned.size();
+      assert s1.learned.size() == 2
+          : "Learned size is " + s1.learned.size() + " instead of 2";
+      assert var(s1.learned.get(0)) == var(s2.learned.get(0))
+          : "Can't join different branches solutions";
+        
       solution.learned.add(s1.learned.get(0));
       solution.learned.addAll(s2.learned);
       solution.learned.set(1, 0);

@@ -89,7 +89,7 @@ public final class BranchActivity extends Activity {
       // Both braches returned UNSATISFIABLE so the instance is unsatifiable
       reply(Solution.unsatisfiable());
     } else if (!responses[0].isSatisfiable() && !responses[1].isSatisfiable()) {
-      reply(Solution.unknown(responses[0], responses[1]));
+      reply(Solution.unknown(responses[0], responses[1], true));
     }
     finish();
   }
