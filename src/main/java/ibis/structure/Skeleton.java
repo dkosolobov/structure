@@ -5,10 +5,13 @@ import gnu.trove.iterator.TIntIntIterator;
 import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.set.hash.TIntHashSet;
 import gnu.trove.map.hash.TIntIntHashMap;
+import org.apache.log4j.Logger;
 
 import static ibis.structure.Misc.*;
 
 public final class Skeleton implements java.io.Serializable {
+  protected static final Logger logger = Logger.getLogger(Skeleton.class);
+
   public int numVariables;
   public TIntArrayList formula;
 
@@ -34,9 +37,11 @@ public final class Skeleton implements java.io.Serializable {
     return new Skeleton(numVariables, new TIntArrayList(formula));
   }
 
-  public int countVariables() {
+  /** Returns a set of variables. */
+  public TIntHashSet variables() {
     TIntHashSet tmp = new TIntHashSet();
     ClauseIterator it = new ClauseIterator(formula);
+
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
@@ -44,9 +49,11 @@ public final class Skeleton implements java.io.Serializable {
         tmp.add(var(formula.getQuick(i)));
       }
     }
-    return tmp.size();
+
+    return tmp;
   }
 
+  /** Returns a hash of this instance. */
   public int hash() {
     int hash = 0;
 
@@ -72,6 +79,10 @@ public final class Skeleton implements java.io.Serializable {
       int type = type(formula, clause);
 
       if (type != OR) {
+        if (length >= 6) {
+          logger.warn("Found large XOR gate with " + length + " inputs");
+        }
+
         for (int i = 0; i < (1 << length); i++) {
           boolean sign = false;
           for (int j = 0; j < length; j++) {

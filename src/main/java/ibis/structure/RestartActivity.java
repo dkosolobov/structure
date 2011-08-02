@@ -118,8 +118,9 @@ public final class RestartActivity extends Activity {
   public void initialize() {
     startTime = System.currentTimeMillis();
     logger.info("Spawning " + generation + " for " + ttl + " seconds");
-    logger.info("Instance has " + instance.countVariables()
-                + " / " + instance.size());
+    logger.info("Instance has "
+                + instance.variables().size() + " variables and "
+                + instance.formula.size() + " literals");
 
     executor.submit(new LookAheadActivity(
           identifier(), tracer, generation, scores, instance.clone()));
