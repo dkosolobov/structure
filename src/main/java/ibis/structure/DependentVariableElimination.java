@@ -196,24 +196,25 @@ public final class DependentVariableElimination {
   private static int findShortestClause(final TIntArrayList xorGates,
                                         final TIntHashSet clauses) {
     int bestClause = -1;
-    int bestLength = 0;
+    int smallest = 0;
+    int largest = 0;
 
     TIntIterator it = clauses.iterator();
     for (int size = clauses.size(); size > 0; size--) {
       int clause = it.next();
       int length = length(xorGates, clause);
-      if (length > 5) {
-        return -1;
-      }
-
       assert length >= 1;
-      if (bestLength == 0 || length < bestLength) {
+
+      if (largest == 0 || length > largest) {
+        largest = length;
+      }
+      if (smallest == 0 || length < smallest) {
         bestClause = clause;
-        bestLength = length;
+        smallest = length;
       }
     }
 
-    return bestClause;
+    return largest + smallest - 2 >= 8 ? -1 : bestClause;
   }
 
   /**
