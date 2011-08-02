@@ -40,9 +40,12 @@ public final class DependentVariableElimination {
         continue;
       }
 
-      numDependent++;
       int pivot = findShortestClause(xorGates, clauses);
+      if (pivot == -1) {
+        continue;
+      }
 
+      numDependent++;
       TIntIterator it = clauses.iterator();
       for (int size = clauses.size(); size > 0; size--) {
         int clause = it.next();
@@ -184,6 +187,12 @@ public final class DependentVariableElimination {
     return wl;
   }
 
+  /**
+   * Finds smalled XOR gate in clauses.
+   *
+   * @return -1 if there is a large gate or
+   *         index of the smallest gate
+   */
   private static int findShortestClause(final TIntArrayList xorGates,
                                         final TIntHashSet clauses) {
     int bestClause = -1;
@@ -193,8 +202,11 @@ public final class DependentVariableElimination {
     for (int size = clauses.size(); size > 0; size--) {
       int clause = it.next();
       int length = length(xorGates, clause);
-      assert length >= 1;
+      if (length > 5) {
+        return -1;
+      }
 
+      assert length >= 1;
       if (bestLength == 0 || length < bestLength) {
         bestClause = clause;
         bestLength = length;
