@@ -76,9 +76,11 @@ public final class Core {
       int u = proxies.getQuick(i);
       int v = proxies.getQuick(i + 1);
 
-      assert merged.contains(v) || merged.contains(neg(v));
+      assert merged.contains(v) || merged.contains(neg(v))
+          : "Proxy " + v + " not found";
       assert !merged.contains(v) || !merged.contains(neg(v));
-      assert !merged.contains(u) && !merged.contains(neg(u));
+      assert !merged.contains(u) && !merged.contains(neg(u))
+          : "Original literal " + u + " should not be already assigned";
       merged.add(merged.contains(v) ? u : neg(u));
     }
 
