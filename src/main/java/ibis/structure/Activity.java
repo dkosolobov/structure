@@ -65,7 +65,7 @@ public class Activity extends ibis.constellation.Activity {
   }
 
   /**
-   * Sends reponse back to parent.
+   * Sends response back to parent.
    *
    * It denormalizes and verifies the response.
    *
@@ -79,9 +79,9 @@ public class Activity extends ibis.constellation.Activity {
     executor.send(new Event(identifier(), parent, response));
   }
 
-  /** Performs a garbage collector. */
+  /** Sets unneeded variables to null so they can be reclaimed by GC. */
   protected void gc() {
-    // instance = null;
+    instance = null;
   }
 
   /**
@@ -144,7 +144,6 @@ public class Activity extends ibis.constellation.Activity {
         System.exit(1);  // TODO: exit gracefully
       }
 
-      /*
       if (response.isUnsatisfiable()) {
         // For unsatisfiable invoke cryptominisat.
         String cnf = original.toString();
@@ -178,7 +177,6 @@ public class Activity extends ibis.constellation.Activity {
           System.exit(1);
         }
       }
-      */
     }
   }
 

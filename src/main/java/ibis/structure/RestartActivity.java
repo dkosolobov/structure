@@ -51,6 +51,9 @@ public final class RestartActivity extends Activity {
     // sortBinaries();
   }
 
+  protected void gc() {
+  }
+
   /**
    * Returns a unique random long non-zero number.
    *
@@ -113,14 +116,7 @@ public final class RestartActivity extends Activity {
 
   @Override
   public void initialize() {
-    if (scores == null) {
-      double[] tmp = new double[instance.numVariables + 1];
-      java.util.Arrays.fill(tmp, 0.5);
-      scores = new TDoubleArrayList(tmp);
-    }
-
     startTime = System.currentTimeMillis();
-
     logger.info("Spawning " + generation + " for " + ttl + " seconds");
     logger.info("Instance has " + instance.countVariables()
                 + " / " + instance.size());

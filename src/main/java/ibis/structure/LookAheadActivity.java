@@ -41,6 +41,9 @@ public final class LookAheadActivity extends Activity {
     this.solution = Solution.unknown();
   }
 
+  protected void gc() {
+  }
+
   @Override
   public void initialize() {
     final int step = 16;
