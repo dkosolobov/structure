@@ -38,9 +38,12 @@ public class Configure {
   public static boolean ve = true;
   /** True to enable learning. */
   public static boolean learn = true;
-  /** Number of hyper binary resolutions to perform. 0 to disable. */
-  public static boolean hbr = true;
-  /** Threshold for transitive closure. */
+  /** True to enable sorting binaries in RestartActivity. */
+  public static boolean sb = false;
+
+  /** Root look-ahead size */
+  public static int lookAheadSize = 8;
+  /** ttc is used to set some coefficients. */
   public static double[] ttc = { 0.50, 1.00, 1.00,
                                  1.00, 1.00, 0.00,
                                  0.00, 0.00, 0.00 };
@@ -56,8 +59,8 @@ public class Configure {
     options.addOption("e", true, "# of executors (defaults to number of CPUs)");
     options.addOption("o", true, "output file (defaults to stdout)");
     options.addOption("debug", false, "enable expensive checks");
-    options.addOption("q", false, "be quiet");
 
+    options.addOption("q", false, "be quiet");
     options.addOption("nohte", false, "disable hidden tautology elimination");
     options.addOption("nopl", false, "disable pure literals");
     options.addOption("nosss", false, "disable self-subsumming");
@@ -66,7 +69,9 @@ public class Configure {
     options.addOption("nobce", false, "disable blocked clause elimination");
     options.addOption("nove", false, "disable variable elimination");
     options.addOption("nolearn", false, "disable learning");
-    options.addOption("nohbr", false, "disable hyper binary resolutions");
+    options.addOption("nosb", false, "disable binaries sorting");
+
+    options.addOption("la", true, "root look-ahead size");
     options.addOption("ttc", true, "some coefficients");
 
     BasicParser parser = new BasicParser();
@@ -98,8 +103,8 @@ public class Configure {
     }
 
     enableExpensiveChecks = cl.hasOption("debug");
-    verbose = !cl.hasOption("q");
 
+    verbose = verbose && !cl.hasOption("q");
     hte = hte && !cl.hasOption("nohte");
     pl = pl && !cl.hasOption("nopl");
     sss = sss && !cl.hasOption("nosss");
@@ -108,7 +113,11 @@ public class Configure {
     bce = bce && !cl.hasOption("nobce");
     ve = ve && !cl.hasOption("nove");
     learn = learn && !cl.hasOption("nolearn");
-    hbr = hbr && !cl.hasOption("nohbr");
+    sb = sb && !cl.hasOption("nosb");
+
+    if (cl.hasOption("la")) {
+      lookAheadSize = Integer.parseInt(cl.getOptionValue("la"));
+    }
 
     if (cl.hasOption("ttc")) {
       String[] ttc_ = cl.getOptionValue("ttc").split(",");

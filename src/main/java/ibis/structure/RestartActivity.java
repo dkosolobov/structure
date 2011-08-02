@@ -48,7 +48,6 @@ public final class RestartActivity extends Activity {
                          final TDoubleArrayList scores,
                          final Skeleton instance) {
     super(parent, tracer, 0, guid(), scores, instance);
-    // sortBinaries();
   }
 
   protected void gc() {
@@ -116,6 +115,10 @@ public final class RestartActivity extends Activity {
 
   @Override
   public void initialize() {
+    if (Configure.sb) {
+      sortBinaries();
+    }
+
     startTime = System.currentTimeMillis();
     logger.info("Spawning " + generation + " for " + ttl + " seconds");
     logger.info("Instance has "
