@@ -233,13 +233,14 @@ public final class PropagateActivity extends Activity {
   private TIntArrayList getClauses() {
     TIntIntIterator it;
     TIntArrayList learned = new TIntArrayList();
-    int num = 0;
+    int numUnits = 0, numBinaries = 0;
 
     // Adds obligatory forced literals.
     for (int literal : forced.toArray()) {
       learned.add(encode(1, OR));
       learned.add(literal);
-      num++;
+      numUnits ++;
+      numBinaries++;
     }
 
     // Searches binaries among selected variables.
@@ -258,7 +259,7 @@ public final class PropagateActivity extends Activity {
           learned.add(encode(2, OR));
           learned.add(neg(lits[i]));
           learned.add(lits[j]);
-          num++;
+          numBinaries++;
         }
       }
     }
@@ -281,7 +282,7 @@ public final class PropagateActivity extends Activity {
               learned.add(encode(2, OR));
               learned.add(neg(lits[i]));
               learned.add(neg(lits[j]));
-              num++;
+              numBinaries++;
             }
           }
         }
@@ -311,18 +312,19 @@ public final class PropagateActivity extends Activity {
             learned.add(encode(2, OR));
             learned.add(neg(lits[j]));
             learned.add(l);
-            num++;
+            numBinaries++;
 
             learned.add(encode(2, OR));
             learned.add(lits[j]);
             learned.add(neg(l));
-            num++;
+            numBinaries++;
           }
         }
       }
     }
 
-    logger.info("Found " + num + " extra clauses");
+    logger.info("Found " + numUnits + " units and "
+                + numBinaries + " binaries");
     return learned;
   }
 }
