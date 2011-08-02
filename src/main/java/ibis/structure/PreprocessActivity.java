@@ -34,6 +34,10 @@ public final class PreprocessActivity extends Activity {
       PureLiterals.run(solver);
       MissingLiterals.run(solver);
 
+      logger.info("Instance has "
+                  + instance.variables().size() + " variables and "
+                  + instance.formula.size() + " literals");
+
       solution = solver.solve();
       solution = normalizer.denormalize(solution);
       assert !solution.isUnsatisfiable();
