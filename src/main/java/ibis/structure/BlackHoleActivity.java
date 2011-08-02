@@ -61,12 +61,7 @@ public final class BlackHoleActivity extends Activity {
 
   @Override
   public void process(final Event e) throws Exception {
-    Solution response = (Solution) e.data;
-    if (response.isUnsatisfiable()) {
-      updateScore(scores, depth, branch);
-    }
-
-    reply(response);
+    reply((Solution) e.data);
     finish();
   }
 }
