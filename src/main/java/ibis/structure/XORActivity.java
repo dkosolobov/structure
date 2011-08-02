@@ -18,9 +18,8 @@ public final class XORActivity extends Activity {
 
   public XORActivity(final ActivityIdentifier parent,
                      final ActivityIdentifier tracer,
-                     final TDoubleArrayList scores,
                      final Skeleton instance) {
-    super(parent, tracer, 0, 0, scores, instance);
+    super(parent, tracer, 0, 0, null, instance);
   }
 
   @Override
@@ -51,7 +50,6 @@ public final class XORActivity extends Activity {
 
   @Override
   public void process(final Event e) throws Exception {
-    logger.info("XOR finished ***************** parent is " + parent);
     Solution response = (Solution) e.data;
     response = DependentVariableElimination.restore(dve, response);
     reply(response);

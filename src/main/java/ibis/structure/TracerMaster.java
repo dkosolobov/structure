@@ -115,8 +115,6 @@ public final class TracerMaster extends ibis.constellation.Activity {
 
   @Override
   public void process(final Event e) throws Exception {
-    try {
-    logger.info("Received " + e.data);
     if (e.data instanceof TracerRegisterSlave) {
       ActivityIdentifier slave = ((TracerRegisterSlave) e.data).slave;
       synchronized (this) {
@@ -160,16 +158,14 @@ public final class TracerMaster extends ibis.constellation.Activity {
         deadReceived++;
       }
 
-      logger.info("deadReceived is " + deadReceived + " / " + slaves.size());
+      logger.info("Received " + deadReceived
+                  + " confirmations out of " + slaves.size());
       if (deadReceived == slaves.size()) {
         executor.send(new Event(master, deadSource, new Object()));
         finish();
       } else {
         suspend();
       }
-    }
-    } catch (Throwable ex) {
-      ex.printStackTrace();
     }
   }
 

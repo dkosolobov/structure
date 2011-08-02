@@ -14,8 +14,6 @@ import static ibis.structure.Misc.*;
  * part of the restart loop.
  */
 public final class SimplifyActivity extends Activity {
-  private static final Logger logger = Logger.getLogger(SimplifyActivity.class);
-
   /** Core after simplification. */
   private Core core = null;
 
@@ -49,10 +47,6 @@ public final class SimplifyActivity extends Activity {
       assert !solution.isUnsatisfiable();
     } catch (ContradictionException e) {
       solution = Solution.unsatisfiable();
-    } catch (Exception e) {
-      // Catch unwanted exception.
-      e.printStackTrace();
-      System.exit(1);
     }
 
     if (!solution.isUnknown()) {
@@ -70,8 +64,6 @@ public final class SimplifyActivity extends Activity {
 
   @Override
   public void process(final Event e) throws Exception {
-    logger.info("In simplify processing");
-
     Solution solution = (Solution) e.data;
     if (solution.isSatisfiable()) {
       solution = core.merge(solution);

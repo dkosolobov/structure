@@ -30,9 +30,7 @@ public final class SelectBranchActivity extends Activity {
   @Override
   public void initialize() {
     int branch = instance.pickVariables(scores, 1)[0];
-    double score = scores.get(branch);
-    branch = random.nextDouble() < score ? branch : neg(branch);
-
+    branch = random.nextBoolean() ? branch : neg(branch);
     executor.submit(new BranchActivity(
           parent, tracer, depth, generation, scores, instance, branch));
 

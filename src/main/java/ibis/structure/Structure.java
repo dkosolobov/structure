@@ -98,7 +98,6 @@ class Structure {
     } else {
       constellation.done();
     }
-    logger.info("Finished -----------");
     System.exit(0);
   }
 
