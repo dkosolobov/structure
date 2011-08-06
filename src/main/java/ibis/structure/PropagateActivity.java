@@ -50,7 +50,7 @@ public final class PropagateActivity extends Activity {
     initialAssignment();
 
     try {
-    for (int repeat = 10; repeat > 0; repeat--) {
+    for (int repeat = 5; repeat > 0; repeat--) {
         int tmp = forced.size();
         propagate();
         findExtraContradictions();
@@ -239,8 +239,7 @@ public final class PropagateActivity extends Activity {
     for (int literal : forced.toArray()) {
       learned.add(encode(1, OR));
       learned.add(literal);
-      numUnits ++;
-      numBinaries++;
+      numUnits++;
     }
 
     // Searches binaries among selected variables.
@@ -250,17 +249,20 @@ public final class PropagateActivity extends Activity {
       }
 
       for (int j = 0; j < lits.length; j++) {
+        if (var(lits[i]) >= var(lits[j])) {
+          continue;
+        }
+        if ((assignment.get(lits[j]) & (1 << i)) == 0) {
+          continue;
+        }
         if (forced.contains(lits[j]) || forced.contains(neg(lits[j]))) {
           continue;
         }
 
-        if (var(lits[i]) < var(lits[j])
-            && (assignment.get(lits[j]) & (1 << i)) != 0) {
-          learned.add(encode(2, OR));
-          learned.add(neg(lits[i]));
-          learned.add(lits[j]);
-          numBinaries++;
-        }
+        learned.add(encode(2, OR));
+        learned.add(neg(lits[i]));
+        learned.add(lits[j]);
+        numBinaries++;
       }
     }
 
@@ -277,7 +279,7 @@ public final class PropagateActivity extends Activity {
       for (int i = 0; i < lits.length; i++) {
         for (int j = 0; j < lits.length; j++) {
           if ((p & (1 << i)) != 0 && ((n & (1 << j)) != 0)) {
-            if (var(lits[i]) < var(lits[j])
+            if (var(lits[i]) != var(lits[j])
                 && !contradiction[i] && !contradiction[j]) {
               learned.add(encode(2, OR));
               learned.add(neg(lits[i]));
@@ -289,7 +291,6 @@ public final class PropagateActivity extends Activity {
       }
     }
 
-    /*
     // Searches equivalent literals
     final int mask5 = 0x55555555;
     it = assignment.iterator();
@@ -304,12 +305,13 @@ public final class PropagateActivity extends Activity {
       }
 
       if ((p & (n >> 1) & mask5) != 0) {
-        for (int j = 0; j < lits.length; j++) {
+        for (int j = 0; j < lits.length; j += 2) {
           if (forced.contains(lits[j]) || forced.contains(neg(lits[j]))) {
             continue;
           }
 
-          if (var(l) < var(lits[j]) && (p & (n >> 1) & (1 << j)) != 0) {
+          if (var(l) < var(lits[j])
+              && (p & (1 << j)) != 0 && (n & (2 << j)) != 0) {
             learned.add(encode(2, OR));
             learned.add(neg(lits[j]));
             learned.add(l);
@@ -323,7 +325,6 @@ public final class PropagateActivity extends Activity {
         }
       }
     }
-    */
 
     logger.info("Found " + numUnits + " units and "
                 + numBinaries + " binaries");
