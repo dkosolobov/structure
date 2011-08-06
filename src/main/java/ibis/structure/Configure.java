@@ -41,12 +41,14 @@ public class Configure {
   /** True to enable sorting binaries in RestartActivity. */
   public static boolean sb = false;
 
-  /** Root look-ahead size */
-  public static int lookAheadSize = 8;
+  /** Root look-ahead size. */
+  public static int lookAheadSize = 4;
+  /** Generation initial timeToLive. */
+  public static int initialTTL = 10;
+  /** Generation extra timeToLive. */
+  public static int extralTTL = 10;
   /** ttc is used to set some coefficients. */
-  public static double[] ttc = { 0.50, 1.00, 1.00,
-                                 1.00, 1.00, 0.00,
-                                 0.00, 0.00, 0.00 };
+  public static double[] ttc = { 3, 2 };
 
   /** Context for local jobs. */
   public static String localContext;
