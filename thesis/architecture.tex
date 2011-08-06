@@ -1,5 +1,29 @@
 \chapter{Architecture}
 
+A top view of STRUCTure's architecture is shown in figure
+\ref{fig:architecture}. There are main four components
+out of which only \emph{Search Backtrack} is essential.
+The other three are optimization to handle larger
+industrial and crafted instances.
+\begin{enumerate}
+  \item \emph{Circuit Preprocessing} reverts and simplifies 
+  part of the original Boolean circuit;
+  \item \emph{Simplification} performs formula simplifications;
+  \item \emph{Restart} starts and stops search and extends
+  formula with clauses derived from conflicts;
+  \item \emph{Search Backtrack} performs a distributed solution search.
+\end{enumerate}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=\textwidth]{dia/architecture}
+  \caption{STRUCTure has four components. \emph{Searching}
+  is mandatory, the other three are optimizations
+  for industrial class instances.}
+  \label{fig:architecture}
+\end{figure}
+
+
 \section{Constellation}
 
 Constellation is a distributed programming framework developed at VU University
@@ -10,20 +34,20 @@ send messages to other activities and process incoming messages
 
 Constellation doesn't provide any shared memory mechanism, but
 activities running on the same node are free to use the common
-address space. Moreover, broadcasting or cancellation are not
+address space. Moreover, broadcasting or cancellation is not
 available, but are needed in STRUCTure (see \ref{sssec:blackhole})
 to stop the search.
 
 Constellation works by running a fixed number of worker threads
 on each node which execute activities.  Workers maintain a
 queue of events (such as new activities or messages passed) which are
-processed in LIFO order \footnote{LIFO stands for last-in-first-out}.
+processed in last-in-first-out (LIFO) order.
 
 When a thread runs out of work it attempts to steal more
 jobs first from other workers on the same node, and then from
 other workers on different nodes.  Local steals are performed
-in LIFO order, while remote steals are performed in FIFO order
-\footnote{FIFO stands for first-in-first-out}. Remote steals are
+in LIFO order, while remote steals are performed in FIFO
+(first-in-first-out) order. Remote steals are
 slower than local steals because they involve network communication
 and they are performed only at regular intervals.
 
@@ -51,21 +75,10 @@ Activities return to parent a solution to instances which can be
 a satisfying assignment was found the solution includes units,
 otherwise it includes learned clauses from conflicts.
 
-Figure \ref{fig:activities} gives a top view of STRUCTure's
-architecture showings the dependencies among activities.
-STRUCTure has 4 main components discussed in next subsections:
-\begin{itemize}
-  \item \emph{Circuit Preprocessing} reverts and simplifies 
-  part of the original logic circuit
-  \item \emph{Restart Loop} deals with simplification,
-  starting and stopping search and clause learning.
-  \item \emph{Look-Ahead} attempts to learn top level units and binaries.
-  \item \emph{Search Loop} performs a distributed solution search.
-\end{itemize}
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.9\linewidth]{activity.eps}
+  \includegraphics[width=0.9\linewidth]{dia/activity}
   \caption{Activities in STRUCTure. Rectangles represent activities, arrows
   show dependence among activities.}
   \label{fig:activities}
@@ -86,7 +99,7 @@ removal described in \ref{ssec:xor-extraction} and \ref{ssec:dvr}.
 
 Unfortunately, many reasoning algorithms do not handle XOR gates
 well so the after DVR the remaining gates are turned back into CNF
-clauses. There is room for improvement because DVR will eliminate
+clauses. There is room for improvement because DVR will remove
 variables introduced to split large XOR gates so formula might get
 much larger.
 
@@ -104,9 +117,9 @@ simplification steps to strengthen the learned clauses and simplify
 formula with the new information.
 
 \emph{Blocked clauses elimination} activity (BCE) performs
-blocked clause elimination to eliminate redundant clauses (see
+blocked clause elimination to remove redundant clauses (see
 \ref{ssec:bce}). \emph{Variable elimination} activity (VE) performs
-variable elimination to eliminate many redundant variable (see
+variable elimination to remove redundant variable (see
 \ref{ssec:ve}). \emph{Simplify} activity is similar to Solve
 activity from the searching backtrack (see \ref{sssec:solve}).
 Subsection \ref{sssec:blackhole}, BlackHole activity, describes

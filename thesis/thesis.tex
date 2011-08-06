@@ -1,4 +1,4 @@
-\documentclass[a4paper]{report}
+\documentclass[11pt,twoside,a4paper,final]{report}
 
 \usepackage[utf8]{inputenc}
 \usepackage{todonotes}
@@ -11,6 +11,7 @@
 \usepackage{subfig}
 \usepackage{longtable}
 \usepackage{url}
+\usepackage[none]{hyphenat} 
 
 \usepackage{amsmath}
 \usepackage{amsthm}
@@ -22,14 +23,25 @@
 
 \newcommand{\I}{\mathfrak{I}}
 
+
+\def\maintitle{STRUCTure}
+\def\subtitle{Towards a Distributed SAT Solver}
+\def\authors{Alexandru Mosoi}
+\def\supervisors{Jason Maassen, Kees Verstoep}
+\def\year{Amsterdam, August 2011}
+\def\course{Master Thesis Parallel and Distributed Computer Systems}
+
 \begin{document}
 
-\title{STRUCTure: Towards a Distributed SAT Solver}
-\author{Alexandru Mosoi}
+\pagestyle{empty}
+\include{title}
+\pagestyle{plain}
 
-\maketitle
+\pagenumbering{Roman}
 \tableofcontents
+\listoffigures
 
+\pagenumbering{arabic}
 \include{abstract}
 \include{introduction}
 \include{literature}
@@ -43,7 +55,7 @@
 \bibliography{thesis}
 
 \appendix
-\include{easy-instances}
+%\include{easy-instances}
 \include{algorithms}
 
 \end{document}
