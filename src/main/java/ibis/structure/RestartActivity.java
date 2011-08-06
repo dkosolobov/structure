@@ -28,16 +28,13 @@ import static ibis.structure.Misc.*;
  * for the future generations.
  */
 public final class RestartActivity extends Activity {
-  private static final int INITIAL_TTL = 10;
-  private static final int EXTRA_TTL = 5;
   private static final int MAX_TTL = 1000000;
-  private static final int DEPTH = 0;
 
   private static final Logger logger = Logger.getLogger(RestartActivity.class);
   private static final Random random = new Random();
 
   /** Current generation time to live. */
-  private static int ttl = INITIAL_TTL;  // TODO: should not be static
+  private static int ttl = Configure.initialTTL;  // TODO: should not be static
   /** Timer to restart. */
   private transient Timer timer;
   /** Starting time. */
@@ -137,7 +134,7 @@ public final class RestartActivity extends Activity {
 
       timer = new Timer();
       timer.schedule(task, ttl * 1000L);
-      ttl += EXTRA_TTL;
+      ttl += Configure.extralTTL;
     }
 
     suspend();

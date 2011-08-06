@@ -83,6 +83,8 @@ class Structure {
                        + " for writing", e);
           System.exit(1);
         }
+      } else {
+        logger.info("Writing to stdout");
       }
 
       final long startTime = System.currentTimeMillis();

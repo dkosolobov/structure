@@ -67,19 +67,9 @@ public final class HyperBinaryResolution {
     // Adds discovered units.
     int numUnits = units.size();
     solver.unitsQueue.addAll(units);
-
     // Adds discovered binaries.
     int numBinaries = binaries.size() / 3;
     solver.watchLists.append(binaries);
-
-    if (Configure.verbose) {
-      if (!units.isEmpty()) {
-        System.err.print("hu" + numUnits + ".");
-      }
-      if (!binaries.isEmpty()) {
-        System.err.print("hb" + numBinaries + ".");
-      }
-    }
 
     return !units.isEmpty() || !binaries.isEmpty();
   }

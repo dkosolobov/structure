@@ -35,9 +35,10 @@ public final class SimplifyActivity extends Activity {
       solver = new Solver(instance);
 
       solver.propagate();
+
       HyperBinaryResolution.run(solver);
-      HiddenTautologyElimination.run(solver);
       solver.renameEquivalentLiterals();
+      HiddenTautologyElimination.run(solver);
       SelfSubsumming.run(solver);
       PureLiterals.run(solver);
       MissingLiterals.run(solver);
