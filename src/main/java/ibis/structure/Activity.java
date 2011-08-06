@@ -156,7 +156,7 @@ public class Activity extends ibis.constellation.Activity {
           out.close();
                 
           // System.err.println("cnf is " + cnf);
-          Process p = Runtime.getRuntime().exec("../cryptominisat /dev/stdin /dev/null");
+          Process p = Runtime.getRuntime().exec("./cryptominisat /dev/stdin /dev/null");
           p.getOutputStream().write(cnf.getBytes());
           p.getOutputStream().flush();
           p.getOutputStream().close();
@@ -187,17 +187,16 @@ public class Activity extends ibis.constellation.Activity {
    * @throws Exception in case of error.
    */
   public final void verifyUnits(final TIntArrayList units) throws Exception {
-    TIntArrayList formula = original.formula;
     TIntHashSet unitsSet = new TIntHashSet(units);
     TIntHashSet available = new TIntHashSet();
 
-    ClauseIterator it = new ClauseIterator(formula);
+    ClauseIterator it = new ClauseIterator(original.formula);
     while (it.hasNext()) {
       int clause = it.next();
-      int length = length(formula, clause);
+      int length = length(original.formula, clause);
 
       for (int i = clause; i < clause + length; i++) {
-        int literal = formula.get(i);
+        int literal = original.formula.get(i);
         available.add(var(literal));
 
         if (!unitsSet.contains(literal) && !unitsSet.contains(neg(literal))) {

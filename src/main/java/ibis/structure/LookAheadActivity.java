@@ -31,7 +31,6 @@ public final class LookAheadActivity extends Activity {
   /** True if solved. */
   private boolean solved = false;
 
-
   public LookAheadActivity(final ActivityIdentifier parent,
                            final ActivityIdentifier tracer,
                            final TDoubleArrayList scores,
@@ -46,13 +45,12 @@ public final class LookAheadActivity extends Activity {
   @Override
   public void initialize() {
     final int step = 16;
-    final int total = step * Configure.lookAheadSize;
+    final int total = step * Configure.numExecutors * Configure.lookAheadSize;
 
     int[] vars = instance.pickVariables(scores, total);
+    logger.info("Picked " + vars.length + " variables for lookahead");
     shuffleArray(vars);
 
-    logger.info("Tried " + total + " variables");
-    logger.info("Picked " + new TIntArrayList(vars));
     for (int i = 0; i < vars.length; i += step) {
       int num = Math.min(step, vars.length - i);
       int[] send = Arrays.copyOfRange(vars, i, i + num);
@@ -90,6 +88,7 @@ public final class LookAheadActivity extends Activity {
         TIntArrayList learned = new TIntArrayList();
         solution.addLearnedClauses(learned, 10);
         instance.formula.addAll(learned);
+        logger.info("Learned size is " + learned.size());
         executor.submit(new SimplifyActivity(parent, tracer, scores, instance));
       }
 
