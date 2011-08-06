@@ -122,14 +122,18 @@ public final class Skeleton implements java.io.Serializable {
                              final int numVariables) {
     ClauseIterator it;
 
+    if (numVariables == 0) {
+      return new int[0];
+    }
+
     // Scores all variables.
     TIntIntHashMap scores = new TIntIntHashMap();
     it = new ClauseIterator(formula);
     while (it.hasNext()) {
       int clause = it.next();
       int length = length(formula, clause);
-      int delta = 1 + (128 >> length);
-      int extra = length == 2 ? 8 : 0;
+      int delta = 1 + (57 >> length);
+      int extra = length == 2 ? 29 : 0;
 
       for (int i = clause; i < clause + length; i++) {
         int literal = formula.getQuick(i);
@@ -145,7 +149,7 @@ public final class Skeleton implements java.io.Serializable {
       int length = length(formula, clause);
 
       if (length == 2) {
-        final double coef = 0.8;
+        final double coef = 0.5433;
         int u = formula.getQuick(clause);
         int v = formula.getQuick(clause + 1);
         scores.put(neg(u), scores.get(neg(u)) + (int) (coef * scores.get(v)));
@@ -182,16 +186,20 @@ public final class Skeleton implements java.io.Serializable {
         final double wn3 = Configure.ttc[8];
 
         double c = 
-          + wc1 * (pow(p, wp1) * pow(n, wn1) + pow(n, wp1) * pow(p, wn1))
-          + wc2 * (pow(p, wp2) * pow(n, wn2) + pow(n, wp2) * pow(p, wn2))
-          + wc3 * (pow(p, wp3) * pow(n, wn3) + pow(n, wp3) * pow(p, wn3));
+          + wc1 * (pow(p1, wp1) * pow(n1, wn1) + pow(n1, wp1) * pow(p1, wn1))
+          + wc2 * (pow(p1, wp2) * pow(n1, wn2) + pow(n1, wp2) * pow(p1, wn2))
+          + wc3 * (pow(p1, wp3) * pow(n1, wn3) + pow(n1, wp3) * pow(p1, wn3));
         */
-        double p2 = p1 * p1, p4 = p2 * p2, p5 = p4 * p1, p6 = p5 * p1;
-        double n2 = n1 * n1, n4 = n2 * n2, n5 = n4 * n1, n6 = n5 * n1;
+
+        double p2 = p1 * p1, p3 = p2 * p1, p4 = p3 * p1,
+               p5 = p4 * p1, p6 = p5 * p1, p7 = p6 * p1;
+        double n2 = n1 * n1, n3 = n2 * n1, n4 = n3 * n1,
+               n5 = n4 * n1, n6 = n5 * n1, n7 = p6 * n1;
+
         double c = 
-          + 216 * (p4 * n2 + n4 * p2)
-          + 298 * (p6 * n5 + n6 * p5)
-          + 494 * (p1 * n0 + n1 * p0);
+          + 81 * (p3 * n2 + n3 * p2)
+          + 34 * (p0 * n7 + n0 * p7)
+          + 16 * (p6 * n3 + n6 * p3);
 
         if (num < top.length) {
           top[num] = l;
