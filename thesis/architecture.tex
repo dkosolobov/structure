@@ -1,4 +1,5 @@
 \chapter{Architecture}
+\label{chap:architecture}
 
 A top view of STRUCTure's architecture is shown in figure
 \ref{fig:architecture}. There are main four components
@@ -78,7 +79,7 @@ otherwise it includes learned clauses from conflicts.
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.9\linewidth]{dia/activity}
+  \includegraphics[width=1.1\linewidth]{dia/activity}
   \caption{Activities in STRUCTure. Rectangles represent activities, arrows
   show dependence among activities.}
   \label{fig:activities}
@@ -132,25 +133,31 @@ periods increase and the first iteration is the most expensive the
 fraction of time spent in the loop decreases with larger problems.
 
 
-\subsection{Look-Ahead}
+\subsubsection{Failed Literals Probing (FLP)}
+\label{sssec:flp}
 
-\emph{Look-Ahead}'s goal is to learn new units and binaries.
-It performs a small look ahead at the root of the searching tree. It
-picks several variables (around 128 in current implementation)
-and propagates them using the \emph{Propagate} activity.
+\emph{Failed Literals Probing} is a preprocessing step
+which goal is to discover new units, binaries
+and equivalent literals \cite{Lynce03probing-basedpreprocessing}.
+It is similar to performing a small search (see \ref{ssec:searching-tree})
+from the root until depth 1 each time choosing a different variable to branch first.
 
-Given a variable $u$ Propagate activity performs boolean constraint
-propagations on $u$ and $\neg u$. Variables to be tested are chosen
-by Look-Ahead activity using the same variable selection heuristic
-used for branching (see \ref{ssec:branching}).
+Given a variable $u$ Propagate activity performs a weak boolean
+constraint propagations on $u$ and $\neg u$.  STRUCTure chooses
+a fixed number of variables (by default 128) and propagates both
+polarities them using the \emph{Propagate} activity.  Variables are
+selected using the same variable selection heuristic used for
+branching (see \ref{ssec:branching}).
 
 If $u, u_0, u_1, \ldots$ are propagated literals and $v, v_0, v_1,
-\ldots \in UP(F, u)$ then Propagate activity learns the clauses in table
-\ref{tbl:propagate-learn}. There are plenty of other binary clauses
-to be learned (one for each literal $\in UP(F, u)$), but many of them
-are redundant and don't improve performance if added to formula.
+\ldots \in UP(F, u)$ then Propagate activity learns the clauses in
+table \ref{tbl:propagate-learn}. There are plenty of other binary
+clauses to be learned (i.e. one for each literal $\in UP(F, u)$),
+but many of them are redundant and don't improve performance if
+added to formula (e.g. for binaries in initial formula FLP will
+generate same binaries).
 
-\begin{table}
+\begin{table}[h]
   \centering
   \framebox{
     \begin{tabular}{c c c}
@@ -172,7 +179,6 @@ are redundant and don't improve performance if added to formula.
   \caption{Learned units and binaries by Propagate activity}
   \label{tbl:propagate-learn}
 \end{table}
-
 
 
 \subsection{Searching Backtrack}
@@ -371,7 +377,7 @@ additional simplification steps:
 \end{itemize}
 
 
-\subsubsection{Learning}
+\subsection{Learning}
 \label{sssec:learning}
 
 When the searching backtrack encounter a conflict the current
