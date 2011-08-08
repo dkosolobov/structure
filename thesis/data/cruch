@@ -1,0 +1,30 @@
+#!/bin/sh
+
+cd `dirname $0`
+
+rm -rf all/ random/ nonrandom/
+mkdir all/ random/ nonrandom/
+
+cd raw/
+echo *
+for i in *; do
+  cat "$i" | cut -d' ' -f4 | sort -g | grep -v None > "../all/$i".dat
+  cat "$i" | grep "/RANDOM/" | cut -d' ' -f4 | sort -g | grep -v None > "../random/$i".dat
+  cat "$i" | grep -v "/RANDOM/" | cut -d' ' -f4 | sort -g | grep -v None > "../nonrandom/$i".dat
+done
+cd ..
+
+/usr/bin/env             \
+  ROOT="all"             \
+  INDEX="0"              \
+  gnuplot doable.plt
+
+/usr/bin/env             \
+  ROOT="random"          \
+  INDEX="1"              \
+  gnuplot doable.plt
+
+/usr/bin/env             \
+  ROOT="nonrandom"       \
+  INDEX="2"              \
+  gnuplot doable.plt
