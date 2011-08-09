@@ -31,7 +31,7 @@ Constellation is a distributed programming framework developed at VU University
 Amsterdam \cite{mine:constellation}. In Constellation the unit of work is
 an activity. Activities can perform some work, spawn new activities,
 send messages to other activities and process incoming messages
-(see figure \ref{fig:constellation}).
+(see Figure \ref{fig:constellation}).
 
 Constellation doesn't provide any shared memory mechanism, but
 activities running on the same node are free to use the common
@@ -68,14 +68,12 @@ and they are performed only at regular intervals.
 In STRUCTure an activity's goal is to find a satisfying assignment
 for an instance, prove unsatisfiability or learn something new
 about the instance. Some activities can spawn new activities to
-solve smaller instances.  Learning is achieved when climbing back
-on the searching tree.
+solve smaller instances.
 
 Activities return to parent a solution to instances which can be
 \textsf{SATISFIABLE}, \textsf{UNSATISFIABLE} or \textsf{UNKNOWN}. If
 a satisfying assignment was found the solution includes units,
 otherwise it includes learned clauses from conflicts.
-
 
 \begin{figure}
   \centering
@@ -106,6 +104,10 @@ much larger.
 
 
 \subsection{Restart Loop}
+
+\todo{C. P. Gomes, B. Selman, and H. Kautz. Boosting combinatorial
+search through randomization. In National Conference on Artificial
+Intelligence, pages 431–437, July 1998.}
 
 Restart Loop does three things:
 \begin{inparaenum}[a)]
@@ -377,17 +379,26 @@ additional simplification steps:
 \end{itemize}
 
 
-\subsection{Learning}
-\label{sssec:learning}
+\subsection{Clause Learning}
+\label{ssec:learning}
 
-When the searching backtrack encounter a conflict the current
-variable assignment cannot lead to a satisfying assignment.
-Take for example the searching tree in figure \ref{fig:learning}.
-Assignment of literals $1, 2, \neg 4$ lead to a conflict so at
-least one of the variables must have a different value and hence the
-clause $\neg 1 \lor \neg 2 \lor 4$.  In a future generation when 2
-out of the 3 variables involved in the conflict are assigned the same
-value the last variable is constrained to have a different value.
+\emph{Clause learning} is a technique for augmenting search that
+first appeared in GRASP solver \cite{Marques-silva99grasp:a} and
+now is part of almost all modern sat-solvers.
+
+When, during the search, a conflict is encountered it means that
+the current variable assignment cannot lead to a solution of the
+original problem. The current assignment is transformed into a
+disjunction of negation of assigned literals (at least one of the
+literals must be false).
+
+Take for example the searching tree in Figure \ref{fig:learning}.
+Assignment of literals $1, 2, \neg 4$ leads to a conflict so at
+least one of the variables must have a different value and hence
+the clause $\neg 1 \lor \neg 2 \lor 4$ is deduced. In a future
+generation when 2 out of the 3 variables involved in the conflict
+are assigned the same value the last variable is constrained to
+have a different value.
 
 \begin{figure}
   \centering
@@ -420,3 +431,23 @@ into $C_6 = \{ 1, 3 \}$.
   \ldots, v_{i+j} \}$ must also be satisfied.
 \end{myprop}
 
+Sharing learned clauses between threads in a parallel/distributed
+environment is tricky.  Some solvers replicate learned clauses that
+meet some criteria \cite{Hamadi09manysat:a}, others keep an unique
+database of all learned clause \cite{mine:miraxt}.
+
+In STRUCTure clause learning is performed when a conflict is reached,
+but the learned clauses are used only when the current generation is
+stopped. The key observation is that a clause learned on a branch
+is already satisfied by the assignment of variables on a different
+branch of the searching tree.
+
+In Figure \ref{fig:activities} each activity from the searching
+component will return to its parent a set of learned clauses. When
+a generation is stopped Restart activity extends the formula with
+the learned clauses received from the search component.
+
+Additionally, Learned clauses are often analyzed and
+strengthen\cite{Audemard_ageneralized}. STRUCTure doesn't have
+an analyzing component, but the same effect is achieved by
+Simplification component when it receives the augmented formula.

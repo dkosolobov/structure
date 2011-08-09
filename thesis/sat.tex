@@ -1,4 +1,5 @@
 \chapter{SAT}
+\label{chap:sat}
 
 \section{Basic Concepts}
 
@@ -83,8 +84,12 @@ F = \{ \{u, v, t\}, \{\neg u, \neg v)\}\}
 \todo{Improve proposition}
 
 
-\section{Boolean Constraint Propagation}
-\label{sec:bcp}
+
+
+\section{Solving SAT}
+
+\subsection{Boolean Constraint Propagation}
+\label{ssec:bcp}
 
 Boolean constraint propagation (BCP) was introduced in
 \cite{Davis:1960:CPQ:321033.321034} as a process formula
@@ -127,8 +132,8 @@ and similarly $UP(F, u) \equiv UP(F \cup \{\{ u \}\})$. Example:
 \end{myprop}
 
 
-\section{Pure Literal Rule (PL)}
-\label{sec:pl}
+\subsection{Pure Literal Rule (PL)}
+\label{ssec:pl}
 
 Pure literal rule was first described in \cite{Davis:1960:CPQ:321033.321034}
 as follows:
@@ -145,18 +150,26 @@ We will denote with $PL(F)$ the formula resulted after applying
 the pure literal rule on $F$ until a fixed point.
 
 
-\section{Solving SAT}
+\subsection{DPLL Algorithm}
 
 Most SAT solvers are based on the original algorithm from
-\ref{Davis:1962:MPT:368273.368557}, also known as DPLL from the
-initial of its authors.  The algorithm is described by pseudo-code
-\ref{alg:dpll} and has four important steps:
+\cite{Davis:1962:MPT:368273.368557}, also known as DPLL, for deciding
+the satisfiability of logic formula.  The algorithm is described
+by pseudo-code \ref{alg:dpll} and has four important steps:
 \begin{inparaenum}[1)]
   \item verify formula;
   \item simplify formula;
   \item decide on a branching literal; and
   \item recurse.
 \end{inparaenum}
+
+Modern SAT solvers differ from DPLL in applying
+stronger simplification procedures and using better
+decisions heuristics. Another important step introduced in
+\cite{Marques-silva99grasp:a} is restarting the search at regular
+intervals and augmenting the basic search with clauses derived
+from conflicts.
+
 
 \begin{algorithm}
   \begin{algorithmic}
@@ -173,12 +186,8 @@ initial of its authors.  The algorithm is described by pseudo-code
     \ENDIF
 
     // 2. Simplify formula
-    \FOR[See \ref{sec:bcp}]{Every unit clause $u$ in $F$}
-      \STATE $F \gets BCP(F)$
-    \ENDFOR
-    \FOR[See \ref{sec:pl}]{Every pure literal $u$ in $F$}
-      \STATE $F \gets PL(F)$
-    \ENDFOR
+    \STATE $F \gets BCP(F)$ // See section \ref{sec:bcp}
+    \STATE $F \gets PL(F)$  // See section \ref{sec:pl}
 
     // 3. Decide
     \STATE $u \gets decide(F)$
@@ -264,7 +273,7 @@ the clause. $HLA(F, C)$ will be the set of negations of the visited
 literals.
 
 For example, for clause $C = \{ 2, \neg 4, 3\}$
-and implication graph in figure \ref{fig:hla}
+and implication graph in Figure \ref{fig:hla}
 $HLA(F, C) = \{2, \neg 4, \mathbf{\neg 5, \neg 6}, 3, \mathbf{\neg 2} \}$.
 
 \begin{figure}
@@ -300,7 +309,7 @@ preserving its satisfiability.
 \end{proof}
 
 For example, for clause $C = \{ 2, \neg 4, 3\}$ and implication graph
-in figure \ref{fig:hla} $HLA(F, C) = \{2, \neg 4, \mathbf{\neg 5,
+in Figure \ref{fig:hla} $HLA(F, C) = \{2, \neg 4, \mathbf{\neg 5,
 \neg 6}, 3, \mathbf{\neg 2} \}$.  If variable $2$ is $True$ then
 $C$ is satisfied. If variable $2$ is $False$ then $3$ is $True$
 ($\neg 2 \rightarrow 3$) so $C$ is satisfied.
@@ -391,7 +400,7 @@ the larger clause.
 \label{ssec:xor-extraction}
 
 Many encoded circuits have XOR and XNOR gates which are equation
-in $\mathbb{Z}_2$ (see figure \ref{tbl:xor-formula}). The method
+in $\mathbb{Z}_2$ (see Table \ref{tbl:xor-formula}). The method
 to encode an X(N)OR gate into CNF clauses is described in
 \cite{Roy_restoringcircuit}.
 
@@ -512,32 +521,19 @@ removed from $F'$ preserving satisfiability. Applying this algorithm
 repeatedly removes all dependent variables (including mutexes).
 
 
-\subsection{Blocked Clause Elimination (BCE)}
-\label{ssec:bce}
-
-\emph{Blocked clauses} are a class of redundant clauses
-that can be added to \cite{Kullmann:1999:NMD:312269.312271} or
-removed from \cite{Jarvisalo_blockedclause} a formula preserving
-satisfiability. Blocked clause elimination perform powerful
-simplification of CNF circuit encodings.
-
-\begin{mydef}[Blocked clause] A clause $C$ is called \emph{blocked}
-for literal $l$ with respect to formula $F$ if and only if $\forall
-C' \in F$ the resolvent of $C$ and $C'$ is a tautology.
-\end{mydef}
-
-STRUCTure performs a stronger version of BCE in which the clause
-is first extended with literals hidden by the blocking literal
-(see subsection \ref{ssec:hla}) \cite{Heule_coveredclause.}
-
 
 \subsection{Variable Elimination (VE)}
 \label{ssec:ve}
 
-\emph{Variable elimination} is a simplification procedure
-in which the set of clauses containing a variable is
-replaced by another set of clauses that do not contain that
-variable\cite{Een05effectivepreprocessing}.
+\emph{Variable elimination} \cite{Davis:1960:CPQ:321033.321034}
+was the original algorithm for SAT solving with
+exponential space complexity and it was replaced by
+DPLL which has exponential time complexity.  However, in
+\cite{Subbarayan04niver:non,Een05effectivepreprocessing} it was
+shown that VE can be highly effective in the context of industrial
+applications if only variables for which the formula has
+a limited increase in size are eliminated.
+
 
 More formally if $F$ is a Boolean formula and $S_u = \{ C \in F | u
 \in C \},S_u \subset F$ then $S_u$ and $S_{\neg u}$ are substituted
@@ -547,6 +543,31 @@ C_{\neg u} \in S_{\neg u}\}$.
 
 In practice VE has proved to be very effective in
 combination with SS and SSS (see subsection \ref{ssec:sss})
-\cite{Een05effectivepreprocessing}. In \cite{Jarvisalo_blockedclause}
-suggests that VE might improve BCE (see subsection \ref{ssec:bce}),
-but I found BCE before VE proved to be more effective.
+\cite{Een05effectivepreprocessing}.
+
+
+\subsection{Blocked Clause Elimination (BCE)}
+\label{ssec:bce}
+
+\emph{Blocked clauses} are a class of redundant clauses
+that can be added to \cite{Kullmann:1999:NMD:312269.312271} or
+removed from \cite{Jarvisalo_blockedclause} a formula preserving
+satisfiability. Blocked clause elimination perform powerful
+simplification of CNF circuit encodings.
+
+\begin{mydef}[Blocked clause]
+  A clause $C$ is called \emph{blocked}
+  for literal $l$ with respect to formula $F$ if and only if $\forall
+  C' \in F$ the resolvent of $C$ and $C'$ is a tautology.
+\end{mydef}
+
+
+In \cite{Jarvisalo_blockedclause}
+authors suggest that VE might improve BCE (see subsection
+\ref{ssec:bce}), but I found that BCE before VE proved to be more
+effective.
+
+
+STRUCTure performs a stronger version of BCE in which the clause
+is first extended with literals hidden by the blocking literal
+(see subsection \ref{ssec:hla}) \cite{Heule_coveredclause}.

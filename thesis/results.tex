@@ -1,74 +1,226 @@
 \chapter{Experimental Results}
+\label{chap:results}
+
+\newcommand{\plot}[1]{
+  \subfigure{
+    \includegraphics[width=0.5\textwidth,angle=-90]{data/all/#1}
+  }
+
+  \subfigure{
+    \includegraphics[width=0.5\textwidth,angle=-90]{data/random/#1}
+  }
+
+  \subfigure{
+    \includegraphics[width=0.5\textwidth,angle=-90]{data/nonrandom/#1}
+  }
+}
+
+\begin{enumerate}
+  \item DONE 1 node, 1..8 threads
+  \item DONE 1..8 nodes, 1 thread
+  \item TODO 1..8 nodes, 8 threads
+  \item INPR 1 node, 24 threads, 45 minutes
+  \item TODO 1 node, 16 threads, nohur, nosss
+\end{enumerate}
 
 \section{Setup}
 
 STRUCTure was evaluated on DAS-4 (\url{http://www.cs.vu.nl/das4/})
-cluster at VU University Amsterdam (\url{http://www.few.vu.nl}). The
-cluster is composed of 74 machines with dual quad core Intel E5620
-processors running at 2.4GHz and 24GB of memory. This setup allows
-evaluation of different types of parallelization:
+cluster at VU University Amsterdam (\url{http://www.few.vu.nl})
+which is composed of 74 machines with 24GiB of memory and with
+dual quad core Intel E5620 processors running at 2.4GHz. The
+cluster allows evaluation of different types of parallelization:
 \begin{inparaenum}[1)]
   \item when more nodes are added and
   \item when more CPUs per node are added.
 \end{inparaenum}
 
-With hyper threading enabled each node has 16 logical
-processors. Most tests don't use all node's processors and
-Constellation will not spawn more than specified number of threads.
-However Java Virtual Machine will use the additional computing
-power for things like Parallel Garbage Collector.
+The nodes have hyper threading enabled so each of them has \emph{16
+logical cores}. A pair of logical cores on the same physical core
+share main execution resources, but not the architectural state
+(e.g. control and general purpose registers).
 
-STRUCTure was evaluated using problems from SAT Competition
-2009 (\url{http://www.satcompetition.org/2009/}). These instances
-are divided in three categories:
+Except where otherwise indicated tests will run on \emph{one
+node} with \emph{16 threads} (to employ all 16 logical
+cores). Constellation does not spawn more than specified number
+of threads. However, Java Virtual Machine will use the additional
+computing power for things like garbage collector.
+
+STRUCTure was evaluated using 678 problems
+of medium difficulty from SAT Competition 2009
+(\url{http://www.satcompetition.org/2009/}). The instances are
+divided in three categories:
 \begin{itemize}
-  \item Formulas in \emph{application} category encode different
-  problems and are typically very large (up to tens of millions
-  of variables and clauses)
-  \item \emph{Crafted} SAT instances are generally small and
-  designed to stress solvers.
-  \item \emph{Random} instances contain random $k$-SAT formulas.
+  \item formulas in \emph{application} category encode different
+  real-life problems and are typically very large (up to tens of
+  millions of variables and clauses);
+  \item \emph{crafted} SAT instances are generally small and designed
+  to stress solvers;
+  \item \emph{random} instances contain random $k$-SAT formulas.
 \end{itemize}
 
-Instances are also divided depending on their difficulty:
-\begin{itemize}
-  \item \emph{easy} instances were solved by all solvers in
-  the competition;
-  \item \emph{medium} instances were solved by at least one solver; and
-  \item \emph{hard} instances were not solved by any solver.
-\end{itemize}.
+In the following tests, instances were divided into random and
+nonrandom (application and crafted) categories. There are 380 random
+instances and 298 nonrandom instances.
 
-STRUCTure was evaluated on 678 medium difficulty instances.
-The time limit to solve a single instances was 15 minutes.  The time
-limit in SAT Competitions is usually 20 minutes, but the rules
-of DAS-4 cluster allow only 15 minutes jobs during the day time.
-With extra 5 minutes STRUCTure can solve only few extra instances
-so the additional time is not required to understand performance
-an scalability.
+On tests with a large time limit of 45 minutes all instances were
+measured once to conserve resources. On all other tests the time
+limit was 15 minutes and time measured is the average of three runs.
+If for STRUCTure timed out on any run of an instance that instance
+is not used for the graphs.  \footnote{The extra time give
+the illusion that STRUCTure does better in 15 minutes on tests
+with larger time limit than on tests with smaller time limit.
+In reality because the performance varies instances which require
+a time close to the upper time limit might or might not be included
+in the graphs.}
+
+The time limit in SAT Competitions is usually 20 minutes, but
+the rules of DAS-4 cluster allow only 15 minutes jobs during the
+daytime.  With extra 5 minutes STRUCTure can solve only few extra
+instances so the additional time is not required to understand
+performance a scalability.
+
+With a time limit of 15 minutes, STRUCTure can solve shy of 190
+problems on a single DAS-4 node, but state-of-art SAT solvers solve
+250. With a larger time limit of 45 minutes STRUCTure solves about
+250 instances.
 
 
-With a timeout of 15 minutes, STRUCTure can solve about 170 problems
-on a single DAS-4 node, but champions go to about 250.
+\section{Large Time Limit}
 
+\emph{Large Time Limit} tests have two purposes:
+\begin{enumerate}
+  \item understand performance beyond default 15 minute time limit; and
+  \item understand performance of using all 16 logical cores versus
+  using only 8 of them.
+\end{enumerate}
+
+In Figure \ref{fig:large} the graph of solved instances over time is
+plotted for all, random and nonrandom instances when 8 and 16
+logical cores are used with a time limit of 45 minutes.
+
+From the graph an additional improvement can be observed when using
+all 16 logical cores versus only 8 of them. However, the improvement
+comes mostly from random instances. On the other hand, nonrandom
+instances are barely affected. This suggests that random instances
+might benefit from searching more in breadth. \todo{Another test
+large 24}
+
+Using all 16 logical cores STRUCTure solves 187 instances in
+15 minutes and 63 more in 45 minutes. 49 of the instances solved
+with the addition 30 minutes where from the random category, which
+is much more than expected if both categories benefited
+equally from the extra time.
+
+\begin{figure}
+  \centering
+  \plot{large}
+  \caption{Performance with large timeout with 8 and 16 logical cores}
+  \label{fig:large}
+\end{figure}
 
 
 \section{Performance of Reasonings}
 
-\begin{figure}[h]
+An important part of any sat solver are the simplification
+procedures and reasoning it performs. Chapter \ref{chap:sat},
+\nameref{chap:sat}, and subsection \ref{ssec:learning},
+\nameref{ssec:learning}, describe the algorithms built in STRUCTure.
+
+Before continuing with the test results, note
+that there is a huge overlap between different techniques (e.g. BCE
+implies PL and DVR \cite{Jarvisalo_blockedclause}), but they are
+performed together because some are faster or perform better in
+different scenarios.
+
+In Figure \ref{fig:disable} the graph of solved instances over time
+for all, random and nonrandom instances with different simplification
+procedures disabled.
+
+First, from all techniques learning has the biggest performance
+impact The gain is larger on random instances than on nonrandom
+instances, though learning was expected to benefit more industrial
+instances\cite{DBLP:series/faia/SilvaLM09}.
+
+At the other extreme we notice that trying to split instances rarely
+has any benefits and, therefore, Split activity should be disabled
+on all problems.
+
+VE improves performance on nonrandom instances and has almost no
+impact on random instances. STRUCTure performs worse with DVR
+enabled probably because the combination of BCE and VE outperforms
+DVR. BCE gives worse performance on random instances, but on
+nonrandom instances the performance is not affected. Testing
+combination of optimizations is future work.
+
+\begin{figure}
   \centering
-  \includegraphics[width=0.75\textwidth]{data/branching.eps}
-  \caption{Branching with look ahead}
-  \label{fig:branching-w-la}
+  \plot{disable}
+  \caption{Performance with different simplification procedures disabled}
+  \label{fig:disable}
 \end{figure}
+
+
+\section{Failed Literal Probing}
+
+We continue next to investigate the influence of Failed
+Literal Probing (see subsubsection \ref{sssec:flp}) on overall
+performance. In Figure \ref{fig:flp} the graph of solved instances
+over time is plotted for all, random and nonrandom instances with
+varying number of probes.
+
+On random $k$-SAT instances FLP works best with high number of
+probed literals. Since FLP implementation uses a weak form of BCP
+it is important that instances are simplified so that they contain
+at least some binaries.
+
+On non-random instances FLP performs best with fewer probes,
+i.e. only 32.  Unlike on random instances FLP works worse when
+number of probes is increased.
+
+Overall probing 128 variables gives best results, but the performance
+doesn't vary much with different number of probes.
+
+\begin{figure}
+  \centering
+  \plot{flp}
+  \caption{Performance when varying number literal probes. (16 logical cores)}
+  \label{fig:flp}
+\end{figure}
+
 
 \section{Parallel and Distributed Performance}
 
-\begin{enumerate}
-  \item 1 machine, 1..8 threads
-  \item 1..8 machines, 1 thread
-  \item 1..8 machines, 8 threads
-  \item Pick an instances and run it on up to 48 threads
-\end{enumerate}
+In this section STRUCTure is tested in a parallel and distributed
+environment. To conserve resources especially with higher number
+of nodes we used a set of 266 instances solved by STRUCTure on
+previous tests including tests with large time limit. These instances
+are enough to understand scalability of STRUCTure.
+
+Three types of tests were conducted:
+\begin{itemize}
+  \item 1 node and varying number of cores used (Figure \ref{fig:para-1X});
+  \item varying number of nodes and 1 core per node used (Figure \ref{fig:para-X1}); and
+  \item varying number of nodes and 8 cores per node used (Figure \ref{fig:para-X8}).
+\end{itemize}
+These tests are meant to stress STRUCTure in a parallel, a distributed
+and, respectively, a hybrid environment.
+
+\begin{figure}
+  \centering
+  \plot{para-1X}
+  \caption{Scalability in number of CPUs per node}
+  \label{fig:para-1X}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \plot{para-X1}
+  \caption{Scalability in number of nodes}
+  \label{fig:para-X1}
+\end{figure}
+  
+
 
 
 \section{Other}

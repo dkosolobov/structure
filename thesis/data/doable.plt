@@ -6,14 +6,16 @@ index = `echo $INDEX`
 set size 0.75,0.50
 set ylabel "Time (m)"
 set grid x y
-set style line 1 linewidth 3
+set xtics 25
+set mxtics 5
 
 if (index == 0) set key top left
-if (index != 0) set key bottom right
+if (index != 0) set nokey
 if (index == 2) set xlabel "Number of instances"
 
 set output root."/large.eps"
-set xrange [0:250]
+if (index == 0) set xrange [0:250]
+if (index != 0) set xrange [0:150]
 set yrange [0:45]
 set ytics 9
 set title "45 minutes timeout (".root.")"
@@ -22,7 +24,8 @@ plot root."/large-8.dat" using 0:($1/60) title "8 HT cores" with lines lw 2 lt 1
 
 
 set output root."/flp.eps"
-set xrange [0:180]
+if (index == 0) set xrange [0:200]
+if (index != 0) set xrange [0:100]
 set yrange [0:15]
 set ytics 3
 set title "Failed Literal Probing (".root.")"
