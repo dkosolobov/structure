@@ -18,9 +18,9 @@
 \begin{enumerate}
   \item DONE 1 node, 1..8 threads
   \item DONE 1..8 nodes, 1 thread
+  \item DONE 1 node, 24 threads, 45 minutes
+  \item INPR 1 node, 16 threads, nohur, nosss
   \item TODO 1..8 nodes, 8 threads
-  \item INPR 1 node, 24 threads, 45 minutes
-  \item TODO 1 node, 16 threads, nohur, nosss
 \end{enumerate}
 
 \section{Setup}
@@ -95,27 +95,28 @@ problems on a single DAS-4 node, but state-of-art SAT solvers solve
   using only 8 of them.
 \end{enumerate}
 
-In Figure \ref{fig:large} the graph of solved instances over time is
-plotted for all, random and nonrandom instances when 8 and 16
-logical cores are used with a time limit of 45 minutes.
+In Figure \ref{fig:large} the graphs of solved instances over time is
+plotted for all, random and nonrandom instances when 8, 16 and 24
+threads are used with a time limit of 45 minutes.
 
-From the graph an additional improvement can be observed when using
-all 16 logical cores versus only 8 of them. However, the improvement
-comes mostly from random instances. On the other hand, nonrandom
-instances are barely affected. This suggests that random instances
-might benefit from searching more in breadth. \todo{Another test
-large 24}
+In the graphs an improvement is observed when using all 16 logical
+cores versus only 8 of them. The improvement comes mostly from
+random instances while nonrandom instances are barely affected
+by the extra threads.  Additionally, the increase in the number
+of random instances solved with 24 threads suggests that random
+instances might benefit from searching more in breadth and not from
+extra computational resources.
 
-Using all 16 logical cores STRUCTure solves 187 instances in
-15 minutes and 63 more in 45 minutes. 49 of the instances solved
-with the addition 30 minutes where from the random category, which
-is much more than expected if both categories benefited
-equally from the extra time.
+Using 16 threads STRUCTure solves 187 instances in 15 minutes and 63
+more in 45 minutes. 49 out of 63 instances solved with the addition
+30 minutes where from the random category, which is much more than
+expected if both categories benefited equally from the extra time.
 
 \begin{figure}
   \centering
   \plot{large}
-  \caption{Performance with large timeout with 8 and 16 logical cores}
+  \caption{Performance with large time limit with 8, 16 and 24
+  threads on a 16 logical cores node.}
   \label{fig:large}
 \end{figure}
 
@@ -218,6 +219,13 @@ and, respectively, a hybrid environment.
   \plot{para-X1}
   \caption{Scalability in number of nodes}
   \label{fig:para-X1}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \plot{para-X8}
+  \caption{Scalability in number of nodes}
+  \label{fig:para-X8}
 \end{figure}
   
 

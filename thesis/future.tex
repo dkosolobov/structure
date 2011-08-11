@@ -1,16 +1,38 @@
 \chapter{Future Work}
 \label{chap:future}
 
-\textbf{ToDo. Just a few ideas}
+While STRUCTure has most common simplification techniques included
+is far from begin a competitive solver. This chapter lists some
+ideas for future work that will improve STRUCTure's performance
+and scalability.
 
+The simplest idea to improve performance is to \emph{reduce the
+data replication overhead}. In Figure \ref{fig:architecture}
+every spawned activity takes input a formula and outputs a
+smaller instance or a solution. To fit the Constellation model,
+an activity is independent of other activities and, consequently,
+it needs to build some internal data structure for reasonings it
+performs. However, most internal data structures can be reused
+by activity's children if they are executed on the same machine.
+Profiling the solver showed that this overhead accounts for 10\%
+to 40\% of the total running time not including the time garbage
+collector spent freeing old structures.
+
+Second idea is to exploit sequential points in the restart loop
+and, possible, at the top of the search tree when not all threads
+are busy. STRUCTure can be transformed into a \emph{portfolio
+based parallel sat solver} \cite{5547119} by running other
+specialized, possible incomplete, sequential solvers such as GSAT
+\cite{Selman92anew} in parallel with the simplification component.
+
+
+
+\todo{
 Back Jumping.
-
-Reduce Data Replication and reuse internal data structures.
-
 Trim Learned Clauses.
-
 Better Variable Selection.
+testing combination of flags
 
 Exploit sequential points
-
-testing combination of flags
+Reduce Data Replication and reuse internal data structures.
+}
