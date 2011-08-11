@@ -14,13 +14,14 @@ if (index != 0) set nokey
 if (index == 2) set xlabel "Number of instances"
 
 set output root."/large.eps"
-if (index == 0) set xrange [0:250]
-if (index != 0) set xrange [0:150]
+if (index == 0) set xrange [0:260]
+if (index != 0) set xrange [0:160]
 set yrange [0:45]
 set ytics 9
 set title "45 minutes timeout (".root.")"
-plot root."/large-8.dat" using 0:($1/60) title "8 HT cores" with lines lw 2 lt 1 lc 1, \
-     root."/large-16.dat" using 0:($1/60) title "16 HT cores" with lines lw 2 lt 1 lc 2
+plot root."/large-8.dat" using 0:($1/60) title "8 threads" with lines lw 2 lt 1 lc 1, \
+     root."/large-16.dat" using 0:($1/60) title "16 threads" with lines lw 2 lt 1 lc 2, \
+     root."/large-24.dat" using 0:($1/60) title "24 threads" with lines lw 2 lt 1 lc 3
 
 
 set output root."/flp.eps"
@@ -43,7 +44,9 @@ plot root."/default.dat" using 0:($1/60) title "default" with lines lw 2 lt 1 lc
      root."/disable-nolearn.dat" using 0:($1/60) title "nolearn" with lines lw 2 lt 1 lc 3, \
      root."/disable-nosplit.dat" using 0:($1/60) title "nosplit" with lines lw 2 lt 1 lc 4, \
      root."/disable-nove.dat" using 0:($1/60) title "nove" with lines lw 2 lt 1 lc 5, \
-     root."/disable-noxor.dat" using 0:($1/60) title "nodvr" with lines lw 2 lt 1 lc 6
+     root."/disable-noxor.dat" using 0:($1/60) title "nodvr" with lines lw 2 lt 1 lc 6, \
+     root."/disable-nosss.dat" using 0:($1/60) title "nosss" with lines lw 2 lt 1 lc 7, \
+     root."/disable-nohur.dat" using 0:($1/60) title "nohur" with lines lw 2 lt 1 lc 9
 
 set output root."/para-1X.eps"
 set title "1 Node with Increasing Number of Cores (".root.")"
@@ -58,3 +61,12 @@ plot root."/para-11.dat" using 0:($1/60) title "1 node" with lines lw 2 lt 1 lc 
      root."/para-21.dat" using 0:($1/60) title "2 nodes" with lines lw 2 lt 1 lc 2, \
      root."/para-41.dat" using 0:($1/60) title "4 nodes" with lines lw 2 lt 1 lc 3, \
      root."/para-81.dat" using 0:($1/60) title "8 nodes" with lines lw 2 lt 1 lc 4
+
+set output root."/para-X8.eps"
+set title "Increasing Number of Nodes with 8 Cores (".root.")"
+if (index == 0) set xrange [0:260]
+if (index != 0) set xrange [0:160]
+plot root."/para-18.dat" using 0:($1/60) title "1 node" with lines lw 2 lt 1 lc 1, \
+     root."/para-28.dat" using 0:($1/60) title "2 nodes" with lines lw 2 lt 1 lc 2, \
+     root."/para-48.dat" using 0:($1/60) title "4 nodes" with lines lw 2 lt 1 lc 3, \
+     root."/para-88.dat" using 0:($1/60) title "8 nodes" with lines lw 2 lt 1 lc 4
