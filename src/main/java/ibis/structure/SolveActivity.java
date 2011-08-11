@@ -50,8 +50,14 @@ public final class SolveActivity extends Activity {
       solver.propagate();
       PureLiterals.run(solver);
       HiddenTautologyElimination.run(solver);
-      HyperBinaryResolution.run(solver);
-      SelfSubsumming.run(solver);
+
+      if (Configure.hur) {
+        HyperBinaryResolution.run(solver);
+      }
+      if (Configure.sss) {
+        SelfSubsumming.run(solver);
+      }
+
       PureLiterals.run(solver);
       MissingLiterals.run(solver);
 

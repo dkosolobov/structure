@@ -23,9 +23,7 @@ public class Configure {
   /** True to print more info. */
   public static boolean verbose = true;
   /** True to perform hidden tautology elimination. */
-  public static boolean hte = true;
-  /** True to perform pure literals. */
-  public static boolean pl = true;
+  public static boolean hur = true;
   /** True to perform binary (self) subsumming. */
   public static boolean sss = true;
   /** True to split instances when possible. */
@@ -63,8 +61,7 @@ public class Configure {
     options.addOption("debug", false, "enable expensive checks");
 
     options.addOption("q", false, "be quiet");
-    options.addOption("nohte", false, "disable hidden tautology elimination");
-    options.addOption("nopl", false, "disable pure literals");
+    options.addOption("nohur", false, "disable hyper unit resolution");
     options.addOption("nosss", false, "disable self-subsumming");
     options.addOption("nosplit", false, "disable splitting");
     options.addOption("noxor", false, "disable xor gates extraction");
@@ -107,8 +104,7 @@ public class Configure {
     enableExpensiveChecks = cl.hasOption("debug");
 
     verbose = verbose && !cl.hasOption("q");
-    hte = hte && !cl.hasOption("nohte");
-    pl = pl && !cl.hasOption("nopl");
+    hur = hur && !cl.hasOption("nohur");
     sss = sss && !cl.hasOption("nosss");
     split = split && !cl.hasOption("nosplit");
     xor = xor && !cl.hasOption("noxor");
