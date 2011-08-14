@@ -48,6 +48,14 @@ plot root."/default.dat" using 0:($1/60) title "default" with lines lw 2 lt 1 lc
      root."/disable-nosss.dat" using 0:($1/60) title "nosss" with lines lw 2 lt 1 lc 7, \
      root."/disable-nohur.dat" using 0:($1/60) title "nohur" with lines lw 2 lt 1 lc 9
 
+set output root."/bce-ve.eps"
+set title "Simplification procedures (".root.")"
+plot root."/bce-ve.dat" using 0:($1/60) title "bce ve" with lines lw 2 lt 1 lc 1, \
+     root."/ve-bce.dat" using 0:($1/60) title "ve bce" with lines lw 2 lt 1 lc 2, \
+     root."/disable-nobce.dat" using 0:($1/60) title "ve" with lines lw 2 lt 1 lc 3, \
+     root."/disable-nove.dat" using 0:($1/60) title "bce" with lines lw 2 lt 1 lc 4, \
+     root."/disable-nobce-nove.dat" using 0:($1/60) title "nobce nove" with lines lw 2 lt 1 lc 6
+
 set output root."/para-1X.eps"
 set title "1 Node with Increasing Number of Cores (".root.")"
 plot root."/para-11.dat" using 0:($1/60) title "1 core" with lines lw 2 lt 1 lc 1, \

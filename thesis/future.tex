@@ -2,7 +2,7 @@
 \label{chap:future}
 
 While STRUCTure has most common simplification techniques included
-is far from begin a competitive solver. This chapter lists some
+it is far from being a competitive solver. This chapter lists some
 ideas for future work that will improve STRUCTure's performance
 and scalability.
 
@@ -18,21 +18,26 @@ Profiling the solver showed that this overhead accounts for 10\%
 to 40\% of the total running time not including the time garbage
 collector spent freeing old structures.
 
-Second idea is to exploit sequential points in the restart loop
-and, possible, at the top of the search tree when not all threads
-are busy. STRUCTure can be transformed into a \emph{portfolio
-based parallel sat solver} \cite{5547119} by running other
+Next, STRUCTure should exploit the idle threads available
+during simplification. This can be done by running other
 specialized, possible incomplete, sequential solvers such as GSAT
 \cite{Selman92anew} in parallel with the simplification component.
+Then STRUCTure will effectively become a \emph{portfolio based
+parallel sat solver} \cite{5547119}.
 
+Another thing to investigate is a better variable selection
+heuristic.  Currently, STRUCTure uses a single variable selection
+algorithm for all problem types, but, as we
+have seen in chapter \ref{chap:results}, simplification procedures
+have different performance impact on random and nonrandom instances.
 
+Restarting could also benefit from a randomized model for
+generations time to live instead of our simple increasing heuristic
+\cite{Gomes:1998:BCS:295240.295710}.
 
-\todo{
-Back Jumping.
-Trim Learned Clauses.
-Better Variable Selection.
-testing combination of flags
+\todo{Trim Learned Clause}
 
-Exploit sequential points
-Reduce Data Replication and reuse internal data structures.
-}
+Finally, the effect of different parameters and flags needs to be
+investigated. In chapter \ref{chap:results} STRUCTure was only
+tested with a few simple combinations of options, but it may be
+that certain combinations work better.

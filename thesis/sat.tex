@@ -3,6 +3,8 @@
 
 \section{Basic Concepts}
 
+This section formalizes the SAT problem and introduces basic notations.
+
 \begin{mydef}
   \emph{Boolean space} is $\mathbb{B} = \{ True, False \}$.
 \end{mydef}
@@ -61,12 +63,6 @@ or as sets
 F = \{ \{u, v, t\}, \{\neg u, \neg v)\}\}
 \]
 
-\begin{mydef}
-  A clause is a \emph{tautology} if it contains a literal, $u$, and its negation
-  $\neg u$. A clause of length 0 is an \emph{empty clause}; a clause of length 1
-  is a \emph{unit clause}; a clause of length 2 is a \emph{binary clause}. 
-\end{mydef}
-
 \begin{myprop}
   A formula containing 0 clauses is consistent.
 \end{myprop}
@@ -75,18 +71,9 @@ F = \{ \{u, v, t\}, \{\neg u, \neg v)\}\}
   A formula containing an empty clause ($\emptyset \in F$) is inconsistent.
 \end{myprop}
 
-\begin{mydef}[Resolution]
-  \label{mydef:resolution}
-  $(u \lor v_1 \lor \ldots \lor v_{k_v})
-  \land (\neg u \lor t_1 \lor \ldots \lor t_{k_t})
-  \Rightarrow (u_1 \lor \ldots \lor u_{k_u} \lor t_1 \lor \ldots \lor t_{k_t})$
-\end{mydef}
-\todo{Improve proposition}
-
-
-
 
 \section{Solving SAT}
+\label{sec:solving-sat}
 
 \subsection{Boolean Constraint Propagation}
 \label{ssec:bcp}
@@ -151,6 +138,7 @@ the pure literal rule on $F$ until a fixed point.
 
 
 \subsection{DPLL Algorithm}
+\label{ssec:dpll}
 
 Most SAT solvers are based on the original algorithm from
 \cite{Davis:1962:MPT:368273.368557}, also known as DPLL, for deciding
@@ -201,12 +189,41 @@ from conflicts.
 \end{algorithm}
 
 
-\section{Additional Reasonings}
+\section{Additional Reasoning Procedures}
 
 This sections explains additional reasonings used in STRUCTure in
 the simplification step besides the Boolean Constraint Propagation
 and Pure Literal Rule from the original algorithms.
 
+\subsection{Boolean Resolution Operator}
+\label{ssec:resolution}
+
+Many reasonings procedures discussed in the next sections are based
+on \emph{resolution operator} \cite{Robinson:1965:MLB:321250.321253}
+which derives an implied clause, named \emph{resolvent}, from
+a pair of clauses containing a literal of opposite polarities,
+called \emph{pivot}.
+
+\begin{mydef}[Boolean Resolution]
+  \label{mydef:resolution}
+  Let $C = \{ u, v_1, \ldots, v_{k_v} \}$ and $D = \{ \neg u,
+  t_1, \ldots, t_{k_t} \}$. The resolvent $C \otimes_{u} D$ of $C$
+  and $D$ on pivot $u$ is the clause $\{v_1, \ldots, v_{k_v}, t_1,
+  \ldots, t_{k_t}\}$.
+\end{mydef}
+
+\begin{mydef}[Boolean Resolution for a set of clauses]
+  If $S_u$ and $S_{\neg u}$ are two sets of clauses containing
+  literal $u$ and, respectively, literal $\neg u$ then:
+
+  $$S_u \otimes_{u} S_{\neg u} = \{ C_u \otimes_{u} C_{\neg u} |
+  C_u \in S_u \land C_{\neg u} \in S_{\neg u}\}$$
+\end{mydef}
+
+\begin{myprop}
+  Boolean resolution preserves satisfiability. $S_u \cup S_{\neg u}
+  \equiv S_u \otimes_{u} S_{\neg u}$.
+\end{myprop}
 
 \subsection{Equivalent Literals Renaming}
 \label{ssec:eqlr}
@@ -215,8 +232,8 @@ Consider the formula $F = (u \lor \neg v) \land (\neg u \lor v) \land \ldots$.
 If $u$ is true then $v$ must be true and similarly, if $u$ is false
 then $v$ must be false. In this case $u$ and $v$ are said to be
 \emph{equivalent} literals. Every occurrence of literal $v$ can be
-replaced with $u$ and, every occurrence of $\neg v$ can be replaced
-with $\neg u$, removing $v$ from $F$.
+replaced with $u$ and every occurrence of $\neg v$ can be
+substituted for $\neg u$, removing $v$ from $F$.
 
 \begin{myprop}
   A binary clause is equivalent with two implications:
@@ -251,10 +268,10 @@ literal and all literals can be renamed to the new literal.
 \label{ssec:hla}
 
 \emph{Hidden Literal Addition} ($HLA(F, C)$) was introduced in
-\cite{Heule:2010:CEP:1928380.1928406} as a technique to enlarge a clause $C$
+\cite{mine:hjb_efficient} as a technique to enlarge a clause $C$
 in a formula $F$ with new literals $L$, such that $F \equiv F \setminus \{C\} \
 \cup \{ C \cup L \}$. By itself this enlargement is not useful, but it
-can improve other reasoning algorithms \cite{Heule_coveredclause}.
+can improve other reasoning algorithms \cite{Heule:2010:CEP:1928380.1928406, Heule_coveredclause}.
 
 \begin{mydef}
   $HLA(F, C)$ is the unique clause resulting from repeating the following
@@ -292,6 +309,12 @@ are satisfied regardless of value of an arbitrary variable. Such
 clauses are redundant and can be removed from the Boolean formula
 preserving its satisfiability.
 
+\begin{mydef}
+  A clause is a \emph{tautology} if it contains a literal, $u$, and its negation
+  $\neg u$. A clause of length 0 is an \emph{empty clause}; a clause of length 1
+  is a \emph{unit clause}; a clause of length 2 is a \emph{binary clause}. 
+\end{mydef}
+
 \begin{myprop}[TE]
   \label{myprop:removal-of-tautologies}
   A formula $F$ is equivalent with $F$ with all tautologies removed.
@@ -315,10 +338,10 @@ $C$ is satisfied. If variable $2$ is $False$ then $3$ is $True$
 ($\neg 2 \rightarrow 3$) so $C$ is satisfied.
 
 
-\subsection{Hyper Binary Resolution}
+\subsection{Hyper-Unit (HUR) and Hyper-Binary (HBR) Resolutions}
 \label{ssec:hbr}
 
-\emph{Hyper unit resolution} (HUR) \cite{Kusper02solvingthe} is
+\emph{Hyper-unit resolution} (HUR) \cite{Kusper02solvingthe} is
 an inference rule involving multiple resolutions in which one of
 the clauses is a binary. It takes $n$ binary clauses and an $n$
 literals clause and produces a new unit.  Similarly \emph{hyper
@@ -342,24 +365,26 @@ new binary.
   \land (v_1 \lor \dots \lor v_n \lor t) \Rightarrow (\neg u \lor t)$
 \end{myprop}
 
-\cite{Bacchus03effectivepreprocessing} shows that HUR and HBR are
-closely related to boolean constraint propagation.  If literal $u$
-is propagated then literals $v_1, \ldots, v_n$ are implied so clause
-$(v_1 \lor \dots \lor v_n)$ is reduced to empty clause $\phi$ and,
-respectively, clause $(v_1 \lor \dots \lor v_n \lor t)$ is reduced
-to unit clause $\{ t \}$. From the former we obtain forced literal
-$\neg u$. From the later we obtain implication $u \rightarrow t$.
+\cite{Bacchus03effectivepreprocessing} shows that HUR and HBR
+are closely related to boolean constraint propagation.  Indeed,
+propagation of literal $u$ results in literals $v_1, \ldots, v_n$
+so clause $(v_1 \lor \dots \lor v_n)$ is reduced to empty clause
+$\phi$ and, respectively, clause $(v_1 \lor \dots \lor v_n \lor
+t)$ is reduced to unit clause $\{ t \}$. From the former we obtain
+forced literal $\neg u$. From the later we obtain implication $u
+\rightarrow t$.
 
 In practice performing HUR and HBR are faster than performing BCP on
 all literals. Many look-ahead SAT solvers perform a variant of BCP
 \cite{Freeman:1995:IPS:220639} at every branch to discover new units
-and binaries, but in STRUCTure BCP is substitued for HUR and HBR.
+and binaries, but in STRUCTure BCP is substituted for HUR.
 
-Algorithm \ref{alg:hyper-resolution} (see appendix)
-applies hyper-unary and hyper-binary resolutions on a CNF formula. In
-practice, many binary clauses generated are redundant (e.g. two
-consecutive runs of hyper-binary resolution will generate almost
-the same clauses) so the usefulness of HBR is not clear.
+Algorithm \ref{alg:hyper-resolution} (see appendix
+\ref{chap:algorithms}) applies hyper-unary and hyper-binary
+resolutions on a CNF formula. In practice, many binary clauses
+generated are redundant (e.g. two consecutive runs of hyper-binary
+resolution will generate almost the same clauses) so the usefulness
+of HBR is not clear and not used.
 
 
 \subsection{Subsumption (SS) and Self-subsumption (SSS)}
@@ -429,7 +454,7 @@ number of negations.
 Negating an input (i.e., one of the literals) in the X(N)OR gate is
 equivalent with reversing the type of gate (XOR $\leftrightarrow$
 XNOR). Specifying a gate will use only variables without negations
-and whether is an XOR or an XNOR gate.  Example of encodings are
+and whether it is an XOR or an XNOR gate.  Example of encodings are
 given in table \ref{tbl:xor-encoding}.
 
 Extracting X(N)OR gates shorten the formula considerably. 32
@@ -455,6 +480,7 @@ which makes the algorithms less powerful.
 
 
 \begin{mydef}[Suming X(N)OR gates]
+  \label{myprop:xor-sum}
   If $C_0: a = u_0 \oplus \ldots \oplus u_{n-1}$ and $C_1: b =
   v_0 \oplus \ldots \oplus v_{m-1}$ are two X(N)OR gates let $C_0
   \bigoplus C_1: a \oplus b = u_0 \oplus \ldots \oplus u_{n-1}
@@ -464,30 +490,31 @@ which makes the algorithms less powerful.
 \end{mydef}
 
 \begin{myprop}
-  \label{myprop:xor-sum}
   Let $C_0, C_1 \in F$ be two X(N)OR gates. $F \equiv F \setminus \{C_1\} \cup
   \{C_0 \bigoplus C_1\}$.
 \end{myprop}
 
-According to the last proposition the X(N)OR gates in a
+According to the last proposition tahe X(N)OR gates in a
 formula $F$ can be handled as a system of linear equations in
 $\mathbb{Z}_2$. Multiple X(N)OR gates can be summed together to
 knock out variables.
 
-The reverse of \ref{myprop:xor-sum} is also true and in fact is used
-to split large XOR gates which otherwise would generate too many
-disjunctive clauses. If $a = u_0 \oplus \ldots \oplus u_{n-1}$ where
-$a \in \{0, 1\}$, then an extra variable, $z$, can be used to split
-it in two smaller X(N)OR gates $a = u_0 \oplus \ldots \oplus u_{k}
-\oplus z \land 0 = z \oplus u_{k + 1} \oplus \ldots \oplus u_{n}$.
+The reverse of \ref{myprop:xor-sum} is also true and in fact is
+used to split large XOR gates which otherwise would generate too
+many disjunctive clauses. If $a = u_0 \oplus \ldots \oplus u_{n-1}$
+where $a \in \{0, 1\}$ is a X(N)OR gate, then an extra variable,
+$z$, can be used to split the gate in two smaller X(N)OR gates $a =
+u_0 \oplus \ldots \oplus u_{k} \oplus z \land 0 = z \oplus u_{k +
+1} \oplus \ldots \oplus u_{n}$.
 
 
 \subsection{Dependent Variable Removal (DVR)}
 \label{ssec:dvr}
 
 \emph{Dependent Variable Removal} is a technique introduced in
-\cite{mine:march} which simplifies Boolean formulas containing XOR gates.
-It removes redundant variables used to encode XOR gates.
+\cite{mine:march} which simplifies a Boolean formula by removing
+redundant variables from the system of $\mathbb{Z}_2$ equations
+made of X(N)OR gates.
 
 \begin{mydef}
   A variable is called \emph{dependent} with respect to $F$ if it
@@ -502,10 +529,15 @@ It removes redundant variables used to encode XOR gates.
 \end{myprop}
 
 \begin{proof}
-  Any satisfying assignment of $F$ is a satisfying assignment of $F
-  \setminus \{ C \}$.  Given that $C$ is a XOR gate, the $u$ can
-  be assigned from a satisfying assignment of $F \setminus \{C\}$
-  such that $C$ is satisfied $\Rightarrow F$ is satisfied.
+  \begin{enumerate}
+    \item $F \Rightarrow F \setminus \{C\}$. Any satisfying
+    assignment of $F$ is a satisfying assignment of $F \setminus
+    \{C\}$. 
+    \item $F \setminus \{C\} \Rightarrow F$.  Given that $C$ is a XOR
+    gate, then $u$ can be assigned from a satisfying assignment of
+    $F \setminus \{C\}$ such that $C$ is satisfied $\Rightarrow F$
+    is satisfied.
+  \end{enumerate}
 \end{proof}
 
 
@@ -518,32 +550,30 @@ elimination applied on a system of equations in $\mathbb{Z}_2$.
 
 Furthermore, from proposition \ref{myprop:dvr-single}, $C_0$ can be
 removed from $F'$ preserving satisfiability. Applying this algorithm
-repeatedly removes all dependent variables (including mutexes).
-
+repeatedly removes all dependent variables.
 
 
 \subsection{Variable Elimination (VE)}
 \label{ssec:ve}
 
 \emph{Variable elimination} \cite{Davis:1960:CPQ:321033.321034}
-was the original algorithm for SAT solving with
-exponential space complexity and it was replaced by
-DPLL which has exponential time complexity.  However, in
+was part of the original algorithm for SAT solving with exponential
+space complexity, but it was replaced by DPLL which has
+polynomial space, but exponential time complexity. However, in
 \cite{Subbarayan04niver:non,Een05effectivepreprocessing} it was
-shown that VE can be highly effective in the context of industrial
-applications if only variables for which the formula has
-a limited increase in size are eliminated.
+shown that VE combined with SS and SSS can be highly effective in
+the context of industrial applications if it is applied only on
+variables for which the formula has a limited increase in size.
 
+Variable elimination is based on the Boolean resolution operator
+(\ref{ssec:resolution}). If $S_u$ is the set of clauses in $F$
+containing literal $u$ and, similarly, $S_{\neg u}$ is the set of clauses in $F$
+containing literal ${\neg u}$ then $F$ is substituted for
+$F \setminus S_u \setminus S_{\neg u} \cup S_u \otimes_{u} S_{\neg u}$.
 
-More formally if $F$ is a Boolean formula and $S_u = \{ C \in F | u
-\in C \},S_u \subset F$ then $S_u$ and $S_{\neg u}$ are substituted
-in $F$ for resolvent of all pairs in the Cartesian product $S_u
-\otimes S_{\neg u} = \{ C_u \otimes C_{\neg u} | C_u \in S_u \land
-C_{\neg u} \in S_{\neg u}\}$.
-
-In practice VE has proved to be very effective in
-combination with SS and SSS (see subsection \ref{ssec:sss})
-\cite{Een05effectivepreprocessing}.
+In STRUCTure variables selected for elimination are chosen such that
+the number of literals in all clauses $S_u \otimes_{u} S_{\neg u}$
+is at most one more than literals in $S_u$ and $S_{\neg u}$.
 
 
 \subsection{Blocked Clause Elimination (BCE)}
@@ -562,11 +592,10 @@ simplification of CNF circuit encodings.
 \end{mydef}
 
 
-In \cite{Jarvisalo_blockedclause}
-authors suggest that VE might improve BCE (see subsection
-\ref{ssec:bce}), but I found that BCE before VE proved to be more
-effective.
-
+In \cite{Jarvisalo_blockedclause} the authors suggest that VE might
+improve BCE (see subsection \ref{ssec:bce}), but I found no significant
+difference in performance if the order is reversed (see appendix
+\ref{chap:bce-ve}).
 
 STRUCTure performs a stronger version of BCE in which the clause
 is first extended with literals hidden by the blocking literal

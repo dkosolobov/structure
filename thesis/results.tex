@@ -19,8 +19,10 @@
   \item DONE 1 node, 1..8 threads
   \item DONE 1..8 nodes, 1 thread
   \item DONE 1 node, 24 threads, 45 minutes
-  \item INPR 1 node, 16 threads, nohur, nosss
-  \item TODO 1..8 nodes, 8 threads
+  \item DONE 1 node, 16 threads, nohur, nosss
+  \item DONE 1..8 nodes, 8 threads
+  \item DONE ve-bce
+  \item TODO comparison with cryptominisat and manysat
 \end{enumerate}
 
 \section{Setup}
@@ -86,6 +88,118 @@ problems on a single DAS-4 node, but state-of-art SAT solvers solve
 250 instances.
 
 
+\section{Performance of Reasonings}
+
+\todo{HUR, SSS}
+
+An important part of any sat solver are the simplification
+procedures and reasoning it performs. Chapter \ref{chap:sat},
+\nameref{chap:sat}, and subsection \ref{ssec:learning},
+\nameref{ssec:learning}, describe the algorithms built in STRUCTure.
+
+Before continuing with the test results, note
+that there is a huge overlap between different techniques (e.g. BCE
+implies PL and DVR \cite{Jarvisalo_blockedclause}), but they are
+performed together because some are faster or perform better in
+different scenarios.
+
+In Figure \ref{fig:disable} the graph of solved instances over time
+for all, random and nonrandom instances with different simplification
+procedures disabled. The table \ref{tbl:disable} lists which
+simplification procedures improve performance. The simplification
+procedures are divided in two categories:
+\begin{itemize}
+  \item before search in Simplification component: DVR, BCE and VE;
+  \item during search in Searching component: Split, learning, and SSS and HUR in
+  Solve Activity.
+\end{itemize}
+
+The default line represents behaviour when \emph{all} reasoning
+procedures are enabled. The other lines represent the behaviour
+when one type of reasoning is disabled.
+
+\begin{figure}
+  \centering
+  \plot{disable}
+  \caption{Performance with different simplification procedures disabled}
+  \label{fig:disable}
+\end{figure}
+
+\begin{table}
+  \centering
+  \begin{tabular}{| c | c | c | c |}
+    \hline
+    \multicolumn{4}{|c|}{\textbf{Simplification component (before search)}} \\
+    \hline
+    & \textbf{all} & \textbf{random} & \textbf{nonrandom} \\
+    \hline
+    Blocked Clause Elimination & - & - & = (?) \\
+    Variable Elimination & + & = & + \\
+    Dependent Variable Elimination & - & = & - \\
+    \hline
+    \hline
+    \multicolumn{4}{|c|}{\textbf{Searching component (during search)}} \\
+    \hline
+    & \textbf{all} & \textbf{random} & \textbf{nonrandom} \\
+    \hline
+    Split & - & - & - \\
+    Learning & ++ & ++ & ++ \\
+    Self-Subsumption (in Solve activity) & - & - & + \\
+    Hyper Unit Resolution (in Solve activity) & + & = & ++ \\
+    \hline
+  \end{tabular}
+
+  \caption{Effect on performance of different simplification procedures.
+  - bad, = no change, + good, ++ extremely good.}
+  \label{tbl:disable}
+\end{table}
+
+First, from all reasoning techniques, learning has the biggest performance
+impact. The gain is larger on random instances than on nonrandom
+instances, though learning was expected to benefit more industrial
+instances\cite{DBLP:series/faia/SilvaLM09}.
+
+At the other extreme we notice that trying to split instances doesn't
+provide any real benefit and, therefore, Split activity should be disabled
+on most problem types.
+
+VE improves performance on nonrandom instances and has almost no
+impact on random instances. STRUCTure performs worse with DVR
+enabled probably because the combination of BCE and VE outperforms
+DVR. BCE gives worse performance on random instances, but on
+nonrandom instances the performance is not affected.
+
+Testing combination of reasoning procedures is future work.
+
+
+\section{Failed Literal Probing}
+
+We continue next to investigate the influence of Failed
+Literal Probing (see subsubsection \ref{sssec:flp}) on overall
+performance. In Figure \ref{fig:flp} the graph of solved instances
+over time is plotted for all, random and nonrandom instances with
+varying number of probes.
+
+On random $k$-SAT instances FLP works best with high number of
+probed literals. Since FLP implementation uses a weak form of BCP
+it is important that instances are simplified so that they contain
+at least some binaries.
+
+On non-random instances FLP performs best with fewer probes,
+i.e. only 32.  Unlike on random instances FLP works worse when
+number of probes is increased.
+
+Overall probing 128 variables gives best results, but the performance
+doesn't vary much with different number of probes.
+
+\begin{figure}
+  \centering
+  \plot{flp}
+  \caption{Performance when varying number literal probes. (16 logical cores)}
+  \label{fig:flp}
+\end{figure}
+
+
 \section{Large Time Limit}
 
 \emph{Large Time Limit} tests have two purposes:
@@ -121,75 +235,6 @@ expected if both categories benefited equally from the extra time.
 \end{figure}
 
 
-\section{Performance of Reasonings}
-
-An important part of any sat solver are the simplification
-procedures and reasoning it performs. Chapter \ref{chap:sat},
-\nameref{chap:sat}, and subsection \ref{ssec:learning},
-\nameref{ssec:learning}, describe the algorithms built in STRUCTure.
-
-Before continuing with the test results, note
-that there is a huge overlap between different techniques (e.g. BCE
-implies PL and DVR \cite{Jarvisalo_blockedclause}), but they are
-performed together because some are faster or perform better in
-different scenarios.
-
-In Figure \ref{fig:disable} the graph of solved instances over time
-for all, random and nonrandom instances with different simplification
-procedures disabled.
-
-First, from all techniques learning has the biggest performance
-impact The gain is larger on random instances than on nonrandom
-instances, though learning was expected to benefit more industrial
-instances\cite{DBLP:series/faia/SilvaLM09}.
-
-At the other extreme we notice that trying to split instances rarely
-has any benefits and, therefore, Split activity should be disabled
-on all problems.
-
-VE improves performance on nonrandom instances and has almost no
-impact on random instances. STRUCTure performs worse with DVR
-enabled probably because the combination of BCE and VE outperforms
-DVR. BCE gives worse performance on random instances, but on
-nonrandom instances the performance is not affected. Testing
-combination of optimizations is future work.
-
-\begin{figure}
-  \centering
-  \plot{disable}
-  \caption{Performance with different simplification procedures disabled}
-  \label{fig:disable}
-\end{figure}
-
-
-\section{Failed Literal Probing}
-
-We continue next to investigate the influence of Failed
-Literal Probing (see subsubsection \ref{sssec:flp}) on overall
-performance. In Figure \ref{fig:flp} the graph of solved instances
-over time is plotted for all, random and nonrandom instances with
-varying number of probes.
-
-On random $k$-SAT instances FLP works best with high number of
-probed literals. Since FLP implementation uses a weak form of BCP
-it is important that instances are simplified so that they contain
-at least some binaries.
-
-On non-random instances FLP performs best with fewer probes,
-i.e. only 32.  Unlike on random instances FLP works worse when
-number of probes is increased.
-
-Overall probing 128 variables gives best results, but the performance
-doesn't vary much with different number of probes.
-
-\begin{figure}
-  \centering
-  \plot{flp}
-  \caption{Performance when varying number literal probes. (16 logical cores)}
-  \label{fig:flp}
-\end{figure}
-
-
 \section{Parallel and Distributed Performance}
 
 In this section STRUCTure is tested in a parallel and distributed
@@ -210,21 +255,21 @@ and, respectively, a hybrid environment.
 \begin{figure}
   \centering
   \plot{para-1X}
-  \caption{Scalability in number of CPUs per node}
+  \caption{Scalability in number of cores per node with 1 node used.}
   \label{fig:para-1X}
 \end{figure}
 
 \begin{figure}
   \centering
   \plot{para-X1}
-  \caption{Scalability in number of nodes}
+  \caption{Scalability in number of nodes with 1 core per node used.}
   \label{fig:para-X1}
 \end{figure}
 
 \begin{figure}
   \centering
   \plot{para-X8}
-  \caption{Scalability in number of nodes}
+  \caption{Scalability in number of nodes with 8 core per node used.}
   \label{fig:para-X8}
 \end{figure}
   
