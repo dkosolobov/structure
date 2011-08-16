@@ -75,12 +75,15 @@ F = \{ \{u, v, t\}, \{\neg u, \neg v)\}\}
 \section{Solving SAT}
 \label{sec:solving-sat}
 
+This section introduces the general algorithm for SAT solving which
+is the basis of most modern sat solvers.
+
 \subsection{Boolean Constraint Propagation}
 \label{ssec:bcp}
 
 Boolean constraint propagation (BCP) was introduced in
-\cite{Davis:1960:CPQ:321033.321034} as a process formula
-simplification.
+\cite{Davis:1960:CPQ:321033.321034} to simplify a formula by removing
+variables that are assigned by unit clauses.
 
 \begin{mydef}
   \emph{Boolean constraint propagation} of a formula, $BCP(F)$, is
@@ -109,32 +112,8 @@ and similarly $UP(F, u) \equiv UP(F \cup \{\{ u \}\})$. Example:
 \end{align}
 
 \begin{myprop}
-  $F$ is consistent iff $BCP(F)$ is consistent.
+  $F$ is consistent if and only if $BCP(F)$ is consistent.
 \end{myprop}
-
-\begin{myprop}[Failed literals]
-  If the propagation of a literal is inconsistent then any satisfying
-  assignment of $F$ must contain the negation of that literal.
-  $\emptyset \in BCP(F, u) \Rightarrow F \equiv F \cup \{\neg u\}$.
-\end{myprop}
-
-
-\subsection{Pure Literal Rule (PL)}
-\label{ssec:pl}
-
-Pure literal rule was first described in \cite{Davis:1960:CPQ:321033.321034}
-as follows:
-
-\begin{mydef}[Pure Literal Rule]
-  If a variable $u$ occurs in formula $F$ in CNF only positively, or
-  if $u$ occurs only negatively, then all clauses which contain $u$
-  may be deleted. The resulting formula $F'$ is inconsistent
-  if and only if $F$ is. (If $F'$ is empty, then it is consistent).
-  The polarity that appears in $F$ is called \emph{pure literal}.
-\end{mydef}
-
-We will denote with $PL(F)$ the formula resulted after applying
-the pure literal rule on $F$ until a fixed point.
 
 
 \subsection{DPLL Algorithm}
@@ -174,8 +153,7 @@ from conflicts.
     \ENDIF
 
     // 2. Simplify formula
-    \STATE $F \gets BCP(F)$ // See section \ref{sec:bcp}
-    \STATE $F \gets PL(F)$  // See section \ref{sec:pl}
+    \STATE $F \gets BCP(F)$ // See section \ref{ssec:bcp}
 
     // 3. Decide
     \STATE $u \gets decide(F)$
@@ -191,9 +169,28 @@ from conflicts.
 
 \section{Additional Reasoning Procedures}
 
-This sections explains additional reasonings used in STRUCTure in
+This sections explains additional reasonings used in STRUCTure during
 the simplification step besides the Boolean Constraint Propagation
-and Pure Literal Rule from the original algorithms.
+used in the original DPLL algorithm.
+
+\subsection{Pure Literal Rule (PL)}
+\label{ssec:pl}
+
+\emph{Pure Literal Rule} was first described in
+\cite{Davis:1960:CPQ:321033.321034} and it was and used to improve
+the DPLL algorithm. The rule is as follows:
+
+\begin{mydef}[Pure Literal Rule]
+  If a variable $u$ occurs in formula $F$ in CNF only positively, or
+  if $u$ occurs only negatively, then all clauses which contain $u$
+  may be deleted. The resulting formula $F'$ is inconsistent
+  if and only if $F$ is. (If $F'$ is empty, then it is consistent).
+  The polarity that appears in $F$ is called \emph{pure literal}.
+\end{mydef}
+
+We will denote with $PL(F)$ the formula resulted after applying
+the pure literal rule on $F$ until a fixed point.
+
 
 \subsection{Boolean Resolution Operator}
 \label{ssec:resolution}
@@ -250,10 +247,11 @@ Let the relation $u \rightsquigarrow v$ be true if and only if
 $v$ can be reached from $u$ in $\I_F$.  If $u \rightsquigarrow v$
 and $v \rightsquigarrow u$ then $u$ and $v$ are equivalent.  In the
 implication graph $\I_F$ all literals in the same strongly connected
-component\footnote{A component is a \emph{strongly connected}
-if every node in the component can be reached from every other node}
-are equivalent. The component can be be collapsed into a single
-literal and all literals can be renamed to the new literal.
+component\footnote{A component of a directed graph is \emph{strongly
+connected} if every node in the component can be reached from every
+other node in the same component.} are equivalent. The component
+can be be collapsed into a single literal and all literals can be
+renamed to the new literal.
 
 \begin{myprop}
   If $u \leftrightsquigarrow v$ then every occurrence of $v$ can be replaced
@@ -284,10 +282,10 @@ can improve other reasoning algorithms \cite{Heule:2010:CEP:1928380.1928406, Heu
   $F \equiv F \setminus \{C\} \cup \{HLA(F, C)\}$ for $C \in F$.
 \end{myprop}
 
-To find the extension of the clause $C$, a search is performed in the
-implication graph, $G_F$, starting from negation of the literals in
-the clause. $HLA(F, C)$ will be the set of negations of the visited
-literals.
+To find the extension of the clause $C$, a search is performed in
+the implication graph, $G_F$, starting from the negation of all
+literals in the clause. $HLA(F, C)$ will be the set of negations
+of the visited literals.
 
 For example, for clause $C = \{ 2, \neg 4, 3\}$
 and implication graph in Figure \ref{fig:hla}
@@ -296,7 +294,7 @@ $HLA(F, C) = \{2, \neg 4, \mathbf{\neg 5, \neg 6}, 3, \mathbf{\neg 2} \}$.
 \begin{figure}
   \centering
   \includegraphics[width=0.4\linewidth]{dia/hla}
-  \caption{An implication graph}
+  \caption{Example of an implication graph.}
   \label{fig:hla}
 \end{figure}
 
@@ -304,7 +302,8 @@ $HLA(F, C) = \{2, \neg 4, \mathbf{\neg 5, \neg 6}, 3, \mathbf{\neg 2} \}$.
 \subsection{Hidden Tautology Elimination (HTE)}
 \label{ssec:hte}
 
-\emph{Hidden Tautology Elimination} eliminates certain clauses that
+\emph{Hidden Tautology Elimination}
+\cite{Heule:2010:CEP:1928380.1928406} eliminates certain clauses that
 are satisfied regardless of value of an arbitrary variable. Such
 clauses are redundant and can be removed from the Boolean formula
 preserving its satisfiability.
@@ -341,15 +340,15 @@ $C$ is satisfied. If variable $2$ is $False$ then $3$ is $True$
 \subsection{Hyper-Unit (HUR) and Hyper-Binary (HBR) Resolutions}
 \label{ssec:hbr}
 
-\emph{Hyper-unit resolution} (HUR) \cite{Kusper02solvingthe} is
-an inference rule involving multiple resolutions in which one of
-the clauses is a binary. It takes $n$ binary clauses and an $n$
-literals clause and produces a new unit.  Similarly \emph{hyper
-binary resolution} (HBR) \cite{Bacchus03effectivepreprocessing} takes
+\emph{Hyper-Unit Resolution} (HUR) \cite{Kusper02solvingthe} is an
+inference rule involving multiple resolutions in which one of the
+clauses is a binary. It takes $n$ binary clauses and an $n$ literals
+clause and produces a new unit. Similarly, \emph{Hyper-Binary
+Resolution} (HBR) \cite{Bacchus03effectivepreprocessing} takes
 $n$ binary clauses and an $n + 1$ literals clause and produces a
 new binary.
 
-\begin{myprop}[Hyper-unary resolution]
+\begin{myprop}[Hyper-Unary Resolution]
   If a propagation of a literal $u$ results in an empty clause then
   the negation of that literal must be true.
   $(u \rightsquigarrow \neg v_1) \land \ldots
@@ -357,7 +356,7 @@ new binary.
   \Rightarrow \neg u$. 
 \end{myprop}
 
-\begin{myprop}[Hyper-binary resolution]
+\begin{myprop}[Hyper-Binary Resolution]
   If a propagation of a literal $u$ results in an unit clause $\{ v \}$
   then implication $u \lor v$ must be true.
   $(u \rightarrow \neg v_1) \land \ldots
@@ -368,8 +367,8 @@ new binary.
 \cite{Bacchus03effectivepreprocessing} shows that HUR and HBR
 are closely related to boolean constraint propagation.  Indeed,
 propagation of literal $u$ results in literals $v_1, \ldots, v_n$
-so clause $(v_1 \lor \dots \lor v_n)$ is reduced to empty clause
-$\phi$ and, respectively, clause $(v_1 \lor \dots \lor v_n \lor
+so clause $(v_1 \lor \dots \lor v_n)$ is reduced to the empty
+clause and, respectively, clause $(v_1 \lor \dots \lor v_n \lor
 t)$ is reduced to unit clause $\{ t \}$. From the former we obtain
 forced literal $\neg u$. From the later we obtain implication $u
 \rightarrow t$.
@@ -383,8 +382,8 @@ Algorithm \ref{alg:hyper-resolution} (see appendix
 \ref{chap:algorithms}) applies hyper-unary and hyper-binary
 resolutions on a CNF formula. In practice, many binary clauses
 generated are redundant (e.g. two consecutive runs of hyper-binary
-resolution will generate almost the same clauses) so the usefulness
-of HBR is not clear and not used.
+resolution will generate almost the same binary clauses) so the
+usefulness of HBR is not clear and, therefore, not used in STRUCTure.
 
 
 \subsection{Subsumption (SS) and Self-subsumption (SSS)}
@@ -409,7 +408,7 @@ the formula.
 
 Similarly self-subsumption takes two clauses $C_1$ and $C_2$ such
 that $C_1$ is almost a superset of $C_2$, except one variable which
-polarity is reversed and removes that corresponding literal from
+polarity is reversed and removes the corresponding literal from
 the larger clause.
 
 \begin{myprop}[Self-subsumption]
@@ -426,8 +425,8 @@ the larger clause.
 
 Many encoded circuits have XOR and XNOR gates which are equation
 in $\mathbb{Z}_2$ (see Table \ref{tbl:xor-formula}). The method
-to encode an X(N)OR gate into CNF clauses is described in
-\cite{Roy_restoringcircuit}.
+generally used to encode an X(N)OR gate into CNF clauses is described
+in \cite{Roy_restoringcircuit}.
 
 \begin{table}
   \centering
@@ -444,23 +443,23 @@ to encode an X(N)OR gate into CNF clauses is described in
   \label{tbl:xor-formula}
 \end{table}
 
-Encoding an XOR gate with $n$ inputs and one output in a CNF
-formula requires $2^n$ clauses of length $n + 1$, one literal
-for each input or output.  Every clause contains an odd number of
+Encoding an XOR gate with $n$ inputs and one output with CNF
+clauses requires $2^n$ clauses of size $n + 1$, one literal
+for each input and output.  Every clause contains an odd number of
 negations resulting in $2^n$ different combinations. Encoding an
 XNOR gate is similar, except that clauses will contain an even
 number of negations.
 
 Negating an input (i.e., one of the literals) in the X(N)OR gate is
 equivalent with reversing the type of gate (XOR $\leftrightarrow$
-XNOR). Specifying a gate will use only variables without negations
+XNOR). To denote a gate we will use only variables without negations
 and whether it is an XOR or an XNOR gate.  Example of encodings are
 given in table \ref{tbl:xor-encoding}.
 
 Extracting X(N)OR gates shorten the formula considerably. 32
 clauses of 6 literals each will be replaced by a single gate of 6
-variables. However, many reasoning algorithms ignore X(N)OR gates,
-which makes the algorithms less powerful.
+variables. However, many reasoning algorithms do not handle X(N)OR
+gates, which makes the procedures less powerful.
 
 \begin{table}
   \centering
@@ -494,31 +493,30 @@ which makes the algorithms less powerful.
   \{C_0 \bigoplus C_1\}$.
 \end{myprop}
 
-According to the last proposition tahe X(N)OR gates in a
+According to the last proposition the X(N)OR gates in a
 formula $F$ can be handled as a system of linear equations in
 $\mathbb{Z}_2$. Multiple X(N)OR gates can be summed together to
 knock out variables.
 
-The reverse of \ref{myprop:xor-sum} is also true and in fact is
-used to split large XOR gates which otherwise would generate too
-many disjunctive clauses. If $a = u_0 \oplus \ldots \oplus u_{n-1}$
-where $a \in \{0, 1\}$ is a X(N)OR gate, then an extra variable,
-$z$, can be used to split the gate in two smaller X(N)OR gates $a =
-u_0 \oplus \ldots \oplus u_{k} \oplus z \land 0 = z \oplus u_{k +
-1} \oplus \ldots \oplus u_{n}$.
+Additionally, the reverse of \ref{myprop:xor-sum} is also true and,
+in fact, it is used to split large XOR gates which otherwise would
+require too many disjunctive clauses. If $a = u_0 \oplus \ldots
+\oplus u_{n-1}$ where $a \in \{0, 1\}$ is a X(N)OR gate, then an
+extra variable, $z$, can be used to split the gate in two smaller
+X(N)OR gates $a = u_0 \oplus \ldots \oplus u_{k} \oplus z \land 0 =
+z \oplus u_{k + 1} \oplus \ldots \oplus u_{n}$.
 
 
 \subsection{Dependent Variable Removal (DVR)}
 \label{ssec:dvr}
 
-\emph{Dependent Variable Removal} is a technique introduced in
-\cite{mine:march} which simplifies a Boolean formula by removing
-redundant variables from the system of $\mathbb{Z}_2$ equations
-made of X(N)OR gates.
+After decoding the X(N)OR gates \emph{Dependent Variable
+Removal} \cite{mine:march} can be applied on the resulted system
+$\mathbb{Z}_2$ equations to remove redundant variable.
 
 \begin{mydef}
   A variable is called \emph{dependent} with respect to $F$ if it
-  appears only in XOR gates.
+  appears only in X(N)OR gates.
 \end{mydef}
 
 \begin{myprop}[DVR]
@@ -533,7 +531,7 @@ made of X(N)OR gates.
     \item $F \Rightarrow F \setminus \{C\}$. Any satisfying
     assignment of $F$ is a satisfying assignment of $F \setminus
     \{C\}$. 
-    \item $F \setminus \{C\} \Rightarrow F$.  Given that $C$ is a XOR
+    \item $F \setminus \{C\} \Rightarrow F$.  Given that $C$ is a X(N)OR
     gate, then $u$ can be assigned from a satisfying assignment of
     $F \setminus \{C\}$ such that $C$ is satisfied $\Rightarrow F$
     is satisfied.
@@ -543,9 +541,9 @@ made of X(N)OR gates.
 
 Let $u$ be a dependent variable that appears in $k + 1$ XOR gates
 $C_0, ..., C_k \in F$. Let $C'_i = C_i \bigoplus C_0$ for $i = 1,
-\ldots, k$.  Applying proposition \ref{myprop:xor-sum} repeatedly we
+\ldots, k$.  By applying proposition \ref{myprop:xor-sum} repeatedly we
 obtain $F \equiv F' = F \setminus \{C_{1}, ..., C_k\} \cup \{C'_{1},
-..., C'_k\}$. This is basically a single step from Gaussian
+..., C'_k\}$. This is basically a single step of Gaussian
 elimination applied on a system of equations in $\mathbb{Z}_2$.
 
 Furthermore, from proposition \ref{myprop:dvr-single}, $C_0$ can be
@@ -557,13 +555,15 @@ repeatedly removes all dependent variables.
 \label{ssec:ve}
 
 \emph{Variable elimination} \cite{Davis:1960:CPQ:321033.321034}
-was part of the original algorithm for SAT solving with exponential
-space complexity, but it was replaced by DPLL which has
-polynomial space, but exponential time complexity. However, in
-\cite{Subbarayan04niver:non,Een05effectivepreprocessing} it was
-shown that VE combined with SS and SSS can be highly effective in
-the context of industrial applications if it is applied only on
-variables for which the formula has a limited increase in size.
+was part of the original algorithm for SAT solving. The algorithm,
+with exponential space complexity, was replaced by DPLL which
+has polynomial space, but exponential time complexity.
+
+Nonetheless, in
+\cite{Subbarayan04niver:non,Een05effectivepreprocessing} VE combined
+with SS and SSS was shown to be highly effective in the context
+of industrial applications if it is applied only on variables for
+which the formula has a limited increase in size.
 
 Variable elimination is based on the Boolean resolution operator
 (\ref{ssec:resolution}). If $S_u$ is the set of clauses in $F$
@@ -582,7 +582,7 @@ is at most one more than literals in $S_u$ and $S_{\neg u}$.
 \emph{Blocked clauses} are a class of redundant clauses
 that can be added to \cite{Kullmann:1999:NMD:312269.312271} or
 removed from \cite{Jarvisalo_blockedclause} a formula preserving
-satisfiability. Blocked clause elimination perform powerful
+its satisfiability. Blocked clause elimination perform powerful
 simplification of CNF circuit encodings.
 
 \begin{mydef}[Blocked clause]
@@ -591,11 +591,10 @@ simplification of CNF circuit encodings.
   C' \in F$ the resolvent of $C$ and $C'$ is a tautology.
 \end{mydef}
 
-
 In \cite{Jarvisalo_blockedclause} the authors suggest that VE might
-improve BCE (see subsection \ref{ssec:bce}), but I found no significant
-difference in performance if the order is reversed (see appendix
-\ref{chap:bce-ve}).
+improve on BCE (see subsection \ref{ssec:bce}), but I found no
+significant difference in performance when the order is reversed
+(see appendix \ref{chap:bce-ve}).
 
 STRUCTure performs a stronger version of BCE in which the clause
 is first extended with literals hidden by the blocking literal

@@ -1,0 +1,34 @@
+\chapter{Blocked Clause Elimination (BCE) and Variable Elimination (VE)}
+\label{chap:bce-ve}
+
+The authors of \cite{Jarvisalo_blockedclause} suggested that BCE
+might improve on VE if performed after. In this appendix we will
+study influence on performance of different combinations of BCE
+(\ref{ssec:bce}) and VE (\ref{ssec:ve}).
+
+The Figure \ref{fig:bce-ve} plots the following graphs:
+\begin{itemize}
+  \item \textsf{bce ve}: BCE performed before VE;
+  \item \textsf{ve bce}: VE performed before BCE;
+  \item \textsf{nobce ve}: VE is performed, BCE is not performed;
+  \item \textsf{bce nove}: BCE is performed, VE is not performed;
+  \item \textsf{nobce nove}: neither BCE nor VE are performed.
+\end{itemize}
+
+We observe that for nonrandom instances BCE performed before VE
+is indeed slightly better than VE performed before BCE, but not
+in any significant way.  However, from \textsf{bce ve} versus
+\textsf{nobce ve} and \textsf{bce nove} versus \textsf{nobce nove}
+we also observe that almost always BCE has a negative influence on
+the overall performance.
+
+For random instances it is better to use only VE, while for
+nonrandom instances BCE should be performed after VE. In current
+implementation, STRUCTure runs BCE before VE.
+
+\begin{figure}
+  \centering
+  \plot{bce-ve}
+  \caption{Effects of BCE and VE on solver's performance.}
+  \label{fig:bce-ve}
+\end{figure}

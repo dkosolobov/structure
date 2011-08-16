@@ -1,10 +1,75 @@
 \chapter{Conclusions}
 \label{chap:conclusions}
 
-\textbf{ToDo. Just a few ideas}
+The problem of Boolean satisfiability has many industrial
+applications such as planning, design, synthesis or routing. Its
+success is its arch enemy as Boolean satisfiability is used on
+more applications.
 
-The sequential performance of STRUCTure needs
-a lot of improvement. Might not have same scalability.
+STRUCTure is a Boolean satisfiability solver built with
+parallelization and distribution in mind. It aims to speedup solution
+search by using available cores in the modern processors. It does not
+aim at parallelizing reasoning techniques since some of them are
+inherently sequential. The solver is built on top of Constellation
+a distributed computing framework. Constellation provides very good
+scalability, but lacks a few features such as broadcasting or job
+cancellation that are required by STRUCTure.
 
-constellation is  a good framework for scalability
-but needs more features.
+STRUCTure is based on the original DPLL algorithm. The boolean
+constraint propagation step was replaced with more advanced reasoning
+techniques such as Hyper-Unit Resolution, Pure Literal Elimination
+and clause Subsumption.  Additionally, STRUCTure performs other
+simplification procedures such as circuit preprocessing, blocked
+clause elimination, variable elimination, failed literal probing
+and restarting.
+
+To improve the performance, STRUCTure has built-in learning.  When a
+conflict is reached a new clause is learned. However, the learned
+clauses are added to the formula only at restart if no solution was
+found. This simplifies learning in a distributed environment as no
+communication is required between workers.  The extended formula is
+simplified again and a new attempt to solve it is performed. Unlike
+other solvers that perform clause learning, STRUCTure does not trim
+learned clauses.
+
+I evaluated the solver on 678 instances from SAT Competition 2009.
+The instances were divided into two categories: random and nonrandom
+(includes crafted and application instances from original set).
+On a single node with 8 processors STRUCTure can solve 197 instance
+in under 900s.  STRUCTure performs better on random instances than
+on nonrandom instances. This behaviour is consistent with look-ahead
+solvers such as March.
+
+All reasoning techniques, except learning, do not improve performance
+on random instances. However, random instances have a clear benefit
+from additional cores in a distributed environment which suggests
+that STRUCTure is successful at parallelizing work.
+
+On the other hand, nonrandom instances benefit from some
+simplification procedures. Because the simplification procedures
+are sequential scalability of STRUCTure on nonrandom instances is
+worse than on random instances. It is not clear if scalability will
+be maintained when simplifications and sequential case imporve.
+
+Searching in STRUCTure scales well with increasing number of nodes
+and slightly better with increasing number of cores per node.
+The scalability is maintained in a hybrid parallel/distributed
+environment.
+
+STRUCTure does not perform as well as award winning solvers.
+There are several reasons for this performance difference:
+\begin{itemize}
+  \item STRUCTure is much newer than other solvers and there are
+  still many algorithmic improvements and coding tweaks to be made.
+  \item Often parallelization and scalability have an additional
+  overhead (e.g. work distribution, data replication, network
+  communication) which decreases the sequential performance.
+  \item STRUCTure runs inside a Java Virtual Machine and
+  interpretting byte code (even with just in time compilation)
+  is not as fast as machine code.
+\end{itemize}
+
+
+We have shown that a scalable distributed SAT solver can be built
+using a message passing model. The solver needs more work to become
+competitive and solve industrial strength applications.

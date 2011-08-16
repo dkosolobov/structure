@@ -15,11 +15,11 @@ Kautz:1992:PS:145448.146725}.
 For example, an interesting problem is coloring vertices
 of an undirected graph with at most $k$ colors such that no
 two adjacent vertices have the same color (e.g. see Figure
-\ref{fig:color-graph}). For example coloring with three colors is
-expressed as a SAT problem as follows:
+\ref{fig:color-graph}). Coloring with three colors is expressed as
+a SAT problem as follows:
 \begin{itemize}
-  \item For each vertex assign three variables (one for each color): $u, v, t$
-  \item Each vertex has at least three color: $(u \lor v \lor t)$.
+  \item To each vertex assign three Boolean variables (one for each color): $u, v, t$
+  \item Each vertex has at least one color: $(u \lor v \lor t)$.
   \item Each vertex cannot use two colors:
   $(\neg u \lor v) \land (\neg u \lor t)$ etc.
   \item Two adjacent vertices, $A$ and $B$, must have different colors:
@@ -42,7 +42,7 @@ for a CNF formula where all clauses have at most $k$ literals.
 SAT is the first and one of the simplest NP-complete problem
 \cite{Cook:1971:CTP:800157.805047}. It is known that $2$-SAT is in
 P \cite{karp}, while for $k \ge 3$ only exponential time algorithms
-are known, such as Sch\"{o}ning algorithm which runs in $O((2\frac{k
+are known, such as Sch\"{o}ning's algorithm which runs in $O((2\frac{k
 - 1}{k})^n \cdot poly(n))$ where $n$ is the number of variables
 \cite{Schoning:1999:PAK:795665.796524}.
 
@@ -53,71 +53,79 @@ algorithms for $k$-SAT in order to prove that P=NP.  \footnote{The
 following site lists many attempts at providing a polynomial solution
 to SAT. \url{http://www.win.tue.nl/~gwoegi/P-versus-NP.htm}}
 
-While industrial problems can be quite large (on order
-of tens of thousands of variables) some classes, such as
-\emph{Automatic Test Pattern Generation}, are very easy to solve
-in practice (with a running time $O(n^3)$) because they exhibit
-hidden structure easily exploitable by current SAT solvers
+Although some industrial problems can be quite large (on the order
+of tens of thousands of variables), some applications, such
+as \emph{Automatic Test Pattern Generation}, are very easy to
+solve in practice (ATPG has a running time $O(n^3)$) because they
+exhibit hidden structures easily exploitable by current SAT solvers
 \cite{Prasad:1999:WAE:309847.309857}.
 
-While state of the art sequential solvers are fast there have
-been no recent algorithmic improvements which had provided major
-speed-ups gains. On the other hand new applications challenge modern
+While state of the art sequential solvers are fast, there have
+been no recent algorithmic improvements which have provided major
+speed-ups. On the other hand, new applications challenge modern
 SAT solvers with more complex problems.
 
 The lack of performance increase is accentuated by the recent
-architecture shift from uni-core to multi-cores systems. Few
-years ago we hit the thermal wall: increasing frequency leads to
-higher power consumption and more heat generated. While Moore's law
-continued, processor manufactures used the extra transistors to build
-multi-core chips while individual cores may become slower.
+architecture shift from uni-core to multi-cores systems. This is
+caused bythe thermal wall: increasing frequency leads to
+higher power consumption and more generated heat. While Moore's
+law continues, processor manufactures use the extra transistors
+to build multi-core chips (while individual cores may become slower).
 Therefore, SAT solvers need to adapt to this new paradigm.
 
+SAT solvers are made of two parts: reasoning procedures and
+searching. In this thesis we introduce STRUCTure, a distributed
+SAT solver built at VU University Amsterdam on top of Constellation
+framework, aims at parallelizing the search and not the reasoning
+procedures. This simplifies some reasoning procedures such as Pure
+Literals Rule (see \ref{ssec:pl}) which are inherently sequential
+\cite{Johannsen:2005:CPL:1166822.1166834}.
+
 \emph{Scaling-out} is the ability to do tasks faster when
-more nodes or CPUs are added to the distributed process
+more processing units are added to the distributed process
 \cite{citeulike:1567858}. There are two main ways to scale
 out:
 \begin{inparaenum}[a)]
-  \item increase number of CPUs and/or cores per node; or
+  \item increasing number of CPUs and/or cores per node; or
   \item adding multiple nodes to the distributed process.
-\end{inparaenum} Each of these have different implications
-for the development of a parallel SAT solver.
-
-STRUCTure is a distributed SAT solver built at VU University
-Amsterdam.  STRUCTure aims at parallelizing the search and not the
-reasoning algorithms. This simplifies some reasoning procedures
-such as Pure Literals Rule (see \ref{ssec:pl}) which are inherently
-sequential \cite{Johannsen:2005:CPL:1166822.1166834}.
-
-STRUCTure is built on top of Constellation, a distributed
-scalable message passing distributed programming framework.
+\end{inparaenum} Each has different implications for the development
+of a parallel and distributed SAT solver which will investigate in
+chapter \ref{chap:results}.
 
 
 \section{Contributions}
 
-\begin{itemize}
-  \item distributed searching
-  \item distributed learning
-  \item hbr/hur algorithm
-\end{itemize}
+This thesis brings several contributions to SAT solving. First
+we implement a completely decentralized distributed search
+algorithm based on the divide-and-conquer paradigm (see Section
+\ref{ssec:searching-tree}).  Our solver is built on top of
+Constellation which provides work balancing and seemingless
+distributed computation.  Next, we show how clause learning can be
+easily performed in a distributed environment by doing the learn
+during searching, but using the learned clauses after search
+is interrupted (see Section \ref{ssec:learning}).  Finally,
+a new algorithm for Hyper-Unit and Hyper-Binary Resolutions
+(\ref{ssec:hbr}) is provided in appendix \ref{chap:algorithms}.
+
 
 \section{Overview}
 
-Chapter \ref{chap:related}, \nameref{chap:related}, provides an
-overview of the state-of-art techniques used in modern SAT solvers.
+Chapter \ref{chap:related}, \nameref{chap:related}, presents other
+approaches to parallel and general sat solving. STRUCTure is compares
+with other SAT solvers and the main differences are discussed.
 
 Chapter \ref{chap:sat}, \nameref{chap:sat}, formalizes the SAT
 problem and explains common simplification and reasonings techniques.
 
-Next, chapter \nameref{chap:architecture} describes the architecture
-of STRUCTure in great detail. Constellation, a scalable distributed
+Next, chapter \nameref{chap:architecture} describes in detail the
+architecture of STRUCTure. Constellation, a scalable distributed
 programming framework, is also presented here.
 
 In chapter \ref{chap:results}, \nameref{chap:results}, STRUCTure is
 run with SAT instances from SAT Competition 2009. Simplification
 procedures and reasoning techniques implemented in STRUCTure are
-evaluated. Moreover, the scalability of STRUCTure is tested
-using different combinations of number of nodes and number of cores
+evaluated. Moreover, the scalability of STRUCTure is tested using
+different combinations of number of nodes and number of cores
 per node.
 
 The following chapter, \ref{chap:future}, lists some ideas that can

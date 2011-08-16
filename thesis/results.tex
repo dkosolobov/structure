@@ -15,19 +15,9 @@
   }
 }
 
-\begin{enumerate}
-  \item DONE 1 node, 1..8 threads
-  \item DONE 1..8 nodes, 1 thread
-  \item DONE 1 node, 24 threads, 45 minutes
-  \item DONE 1 node, 16 threads, nohur, nosss
-  \item DONE 1..8 nodes, 8 threads
-  \item DONE ve-bce
-  \item TODO comparison with cryptominisat and manysat
-\end{enumerate}
-
 \section{Setup}
 
-STRUCTure was evaluated on DAS-4 (\url{http://www.cs.vu.nl/das4/})
+We will now evaluate STRUCTure on DAS-4 (\url{http://www.cs.vu.nl/das4/})
 cluster at VU University Amsterdam (\url{http://www.few.vu.nl})
 which is composed of 74 machines with 24GiB of memory and with
 dual quad core Intel E5620 processors running at 2.4GHz. The
@@ -40,18 +30,16 @@ cluster allows evaluation of different types of parallelization:
 The nodes have hyper threading enabled so each of them has \emph{16
 logical cores}. A pair of logical cores on the same physical core
 share main execution resources, but not the architectural state
-(e.g. control and general purpose registers).
-
-Except where otherwise indicated tests will run on \emph{one
-node} with \emph{16 threads} (to employ all 16 logical
-cores). Constellation does not spawn more than specified number
-of threads. However, Java Virtual Machine will use the additional
-computing power for things like garbage collector.
+(e.g. control and general purpose registers).  Except where otherwise
+indicated tests will run on \emph{one node} with \emph{16 threads}
+(to employ all 16 logical cores). Constellation does not spawn more
+than specified number of threads. However, Java Virtual Machine will
+use the additional computing power for things like garbage collector.
 
 STRUCTure was evaluated using 678 problems
 of medium difficulty from SAT Competition 2009
 (\url{http://www.satcompetition.org/2009/}). The instances are
-divided in three categories:
+divided into three categories:
 \begin{itemize}
   \item formulas in \emph{application} category encode different
   real-life problems and are typically very large (up to tens of
@@ -65,58 +53,83 @@ In the following tests, instances were divided into random and
 nonrandom (application and crafted) categories. There are 380 random
 instances and 298 nonrandom instances.
 
-On tests with a large time limit of 45 minutes all instances were
-measured once to conserve resources. On all other tests the time
-limit was 15 minutes and time measured is the average of three runs.
-If for STRUCTure timed out on any run of an instance that instance
-is not used for the graphs.  \footnote{The extra time give
-the illusion that STRUCTure does better in 15 minutes on tests
-with larger time limit than on tests with smaller time limit.
-In reality because the performance varies instances which require
-a time close to the upper time limit might or might not be included
-in the graphs.}
+On the tests with a large time limit of 45 minutes all instances were
+measured once to conserve computational resources. On all other tests
+the time limit was 15 minutes and time measured is the average of
+three runs.  If for STRUCTure timed out on any run of an instance
+that instance is not used for the graphs.  \footnote{The extra
+time gives the illusion that STRUCTure does better in 15 minutes on
+tests with larger time limit than on tests with smaller time limit.
+In reality, because the performance varies, instances which require
+a running time close to the upper time limit might or might not
+be included in the graphs.} The time limit in SAT Competitions is
+usually 20 minutes, but the rules of DAS-4 cluster allow only 15
+minutes jobs during the daytime.  With extra 5 minutes STRUCTure
+can solve only few extra instances so the additional time is not
+required to understand performance a scalability.
 
-The time limit in SAT Competitions is usually 20 minutes, but
-the rules of DAS-4 cluster allow only 15 minutes jobs during the
-daytime.  With extra 5 minutes STRUCTure can solve only few extra
-instances so the additional time is not required to understand
-performance a scalability.
-
-With a time limit of 15 minutes, STRUCTure can solve shy of 190
-problems on a single DAS-4 node, but state-of-art SAT solvers solve
-250. With a larger time limit of 45 minutes STRUCTure solves about
-250 instances.
+With a time limit of 15 minutes, STRUCTure can solve 197 instances
+on a single DAS-4 node, but state of the art SAT solvers solve up
+to 350.
 
 
-\section{Performance of Reasonings}
+\section{Failed Literal Probing}
 
-\todo{HUR, SSS}
+We continue next to investigate the influence of Failed
+Literal Probing (FLP, see Section \ref{sssec:flp}) on overall
+performance. In Figure \ref{fig:flp} the graph of solved instances
+over time is plotted for all, random and nonrandom instances with
+varying number of probes.
 
-An important part of any sat solver are the simplification
-procedures and reasoning it performs. Chapter \ref{chap:sat},
+On random $k$-SAT instances FLP works best with high number of
+probed literals. Since FLP implementation uses a weak form of BCP
+it is important that instances are simplified so that they contain
+at least some binaries.  On non-random instances FLP performs best
+with fewer probes, i.e. only 32.  Unlike on random instances FLP
+works worse when number of probes is increased.  Overall probing
+128 variables gives best results, but the performance does not vary
+much with different number of probes.
+
+\begin{figure}
+  \centering
+  \plot{flp}
+  \caption{Performance when varying number literal probes.}
+  \label{fig:flp}
+\end{figure}
+
+
+\section{Performance of Reasoning Procedures}
+\label{sec:perf-reasoning}
+
+An important part of any sat solver is the simplification
+procedures and reasoning techniques it performs. The algorithms
+implemented in STRUCTure are described in Chapter \ref{chap:sat},
 \nameref{chap:sat}, and subsection \ref{ssec:learning},
-\nameref{ssec:learning}, describe the algorithms built in STRUCTure.
+\nameref{ssec:learning}.
 
-Before continuing with the test results, note
-that there is a huge overlap between different techniques (e.g. BCE
-implies PL and DVR \cite{Jarvisalo_blockedclause}), but they are
-performed together because some are faster or perform better in
-different scenarios.
+Before continuing with the test results, we make an important
+observation: there is a huge overlap between different techniques
+(e.g. BCE implies PL and DVR \cite{Jarvisalo_blockedclause}),
+but they are performed together because some are faster or perform
+better in different scenarios.
 
-In Figure \ref{fig:disable} the graph of solved instances over time
-for all, random and nonrandom instances with different simplification
-procedures disabled. The table \ref{tbl:disable} lists which
-simplification procedures improve performance. The simplification
-procedures are divided in two categories:
+Figure \ref{fig:disable} gives the graph of solved instances
+over time for all, random and nonrandom instances with different
+simplification procedures disabled.  The default line represents
+behaviour when \emph{all} reasoning procedures are enabled. The
+other lines represent the behaviour when one reasoning technique
+is disabled. Similarly, table \ref{tbl:disable} lists which
+simplification procedures improve performance.
+
+The simplification procedures are divided in two categories
+depending when they are performed:
 \begin{itemize}
-  \item before search in Simplification component: DVR, BCE and VE;
-  \item during search in Searching component: Split, learning, and SSS and HUR in
-  Solve Activity.
+  \item before search, in Simplification component:
+  DVR (\ref{ssec:dvr}), BCE (\ref{ssec:bce}) and VE (\ref{ssec:ve}); and
+  \item during search, in Searching component:
+  Split (\ref{sssec:split}), learning (\ref{ssec:learning}),
+  and SSS (\ref{ssec:sss}) and HUR (\ref{ssec:hbr}) in Solve Activity.
 \end{itemize}
-
-The default line represents behaviour when \emph{all} reasoning
-procedures are enabled. The other lines represent the behaviour
-when one type of reasoning is disabled.
 
 \begin{figure}
   \centering
@@ -154,50 +167,161 @@ when one type of reasoning is disabled.
   \label{tbl:disable}
 \end{table}
 
-First, from all reasoning techniques, learning has the biggest performance
-impact. The gain is larger on random instances than on nonrandom
-instances, though learning was expected to benefit more industrial
-instances\cite{DBLP:series/faia/SilvaLM09}.
+First, from all reasoning techniques, learning has the biggest
+performance impact. The gain is larger on random instances than on
+nonrandom instances, though learning was expected to benefit more
+industrial instances \cite{DBLP:series/faia/SilvaLM09}. Section
+below shows that STRUCTure does not learn many clauses which are
+required for bigger industrial applications.
 
-At the other extreme we notice that trying to split instances doesn't
+At the other extreme we notice that trying to split instances does not
 provide any real benefit and, therefore, Split activity should be disabled
 on most problem types.
 
-VE improves performance on nonrandom instances and has almost no
-impact on random instances. STRUCTure performs worse with DVR
-enabled probably because the combination of BCE and VE outperforms
-DVR. BCE gives worse performance on random instances, but on
-nonrandom instances the performance is not affected.
+Before search, during the simplification phase, VE improves
+performance on nonrandom instances and has almost no impact on random
+instances. STRUCTure performs worse with DVR enabled. BCE gives
+worse performance on random instances, but on nonrandom instances
+the performance is not affected.  The performance of combinations
+of BCE and VE is given in appendix \ref{chap:bce-ve}.
 
-Testing combination of reasoning procedures is future work.
+During search, both HUR and SSS are useful for nonrandom instances
+with HUR being almost as important as learning. On random
+instances STRUCTure performs better without these two techniques
+enabled. Overall it is better to disable SSS during search, but
+leave HUR enabled.
+
+We conclude that random instances benefit only from searching and
+learning, while most reasoning algorithms improve running time
+on nonrandom instances.  Testing other combinations of reasoning
+procedures is future work.
 
 
-\section{Failed Literal Probing}
 
-We continue next to investigate the influence of Failed
-Literal Probing (see subsubsection \ref{sssec:flp}) on overall
-performance. In Figure \ref{fig:flp} the graph of solved instances
-over time is plotted for all, random and nonrandom instances with
-varying number of probes.
+\section{Solved Instances and Depth Histogram}
+\label{sec:histograms}
 
-On random $k$-SAT instances FLP works best with high number of
-probed literals. Since FLP implementation uses a weak form of BCP
-it is important that instances are simplified so that they contain
-at least some binaries.
+For this section we picked a satisfiable industrial instance,
+\textsf{grieu/vmpc\_28.cnf}, and measured how STRUCTure behaves
+internally with respect to processed instances. The selected
+instance has 784 variables, 108,080 clauses, 391,300 literals in all
+clauses \footnote{This number includes 1 for each clause.}. After
+simplification the instance is reduced to 281,131 literals.
 
-On non-random instances FLP performs best with fewer probes,
-i.e. only 32.  Unlike on random instances FLP works worse when
-number of probes is increased.
-
-Overall probing 128 variables gives best results, but the performance
-doesn't vary much with different number of probes.
+First, in Figure \ref{fig:num-instances} we see the number of
+instances of a given size are processed by Solve Activities. There
+are a total of 29,977 generated instances containing 1,290,208,238
+literals. In terms of memory it means around 5GiB (4 bytes per
+literal) of data only for transferring formulas. This number is
+duplicated because activities build a watch list (storing which
+clauses contain a given literals). Moreover, HUR (see Section
+\ref{ssec:hbr}), requires an implication graph which also
+duplicates the binaries.
 
 \begin{figure}
   \centering
-  \plot{flp}
-  \caption{Performance when varying number literal probes. (16 logical cores)}
-  \label{fig:flp}
+  \includegraphics[angle=-90,width=\textwidth]{data/other/instances}
+  \caption{Number of instances processed versus instance size.}
+  \label{fig:num-instances}
 \end{figure}
+
+Next, in Figure \ref{fig:num-depth} we see at which depth of the
+search tree instances are processed by Solve activities and how many
+of them are found to be inconsistent (depth is the number variables
+are in the partial assignment). We see that most instances are
+clustered in the range 10 - 50 with a long right tail up to 120.
+
+
+\begin{figure}
+  \centering
+  \includegraphics[angle=-90,width=\textwidth]{data/other/depth}
+  \caption{Number of instances and number of conflicts versus depth.}
+  \label{fig:num-depth}
+\end{figure}
+
+
+Last figure \ref{fig:num-learned} shows the histogram of number
+learned clauses over clause size. We see that STRUCTure learns lots
+of small clauses. This happens because at lower depths STRUCTure
+also learns clauses resulted from the reasoning procedures, while
+at higher depths it learns only from conflicts. Nonetheless, many of
+the small learned clauses are redundant. 17,406 clauses were learned
+from 21,256 conflicts \footnote{Merging conflicts (see Section
+\ref{ssec:learning}) helps keeping the number of learned clauses
+low.}. Overall, the number of clauses learned from conflicts is much
+smaller than in CD/CL solvers \cite{Marques-silva99grasp:a}.
+
+
+\begin{figure}
+  \centering
+  \includegraphics[angle=-90,width=\textwidth]{data/other/learned}
+  \caption{Histogram of number of learned clauses of clause length.}
+  \label{fig:num-learned}
+\end{figure}
+
+
+
+\section{Parallel and Distributed Performance}
+
+In this section STRUCTure is tested in a parallel and distributed
+environment. To conserve resources especially with higher number
+of nodes we used a set of 266 instances solved by STRUCTure on
+previous tests including tests with large time limit. These instances
+are enough to understand scalability of STRUCTure.
+
+Three types of tests were conducted:
+\begin{itemize}
+  \item 1 node and varying number of cores used (Figure \ref{fig:para-1X});
+  \item varying number of nodes and 1 core per node used (Figure \ref{fig:para-X1}); and
+  \item varying number of nodes and 8 cores per node used (Figure \ref{fig:para-X8}).
+\end{itemize}
+These tests are meant to stress STRUCTure in a parallel, a distributed
+and, respectively, a hybrid environment.
+
+First, doubling the number of cores used on one node (Figure
+\ref{fig:para-1X}) adds about 25 instances solved under 900s.
+Similarly, doubling the number of nodes and using one core per node
+(Figure \ref{fig:para-X1}) adds about 20 instances solved under 900s.
+
+\begin{figure}
+  \centering
+  \plot{para-1X}
+  \caption{Scalability in number of cores per node with 1 node used.}
+  \label{fig:para-1X}
+\end{figure}
+
+The scalability is worse when the number of nodes is increased
+(see Figure \ref{fig:para-X1}) compared to when the number of
+cores per node is increased. One possible explanation is that in
+the former case search is more in breath, while adding more cores
+per node makes search going more in depth sometimes leading to a
+faster solution or shorter learned clauses.
+
+\begin{figure}
+  \centering
+  \plot{para-X1}
+  \caption{Scalability in number of nodes with 1 core per node used.}
+  \label{fig:para-X1}
+\end{figure}
+
+In Figure \ref{fig:para-X8} we see that STRUCTure maintains
+its scalability in a hybrid parallel distributed environment.
+Doubling the number of nodes and using eight cores per node adds
+about 30 instances solved under 900s.
+
+\begin{figure}
+  \centering
+  \plot{para-X8}
+  \caption{Scalability in number of nodes with 8 cores per node used.}
+  \label{fig:para-X8}
+\end{figure}
+
+From all figures we see that scalability is much better for random
+instances than for nonrandom instances. This is because STRUCTure
+parallelizes the search, but nonrandom instances benefit greatly
+from the simplification procedures which are sequential (see section
+\ref{sec:perf-reasoning}). On the other hand, random instances are
+solved entirely by the searching component.
 
 
 \section{Large Time Limit}
@@ -218,8 +342,8 @@ cores versus only 8 of them. The improvement comes mostly from
 random instances while nonrandom instances are barely affected
 by the extra threads.  Additionally, the increase in the number
 of random instances solved with 24 threads suggests that random
-instances might benefit from searching more in breadth and not from
-extra computational resources.
+instances benefit from searching more in breadth and not from extra
+computational resources.
 
 Using 16 threads STRUCTure solves 187 instances in 15 minutes and 63
 more in 45 minutes. 49 out of 63 instances solved with the addition
@@ -230,56 +354,49 @@ expected if both categories benefited equally from the extra time.
   \centering
   \plot{large}
   \caption{Performance with large time limit with 8, 16 and 24
-  threads on a 16 logical cores node.}
+  threads on a machine with 8 physical and 16 logical.}
   \label{fig:large}
 \end{figure}
 
 
-\section{Parallel and Distributed Performance}
+\section{Comparison with Other SAT Solver}
 
-In this section STRUCTure is tested in a parallel and distributed
-environment. To conserve resources especially with higher number
-of nodes we used a set of 266 instances solved by STRUCTure on
-previous tests including tests with large time limit. These instances
-are enough to understand scalability of STRUCTure.
-
-Three types of tests were conducted:
+In this section will compare STRUCTure's best performance against
+two other solvers:
 \begin{itemize}
-  \item 1 node and varying number of cores used (Figure \ref{fig:para-1X});
-  \item varying number of nodes and 1 core per node used (Figure \ref{fig:para-X1}); and
-  \item varying number of nodes and 8 cores per node used (Figure \ref{fig:para-X8}).
+  \item \emph{Cryptominisat 2.9.0} \cite{mine:cryptominisat} is a
+  CD/CL SAT solver that won one gold and one silver medal medal at
+  SAT Competition 2011 (\url{http://www.satcompetition.org/2011/}).
+
+  \item \emph{March\_hi} \cite{mine:march-hi} is a look-ahead SAT
+  solver which also won several medals in the past editions of SAT
+  Competition random and crafted category.
 \end{itemize}
-These tests are meant to stress STRUCTure in a parallel, a distributed
-and, respectively, a hybrid environment.
+
+All solvers are evaluated using a single node from DAS-4 cluster.
+STRUCTure uses 16 threads, while Cryptominisat and March\_hi
+use only 1 thread. Every instance was timed once.
+
+STRUCTure is more similar to March\_hi in the sense that it relies on
+extensive reasoning before branching. Both STRUCTure and March\_hi
+perform better on random instances, while Cryptominisat performs
+better on industrial instances.  Compared to Cryptominisat, STRUCTure
+performs better on random instances and much worse on nonrandom
+instances. Compared to March\_hi, STRUCTure performs worse on random
+instances, but slightly better on nonrandom instances. Even with
+extra processors STRUCTure does not perform better on champions'
+categories.
+
+Overall STRUCTure using 16 threads on 8 cores does not perform
+as well as sequential champions. The sequential performance (see
+Figure \ref{fig:para-1X}) is worse, but with additional cores the
+performance gap closes fast.
+
 
 \begin{figure}
   \centering
-  \plot{para-1X}
-  \caption{Scalability in number of cores per node with 1 node used.}
-  \label{fig:para-1X}
+  \plot{compare}
+  \caption{STRUCTure (best options, 8 cores) versus Cryptominisat
+  2.9.0 and March\_hi (1 core)}
+  \label{fig:compare}
 \end{figure}
-
-\begin{figure}
-  \centering
-  \plot{para-X1}
-  \caption{Scalability in number of nodes with 1 core per node used.}
-  \label{fig:para-X1}
-\end{figure}
-
-\begin{figure}
-  \centering
-  \plot{para-X8}
-  \caption{Scalability in number of nodes with 8 core per node used.}
-  \label{fig:para-X8}
-\end{figure}
-  
-
-
-
-\section{Other}
-
-Distribution of size of learned clauses 
-
-Distribution of depth
-
-Distribution of instances size
