@@ -1,6 +1,11 @@
 \chapter{SAT}
 \label{chap:sat}
 
+In this chapter the SAT problem is formalized and simplification
+and reasoning procedures used in STRUCTure are visited. Next chapter
+explains the design of our solver.
+
+
 \section{Basic Concepts}
 
 This section formalizes the SAT problem and introduces basic notations.
@@ -10,7 +15,7 @@ This section formalizes the SAT problem and introduces basic notations.
 \end{mydef}
 
 \begin{mydef}
-  A \emph{Boolean formula} $F$ is a function of $n$ \emph{boolean variables}.
+  A \emph{Boolean formula} $F$ is a function of $n$ \emph{Boolean variables}.
   $F : \mathbb{B}^n \rightarrow \mathbb{B}$.
 \end{mydef}
 
@@ -30,10 +35,11 @@ This section formalizes the SAT problem and introduces basic notations.
 \end{mydef}
 
 \begin{mydef}
-  A \emph{propositional} Boolean formula is a Boolean formula that contains only
-  logic operations \textbf{and} (conjunction, denoted with $\land$),
-  \textbf{or} (disjunction, denoted with $\lor$) and \textbf{not}
-  (negation, denoted with $\neg$).
+  A \emph{propositional} Boolean formula is a Boolean formula
+  that contains only the following logic operations: \textbf{and}
+  (conjunction, denoted with $\land$), \textbf{or} (disjunction,
+  denoted with $\lor$) and \textbf{not} (negation, denoted with
+  $\neg$).
 \end{mydef}
 
 A propositional Boolean formula is in \emph{conjunctive normal form}
@@ -54,7 +60,7 @@ indices $1, 2, \ldots$ will be used to indicate variables.
 
 We will denote clauses as sets of literals $C = \{ u_1, u_2, \ldots,
 u_k \}$ and formulas as a set of clauses $F = \{ C_1, C_2, \ldots,
-C_m \} $.  An example of formula is
+C_m \} $.  An example of a Boolean formula in CNF is:
 \[
 F(u, v, t) = (u \lor v \lor t) \land (\neg u \lor \neg v)
 \]
@@ -75,15 +81,15 @@ F = \{ \{u, v, t\}, \{\neg u, \neg v)\}\}
 \section{Solving SAT}
 \label{sec:solving-sat}
 
-This section introduces the general algorithm for SAT solving which
-is the basis of most modern sat solvers.
+This section describes DPLL, a general algorithm for SAT solving
+which is the basis of most modern sat solvers.
 
 \subsection{Boolean Constraint Propagation}
 \label{ssec:bcp}
 
 Boolean constraint propagation (BCP) was introduced in
 \cite{Davis:1960:CPQ:321033.321034} to simplify a formula by removing
-variables that are assigned by unit clauses.
+variables assigned by unit clauses.
 
 \begin{mydef}
   \emph{Boolean constraint propagation} of a formula, $BCP(F)$, is
@@ -101,7 +107,7 @@ variables that are assigned by unit clauses.
 $UP(F)$ is the set of literals propagated during $BCP(F)$.
 \end{mydef}
 
-We will denote the boolean constraint propagation of a literal $u$ in a
+We will denote the Boolean constraint propagation of a literal $u$ in a
 formula $F$ with $BCP(F, u) \equiv BCP(F \cup \{\{ u \}\})$
 and similarly $UP(F, u) \equiv UP(F \cup \{\{ u \}\})$. Example:
 
@@ -130,8 +136,8 @@ by pseudo-code \ref{alg:dpll} and has four important steps:
   \item recurse.
 \end{inparaenum}
 
-Modern SAT solvers differ from DPLL in applying
-stronger simplification procedures and using better
+Modern SAT solvers differ from DP in applying
+stronger simplification procedures or using better
 decisions heuristics. Another important step introduced in
 \cite{Marques-silva99grasp:a} is restarting the search at regular
 intervals and augmenting the basic search with clauses derived
@@ -159,29 +165,32 @@ from conflicts.
     \STATE $u \gets decide(F)$
 
     // 4. Recurse
-    \RETURN $DPLL(F \land l) \lor DPLL(F \land \neg l)$
+    \RETURN $DP(F \land l) \lor DL(F \land \neg l)$
   \end{algorithmic}
 
-  \caption{DPLL algorithm for SAT solving}
+  \caption{DP algorithm for SAT solving}
   \label{alg:dpll}
 \end{algorithm}
 
 
 \section{Additional Reasoning Procedures}
 
-This sections explains additional reasonings used in STRUCTure during
-the simplification step besides the Boolean Constraint Propagation
-used in the original DPLL algorithm.
+This sections explains additional reasoning procedures used in
+STRUCTure during the simplification step besides the Boolean
+Constraint Propagation from the original DPLL algorithm.
 
 \subsection{Pure Literal Rule (PL)}
 \label{ssec:pl}
 
 \emph{Pure Literal Rule} was first described in
-\cite{Davis:1960:CPQ:321033.321034} and it was and used to improve
-the DPLL algorithm. The rule is as follows:
+\cite{Davis:1962:MPT:368273.368557} and it was and used to
+improve the DPLL algorithm. Broder et al. have shown that
+PL alone can solve some class of random $k$-SAT formulas
+\cite{Broder:1993:SMS:313559.313794}.  The Pure Literal Rule is
+as follows:
 
 \begin{mydef}[Pure Literal Rule]
-  If a variable $u$ occurs in formula $F$ in CNF only positively, or
+  If a variable $u$ occurs in a formula $F$ in CNF only positively, or
   if $u$ occurs only negatively, then all clauses which contain $u$
   may be deleted. The resulting formula $F'$ is inconsistent
   if and only if $F$ is. (If $F'$ is empty, then it is consistent).
@@ -283,7 +292,7 @@ can improve other reasoning algorithms \cite{Heule:2010:CEP:1928380.1928406, Heu
 \end{myprop}
 
 To find the extension of the clause $C$, a search is performed in
-the implication graph, $G_F$, starting from the negation of all
+the implication graph, $\I_F$, starting from the negation of all
 literals in the clause. $HLA(F, C)$ will be the set of negations
 of the visited literals.
 
@@ -365,7 +374,7 @@ new binary.
 \end{myprop}
 
 \cite{Bacchus03effectivepreprocessing} shows that HUR and HBR
-are closely related to boolean constraint propagation.  Indeed,
+are closely related to Boolean constraint propagation.  Indeed,
 propagation of literal $u$ results in literals $v_1, \ldots, v_n$
 so clause $(v_1 \lor \dots \lor v_n)$ is reduced to the empty
 clause and, respectively, clause $(v_1 \lor \dots \lor v_n \lor
@@ -391,12 +400,12 @@ usefulness of HBR is not clear and, therefore, not used in STRUCTure.
 
 \emph{Subsumption} and \emph{self-subsumption} are two simplification
 techniques introduced in \cite{Een05effectivepreprocessing}
-that work well in the context of quantified boolean formulas
+that work well in the context of quantified Boolean formulas
 \cite{Biere04resolveand}.
 
 Subsumption is the process of removing clauses that are a superset
 of other clauses. The subsumed clauses are satisfied whenever
-the subsuming clause is satisfied so they don't need to be part of
+the subsuming clause is satisfied so they do not need to be part of
 the formula.
 
 \begin{myprop}[Subsumption]
@@ -425,7 +434,7 @@ the larger clause.
 
 Many encoded circuits have XOR and XNOR gates which are equation
 in $\mathbb{Z}_2$ (see Table \ref{tbl:xor-formula}). The method
-generally used to encode an X(N)OR gate into CNF clauses is described
+frequently used to encode an X(N)OR gate into CNF clauses is described
 in \cite{Roy_restoringcircuit}.
 
 \begin{table}
@@ -444,22 +453,20 @@ in \cite{Roy_restoringcircuit}.
 \end{table}
 
 Encoding an XOR gate with $n$ inputs and one output with CNF
-clauses requires $2^n$ clauses of size $n + 1$, one literal
-for each input and output.  Every clause contains an odd number of
+clauses requires $2^n$ clauses of size $n + 1$, one literal for
+each input and output.  Every clause contains an odd number of
 negations resulting in $2^n$ different combinations. Encoding an
 XNOR gate is similar, except that clauses will contain an even
-number of negations.
+number of negations.  Example of encodings are given in table
+\ref{tbl:xor-encoding}.  Decoding X(N)OR gates shorten the formula
+considerably. 32 clauses of 6 literals each will be replaced by a
+single gate of 6 variables.
 
 Negating an input (i.e., one of the literals) in the X(N)OR gate is
 equivalent with reversing the type of gate (XOR $\leftrightarrow$
 XNOR). To denote a gate we will use only variables without negations
-and whether it is an XOR or an XNOR gate.  Example of encodings are
-given in table \ref{tbl:xor-encoding}.
+and whether it is an XOR or an XNOR gate.
 
-Extracting X(N)OR gates shorten the formula considerably. 32
-clauses of 6 literals each will be replaced by a single gate of 6
-variables. However, many reasoning algorithms do not handle X(N)OR
-gates, which makes the procedures less powerful.
 
 \begin{table}
   \centering
@@ -579,9 +586,9 @@ is at most one more than literals in $S_u$ and $S_{\neg u}$.
 \subsection{Blocked Clause Elimination (BCE)}
 \label{ssec:bce}
 
-\emph{Blocked clauses} are a class of redundant clauses
-that can be added to \cite{Kullmann:1999:NMD:312269.312271} or
-removed from \cite{Jarvisalo_blockedclause} a formula preserving
+\emph{Blocked clauses} are a class of redundant clauses that can
+be added to \cite{Kullmann:1999:NMD:312269.312271} or removed
+from \cite{Jarvisalo_blockedclause} a Boolean formula preserving
 its satisfiability. Blocked clause elimination perform powerful
 simplification of CNF circuit encodings.
 
@@ -592,10 +599,10 @@ simplification of CNF circuit encodings.
 \end{mydef}
 
 In \cite{Jarvisalo_blockedclause} the authors suggest that VE might
-improve on BCE (see subsection \ref{ssec:bce}), but I found no
+improve on BCE (see subsection \ref{ssec:bce}), but we found no
 significant difference in performance when the order is reversed
 (see appendix \ref{chap:bce-ve}).
 
-STRUCTure performs a stronger version of BCE in which the clause
+STRUCTure performs a stronger version of BCE in which the blocked clause
 is first extended with literals hidden by the blocking literal
 (see subsection \ref{ssec:hla}) \cite{Heule_coveredclause}.

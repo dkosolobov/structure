@@ -1,10 +1,10 @@
 \chapter{Architecture}
 \label{chap:architecture}
 
-In previous chapter we discussed many of the reasoning and
-simplification procedures used by STRUCTure. In this chapter we will
-discuss how these procedures are used by our solver.  A top view of
-the architecture is shown in Figure \ref{fig:architecture}. There are
+In previous chapter the reasoning and simplification procedures
+used by STRUCTure were explained. In this chapter we will discuss
+how these procedures are used by our solver.  A top view of the
+architecture is shown in Figure \ref{fig:architecture}. There are
 four main components out of which only \emph{Searching Backtrack}
 is essential.  The other three are optimization to handle larger
 industrial applications. In the order of relevance the components
@@ -51,18 +51,17 @@ Under the hood, Constellation works by running a fixed number of
 worker threads on each node which execute activities.  Workers
 maintain a queue of events (such as new activities or messages
 passed) which are processed in last-in-first-out (LIFO) order.
-
-When a thread runs out of work it attempts to steal more
-jobs first from other workers on the same node, and then from
-other workers on different nodes.  Local steals are performed
-in LIFO order, while remote steals are performed in FIFO
-(first-in-first-out) order. Remote steals are
-slower than local steals because they involve network communication
-and they are performed only at regular intervals.
+When a thread runs out of work it attempts to steal more jobs first
+from other workers on the same node, and then from other workers
+on different nodes.  Local steals are performed in LIFO order,
+while remote steals are performed in FIFO (first-in-first-out)
+order. Remote steals are slower than local steals because they
+involve network communication and they are performed only at
+regular intervals.
 
 \begin{figure}
   \centering
-  \includegraphics[width=0.4\linewidth]{dia/constellation}
+  \includegraphics[width=0.45\linewidth]{dia/constellation}
   \caption{In Constellation activities spawn new
   activities and communicate by message passing.
   Activities can be executed on any node (represented by
@@ -74,16 +73,16 @@ and they are performed only at regular intervals.
 To fit the Constellation model, in STRUCTure activities are
 independent of each other (except for passed messages). Consequently,
 these activities needs to build some internal data structure for
-reasonings they perform. However, most data structures can be
-reused by an activity's children if they are executed on the same
-machine. From profiling we have seen that this overhead can account
-fort for 10\% to 40\% of the total running time not including the
-time garbage collector spent freeing old structures.
+the reasoning procedures they perform. However, most data structures
+can be reused by an activity's children if they are executed on the
+same machine. From profiling we have seen that this overhead can
+account for 10\% to 40\% of the total running time not including
+the time garbage collector spends freeing old structures.
 
 \section{Activities}
 
 In STRUCTure an activity's goal is to find a satisfying assignment
-for an instance, prove unsatisfiability or learn something new
+for a single instance, prove unsatisfiability or learn something new
 about the instance. Some activities can spawn new activities to
 solve smaller instances.
 
@@ -116,9 +115,9 @@ original circuit using XOR gates extraction and dependent variable
 removal (DVR) described in sections \ref{ssec:xor-extraction}
 and \ref{ssec:dvr}.  Unfortunately, many reasoning procedures do
 not handle XOR gates well so the after DVR the remaining gates are
-turned back into CNF clauses. To avoid generating large clauses in
+turned back into CNF clauses. To avoid generating big clauses in
 our implementation DVR ignores variables which remove
-generate large to XOR gates.
+generate large XOR gates.
 
 
 \subsection{Simplification}
@@ -126,7 +125,7 @@ generate large to XOR gates.
 After Circuit Preprocessing, \emph{Simplification} component applies
 different simplification procedures to strengthen the clauses and
 reduce the formula. It is made of several activities, shown in
-figure \ref{fig:activities}.
+Figure \ref{fig:activities}.
 
 First, \emph{Blocked clauses elimination} activity performs blocked
 clause elimination to remove redundant clauses (see subsection
@@ -135,7 +134,7 @@ variable elimination to remove redundant variables (see Section
 \ref{ssec:ve}). \emph{Failed Literal Probing} learns new units
 and binaries (see section below).  Finally, the \emph{Simplify}
 activity is similar to the Solve activity from the searching
-backtrack (see \ref{sssec:solve}).
+backtrack (see Section \ref{sssec:solve}).
 
 Except for the Failed Literals Probing activity, the Simplification
 component is sequential. However, in practice, the computation
@@ -166,11 +165,11 @@ variables (by default 128) and sends them to \emph{Propagate}
 activity to perform a weaker version of boolean constraint
 propagation of both polarities $u$ and $\neg u$. Variables are
 selected using the same variable selection heuristic used for
-branching (see \ref{ssec:branching}).
+branching (see Section \ref{ssec:branching}).
 
 If $u, u_0, u_1, \ldots$ are propagated literals and $v, v_0, v_1,
 \ldots \in UP(F, u)$ then Propagate activity learns the clauses in
-table \ref{tbl:propagate-learn}. There are plenty of other binary
+Table \ref{tbl:propagate-learn}. There are plenty of other binary
 clauses to be learned (i.e. one for each literal $\in UP(F, u)$),
 but many of them are redundant and do not improve performance if
 added to formula (e.g. FLP can also rediscover the binaries in
@@ -195,10 +194,9 @@ initial formula).
       $u_0$ & &
     \end{tabular}
   }
-  \caption{Learned units and binaries by Propagate activity}
+  \caption{Learned units and binaries by Propagate activity.}
   \label{tbl:propagate-learn}
 \end{table}
-
 
 
 \subsection{Restarting}
@@ -302,10 +300,10 @@ in order to:
 the formula is simplified as much as possible.
 
 In STRUCTure performing look-ahead at every branch gives worse
-performance. My intuition is that look-ahead is very expensive
-compared to simply assigning a score based on the clauses containing
-that variable. Moreover, the additional reasoning procedures might
-outperform benefits of learning new units.
+performance. We have found that look-ahead is more expensive than
+simply assigning a score based on the clauses containing that
+variable. Moreover, the additional reasoning procedures,
+especially hyper-unit resolution, offset benefits of learning new units.
 
 The scoring heuristic is described below. To determine the
 best variable for branching a measure $H_u$ is computed for
@@ -336,7 +334,7 @@ Finally $H_u$ is computed using the following function:
 
 $G$ is a generalization of a similar formula used in other
 look-ahead solvers such as \cite{mine:march}: $G'(p, n) =
-1024 \times p \cdot n + p + n$. $G$ must have a A couple of properties:
+1024 \times p \cdot n + p + n$. $G$ must have a couple of properties:
 \begin{inparaenum}[a)]
   \item it must be easy (and fast) to compute (e.g. no exponentiation or logarithm); and
   \item it must be symmetrical.
@@ -362,18 +360,18 @@ $b$, to generate two instances $F_+ = F \cup \{b\}$ and $F_- \cup
   $F$ is consistent if and only if $F_+$ or $F_-$ is consistent.
 \end{myprop}
 
-If a solution is found, the Branch activity forwards it to parent before
-the remaining branch (if any) is completed. Constellation cannot cancel
-activities, but local executors perform events in LIFO order so
-the solution is propagated fast to the Restart activity which will stop
-the computation.
+If a solution is found, the Branch activity forwards it to
+its parent activity before the remaining branch (if any) is
+completed. Constellation cannot cancel activities, but local threads
+perform events in LIFO order so the solution is propagated fast to
+the Restart activity which will stop the computation.
 
 
 \subsubsection{BlackHole}
 \label{sssec:blackhole}
 
 To end the search, the Restart component (see Section
-\ref{ssec:restarting}) requires \emph{BlackHole} activity which, when
+\ref{ssec:restarting}) requires \emph{BlackHole} activities which, when
 signaled, kills instances by immediately returning \textsf{UNKNOWN}
 instead of to solving them.
 
@@ -407,8 +405,8 @@ which in turn contacts all registered Slaves.
 \subsubsection{Solve}
 \label{sssec:solve}
 
-\emph{Solve} activity attempts to find a satisfying assignment for
-received formula by performing verification and simplification
+\emph{Solve} activities attempt to find a satisfying assignment for
+associated formulas by performing verification and simplification
 steps of the DPLL algorithm (see subsection \ref{ssec:dpll}).
 In STRUCTure the simplification step is composed the following:
 \begin{itemize}
@@ -424,7 +422,7 @@ This activity can be extended to run other solvers. Currently,
 if the formula is in $2$-SAT then the Solve activity performs the
 linear time algorithm from \cite{mine:tarjan}.
 
-If the Solve activity finds a solution for the formula (i.e.
+If a Solve activity finds a solution for its formula (i.e.
 formula is determined to be consistent or inconsistent) then the
 solution is propagated back up on the search tree. If the formula
 is inconsistent it is called that a \emph{conflict} has been reached
@@ -445,7 +443,7 @@ and now is part of almost all modern sat-solvers.
 
 During search when a conflict is encountered it means that the
 current variable assignment cannot lead to a solution of the original
-problem. Because at least on of the assigned literals must be false
+problem. Because at least one of the assigned literals must be false
 the current assignment is transformed into a disjunction of negation
 of assigned literals.
 
@@ -468,7 +466,7 @@ to have a different value.
 
 Now consider two conflicts $C_1 = \{ \neg 1, \neg 2, 4 \}$ and
 $C_2 = \{ \neg 1, 2 \}$.  By applying the resolution operator
-(see subsection \ref{ssec:resolution}) clause $C_3 = \{ \neg 1,
+(see Section \ref{ssec:resolution}) clause $C_3 = \{ \neg 1,
 4 \}$ is obtained which is a subset of $C_1$; therefore $C_1$ can
 be substituted for $C_3$ strengthening the learned clause. Similarly
 conflicts $C_4 = \{ 1, 3, 5 \}$ and $C_5 = \{1, 3, \neg 5\}$ are
@@ -499,14 +497,14 @@ to the problem by the Restart activity.  The key observation is that
 a clause learned on a branch is already satisfied by the variable
 assignment pertaining to a different branch of the searching tree.
 
-In Figure \ref{fig:activities} each activity from the searching
-component will return to its parent a set of learned clauses. When
-a generation is stopped Restart activity extends the formula
-with the learned clauses received from the search component.
-Additionally, learned clauses are often analyzed and strengthen
-\cite{Audemard_ageneralized}. STRUCTure does not have an analyzing
-component, but the same effect is achieved by Simplification
-component when it receives the augmented formula.
+In Figure \ref{fig:activities} each activity from the
+searching component will return to its parent a set of learned
+clauses. When a generation is stopped Restart activity extends
+the formula with the learned clauses received from the search
+component.  Learned clauses are often analyzed and strengthen
+\cite{Audemard_ageneralized}. However, STRUCTure does not have
+an analyzing component, but the same effect is achieved by
+Simplification component when it receives the augmented formula.
 
 STRUCTure also learns some implications resulted from reasoning
 procedures applied at the top nodes of the searching tree. This

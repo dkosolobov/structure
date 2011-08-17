@@ -1,6 +1,6 @@
-\documentclass[11pt,twoside,a4paper,final]{report}
+\documentclass[11pt,twoside,msc,final,a4paper]{report}
 
-\usepackage[utf8]{inputenc}
+\usepackage[utf8x]{inputenc}
 \usepackage{todonotes}
 \usepackage{epstopdf}
 \usepackage{subfigure}
@@ -23,19 +23,13 @@
 \newtheorem{myprop}{Proposition}
 
 \newcommand{\I}{\mathfrak{I}}
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
 
-
-\def\maintitle{STRUCTure}
-\def\subtitle{Towards a Distributed SAT Solver}
-\def\authors{Alexandru Mosoi}
-\def\supervisors{Jason Maassen, Kees Verstoep}
-\def\year{Amsterdam, August 2011}
-\def\course{Master Thesis Parallel and Distributed Computer Systems}
 
 \begin{document}
 
 \pagestyle{empty}
-\include{title}
+\include{titlepage}
 \pagestyle{plain}
 
 \pagenumbering{Roman}
@@ -44,6 +38,7 @@
 
 \pagenumbering{arabic}
 \include{abstract}
+\include{acknow}
 \include{introduction}
 \include{literature}
 \include{sat}

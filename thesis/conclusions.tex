@@ -1,10 +1,11 @@
 \chapter{Conclusions}
 \label{chap:conclusions}
 
-The problem of Boolean satisfiability has many industrial
-applications such as planning, design, synthesis or routing. Its
-success is its arch enemy as Boolean satisfiability is used on
-more applications.
+The problem of Boolean satisfiability is the simplest NP-complete
+problem and has many industrial applications such as planning,
+designing, synthesis and routing. Its success is its arch enemy
+as Boolean satisfiability is used on more complex and larger
+applications.
 
 STRUCTure is a Boolean satisfiability solver built with
 parallelization and distribution in mind. It aims to speedup solution
@@ -12,10 +13,10 @@ search by using available cores in the modern processors. It does not
 aim at parallelizing reasoning techniques since some of them are
 inherently sequential. The solver is built on top of Constellation
 a distributed computing framework. Constellation provides very good
-scalability, but lacks a few features such as broadcasting or job
+scalability, but lacks a few features such as broadcasting and job
 cancellation that are required by STRUCTure.
 
-STRUCTure is based on the original DPLL algorithm. The boolean
+STRUCTure is based on the original DPLL algorithm. The Boolean
 constraint propagation step was replaced with more advanced reasoning
 techniques such as Hyper-Unit Resolution, Pure Literal Elimination
 and clause Subsumption.  Additionally, STRUCTure performs other
@@ -32,7 +33,7 @@ simplified again and a new attempt to solve it is performed. Unlike
 other solvers that perform clause learning, STRUCTure does not trim
 learned clauses.
 
-I evaluated the solver on 678 instances from SAT Competition 2009.
+We evaluated STRUCTure on 678 instances from SAT Competition 2009.
 The instances were divided into two categories: random and nonrandom
 (includes crafted and application instances from original set).
 On a single node with 8 processors STRUCTure can solve 197 instance
@@ -49,14 +50,14 @@ On the other hand, nonrandom instances benefit from some
 simplification procedures. Because the simplification procedures
 are sequential scalability of STRUCTure on nonrandom instances is
 worse than on random instances. It is not clear if scalability will
-be maintained when simplifications and sequential case imporve.
+be maintained when simplifications and sequential case improves.
 
 Searching in STRUCTure scales well with increasing number of nodes
 and slightly better with increasing number of cores per node.
 The scalability is maintained in a hybrid parallel/distributed
 environment.
 
-STRUCTure does not perform as well as award winning solvers.
+STRUCTure does not perform as well as awards winning solvers.
 There are several reasons for this performance difference:
 \begin{itemize}
   \item STRUCTure is much newer than other solvers and there are
@@ -64,9 +65,9 @@ There are several reasons for this performance difference:
   \item Often parallelization and scalability have an additional
   overhead (e.g. work distribution, data replication, network
   communication) which decreases the sequential performance.
-  \item STRUCTure runs inside a Java Virtual Machine and
-  interpretting byte code (even with just in time compilation)
-  is not as fast as machine code.
+  \item STRUCTure runs inside a Java Virtual Machine and often
+  interpreted byte code is slower than machine code (even with just
+  in time compilation)
 \end{itemize}
 
 

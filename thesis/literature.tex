@@ -1,15 +1,6 @@
 \chapter{Related Work}
 \label{chap:related}
 
-A slightly different problem from $k$-SAT is \emph{MAXSAT}
-which asks for an assignment that satisfies the most
-clauses, not necessarily all. MAXSAT is still NP and has
-many applications in fields such as bioinformatics and
-electronic markets \cite{Strickland:2005:OPS:1075300.1075321,
-Sandholm:2002:AOW:506694.506695}. STRUCTure can solve only $k$-SAT
-problem, so if a satisfying assignment for a formula does not exists
-it will return that formula is inconsistent.
-
 SAT solvers are largely divided in two large categories:
 \emph{stochastic} and \emph{complete}.  Stochastic solvers are
 able to solve some type of problems very fast, but are not able
@@ -22,66 +13,84 @@ has passed.
 On the other hand, complete solvers are guaranteed to find a
 satisfying assignment or prove that no such assignment exists.
 STRUCTure is such a solver. Complete solvers are required to find
-only a single solution so they usually make assumptions to cut the
-searching (see Pure Literal Rule, subsection \ref{ssec:pl}).
-
-Mainly, there are two types of complete solvers, both based
-on the DPLL algorithm (\ref{ssec:dpll}): \emph{conflict-driven
+only a single solution so often they make assumptions to cut the
+searching space (see Pure Literal Rule, section \ref{ssec:pl}).
+There are two common types of complete solvers, both based on
+the DPLL algorithm (\ref{ssec:dpll}): \emph{conflict-driven
 clause-learning} (CD/CL) solvers, and \emph{look-ahead} solvers.
 
-CD/CL solvers stem for the idea that conflicts, partial variable
-assignments that cannot lead to a solution, are inevitable during
+CD/CL solvers stem for the idea that conflicts (partial variable
+assignments that cannot lead to a solution) are inevitable during
 search \cite{Marques-silva99grasp:a}. The conflicts reached are
 transformed into new clauses which reduce the searching space.
-CD/CL solvers perform little reasoning during search and the most
+CD/CL solvers perform little reasoning during search and most
 of the time is spent doing Boolean constraint propagation (BCP,
-see subsection \ref{ssec:bcp}) which makes it extremely important
-to be efficient \cite{Moskewicz:2001:CEE:378239.379017}. Another
+see section \ref{ssec:bcp}) which makes it extremely important to
+have an efficient BCP \cite{Moskewicz:2001:CEE:378239.379017}. Another
 important step is restarting the search from time to time. CD/CL
 solvers have proven to be very successful on industrial applications
 of SAT where formulas are large, but have a small easy core.
 
-The other type of solvers, look-ahead, perform additional reasoning
-during search in order to minimize the number of variables
-assigned before a conflict is reached. Moreover, to decide on
-branching variable some variables are tested to see which one
-reduces the formula the most. This step is called a look ahead and,
-additionally, can learn new assignments. The core idea
-of look-ahead solvers is that searching space can be reduced by
-branching less. Look-ahead solvers perform better on hard small
-crafted and random instances.
+Look-ahead solvers perform additional reasoning during search in
+order to minimize the number of variables assigned before a conflict
+or a solution is reached. To decide on a branching variable
+some variables are tested first to see which one reduces the formula
+the most. This step is called a look ahead and, additionally,
+can learn new assignments. The core idea of look-ahead solvers is
+that searching space can be reduced by branching less. Look-ahead
+solvers perform better on hard small crafted and random instances.
 
 STRUCTure is similar to look-ahead solvers in the sense that it
 performs additional reasoning during search in order to branch less,
 but the look-ahead step was replaced by Hyper-Unit Resolution
 (\ref{ssec:hbr}) and some heuristics for branching selection.
 However, unlike other look-ahead solvers STRUCTure transforms
-conflicts into clauses and at restart adds them to the formula.
+conflicts into clauses and adds them to the formula when the search
+is restarted.
 
 The simplest solution to parallelism is to keep solver
-sequential, but exploit the parallelism of certain processor
+sequential, but to exploit the parallelism of certain processor
 instructions to perform 32/64 boolean operations in parallel
 \cite{mine:heule_parallel}.
 
 STRUCTure's approach to parallelism is based on the
 divide-and-conquer principle. Branching divides the search space in
 two and a solution in each space is searched independently. This
-approach easily fits the Constellation framework (see section
-\ref{sec:constellation}) which deals away with work
-distribution and balancing.
+approach fits the Constellation programming model (see section
+\ref{sec:constellation}).
 
-Parallel solvers performing clause learning have different mechanism
-for spreading learned clauses among threads. The approach of
-STRUCTure is to add the learned clauses at restart such that
-new searching tree will use the learned clauses. The replication
-at branching ensures that there is no need for synchronization.
-Replication allows scalability at the expense of lower performance
-for few threads.
+Parallel solvers that incorporate clause learning have different
+mechanism for spreading learned clauses among threads. The approach
+in STRUCTure is to add the learned clauses after the search is
+restarted. The synchronization is avoided by data replication when
+branching. Replication allows scalability at the expense of greater
+overhead.
 
-MiraXT \cite{mine:miraxt} is a parallel solver based on
-the divide-and-conquer paradigm. It maintains an unique
-shared database of learned clauses. Access to the database
-is synchronized.
+MiraXT \cite{mine:miraxt} is a parallel solver based on the
+divide-and-conquer paradigm. It maintains an unique shared database
+of learned clauses. Access to the database is synchronized.
 
+GradSat \cite{Chrabakh03gradsat:a} is a distributed grid SAT solver
+using the master-slave model. Learned clauses are distributed to
+slaves only if they are smaller than a predefined limit.  Slaves use
+new clauses only after they backtrack to level 1.
 
-GradSat \cite{Chrabakh03gradsat:a}
+PSatz \cite{Jurkowiak_aparallelization} is a look-ahead solver
+based on DPLL procedure that uses divide-and-conquer approach for
+parallelization. Similar to Constellation, PSatz uses work stealing
+for work balancing and distribution. Unlike STRUCTure, PSatz does
+not have clause learning.
+
+Another approach to parallelism is portfolio based SAT
+solvers such as Plingeling \cite{mine:plingeling}, ManySat
+\cite{Hamadi09manysat:a} or PPFolio \cite{mine:ppfolio} in which
+several solvers or several instances of the same solvers are run in
+parallel. The computation stops when one solver finds a solution. The
+idea is that different solvers perform better on different types
+of problems\footnote{In Section \ref{sec:comparison} STRUCTure
+is compared against two solvers that have completely different
+performance characteristics.}. While portfolio based solvers
+perform exceptionally on many problem types, with the increase
+of number of available cores they will still need to incorporate
+parallel solvers in order to scale.
+

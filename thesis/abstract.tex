@@ -1,2 +1,42 @@
 \begin{abstract}
+
+The problem of Boolean satisfiability (SAT), though NP-complete,
+has many real-life applications in planning, designing, synthesis
+and routing. Due to the widespread success of the SAT problem
+it is important to solve it very fast even on large and complex
+applications.
+
+In this thesis we introduce STRUCTure, a new parallel and distributed
+SAT solver built to take advantage of the multi-cores processors
+available in today's computers. In STRUCTure the divide-and-conquer
+paradigm is used to parallelize the search. The solver is built
+on top of Constellation, a distributed computing framework based
+on message passing. Constellation handles load balancing and work
+distribution which makes scalability easy.
+
+STRUCTure performs many reasoning and simplification procedures
+before and during the search. Branch selection heuristics
+are vital for a small searching space. STRUCTure has a unique
+built-in distributed clause learning system required to solve some
+problems. To remove the need for synchronization, clauses are learned
+while searching, but incorporated after the search is restarted.
+
+Our solver has been tested on the DAS-4 cluster at VU University
+Amsterdam. Good scalability has been observed in
+\begin{inparaenum}[a)]
+  \item a parallel environment (1 to 8 cores on one node);
+  \item a distributed environment (1 to 8 nodes using 1 core each); and
+  \item a hybrid environment (1 to 8 nodes using 8 cores each).
+\end{inparaenum}
+STRUCTure performs slightly better in a parallel environment than in
+a distributed environment.  Similar to look-ahead solvers, our solver
+performs and scales better on random instances than on industrial
+applications. Compared to awards winning solvers STRUCTure performs
+worse overall, but there is room for improvement considering that
+STRUCTure is still in its infancy.
+
+We show that a scalable SAT solver can be built based on the
+divide-and-conquer paradigm using a framework designed to parallelize
+such algorithms.
+
 \end{abstract}

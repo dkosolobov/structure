@@ -18,8 +18,8 @@
 \section{Setup}
 
 We will now evaluate STRUCTure on DAS-4 (\url{http://www.cs.vu.nl/das4/})
-cluster at VU University Amsterdam (\url{http://www.few.vu.nl})
-which is composed of 74 machines with 24GiB of memory and with
+cluster at VU University Amsterdam (\url{http://www.few.vu.nl}).
+This cluster is composed of 68 machines with 24GiB of memory and with
 dual quad core Intel E5620 processors running at 2.4GHz. The
 cluster allows evaluation of different types of parallelization:
 \begin{inparaenum}[1)]
@@ -50,20 +50,20 @@ divided into three categories:
 \end{itemize}
 
 In the following tests, instances were divided into random and
-nonrandom (application and crafted) categories. There are 380 random
+nonrandom (applications and crafted) categories. There are 380 random
 instances and 298 nonrandom instances.
 
-On the tests with a large time limit of 45 minutes all instances were
+On the tests with a large time limit of 45 minutes instances were
 measured once to conserve computational resources. On all other tests
 the time limit was 15 minutes and time measured is the average of
 three runs.  If for STRUCTure timed out on any run of an instance
-that instance is not used for the graphs.  \footnote{The extra
+that instance is not used for the graphs\footnote{The extra
 time gives the illusion that STRUCTure does better in 15 minutes on
 tests with larger time limit than on tests with smaller time limit.
 In reality, because the performance varies, instances which require
 a running time close to the upper time limit might or might not
-be included in the graphs.} The time limit in SAT Competitions is
-usually 20 minutes, but the rules of DAS-4 cluster allow only 15
+be included in the graphs.}. The time limit in SAT Competition is
+20 minutes, but the rules of DAS-4 cluster allow only 15
 minutes jobs during the daytime.  With extra 5 minutes STRUCTure
 can solve only few extra instances so the additional time is not
 required to understand performance a scalability.
@@ -104,7 +104,7 @@ much with different number of probes.
 An important part of any sat solver is the simplification
 procedures and reasoning techniques it performs. The algorithms
 implemented in STRUCTure are described in Chapter \ref{chap:sat},
-\nameref{chap:sat}, and subsection \ref{ssec:learning},
+\nameref{chap:sat}, and section \ref{ssec:learning},
 \nameref{ssec:learning}.
 
 Before continuing with the test results, we make an important
@@ -171,11 +171,11 @@ First, from all reasoning techniques, learning has the biggest
 performance impact. The gain is larger on random instances than on
 nonrandom instances, though learning was expected to benefit more
 industrial instances \cite{DBLP:series/faia/SilvaLM09}. Section
-below shows that STRUCTure does not learn many clauses which are
+below shows that STRUCTure does not learn many clauses which is
 required for bigger industrial applications.
 
 At the other extreme we notice that trying to split instances does not
-provide any real benefit and, therefore, Split activity should be disabled
+yield any real benefit and, therefore, Split activity should be disabled
 on most problem types.
 
 Before search, during the simplification phase, VE improves
@@ -186,7 +186,7 @@ the performance is not affected.  The performance of combinations
 of BCE and VE is given in appendix \ref{chap:bce-ve}.
 
 During search, both HUR and SSS are useful for nonrandom instances
-with HUR being almost as important as learning. On random
+with HUR being almost as beneficial as learning. On random
 instances STRUCTure performs better without these two techniques
 enabled. Overall it is better to disable SSS during search, but
 leave HUR enabled.
@@ -195,8 +195,6 @@ We conclude that random instances benefit only from searching and
 learning, while most reasoning algorithms improve running time
 on nonrandom instances.  Testing other combinations of reasoning
 procedures is future work.
-
-
 
 \section{Solved Instances and Depth Histogram}
 \label{sec:histograms}
@@ -294,7 +292,7 @@ The scalability is worse when the number of nodes is increased
 (see Figure \ref{fig:para-X1}) compared to when the number of
 cores per node is increased. One possible explanation is that in
 the former case search is more in breath, while adding more cores
-per node makes search going more in depth sometimes leading to a
+per node makes search going more in depth usually leading to a
 faster solution or shorter learned clauses.
 
 \begin{figure}
@@ -360,9 +358,11 @@ expected if both categories benefited equally from the extra time.
 
 
 \section{Comparison with Other SAT Solver}
+\label{sec:comparison}
 
-In this section will compare STRUCTure's best performance against
-two other solvers:
+In this section will compare STRUCTure's best performance (all
+simplification procedures that do not have a positive influence on
+performance were disabled) against two awards wining solvers:
 \begin{itemize}
   \item \emph{Cryptominisat 2.9.0} \cite{mine:cryptominisat} is a
   CD/CL SAT solver that won one gold and one silver medal medal at
@@ -370,7 +370,7 @@ two other solvers:
 
   \item \emph{March\_hi} \cite{mine:march-hi} is a look-ahead SAT
   solver which also won several medals in the past editions of SAT
-  Competition random and crafted category.
+  Competition on random and crafted categories.
 \end{itemize}
 
 All solvers are evaluated using a single node from DAS-4 cluster.
@@ -382,15 +382,13 @@ extensive reasoning before branching. Both STRUCTure and March\_hi
 perform better on random instances, while Cryptominisat performs
 better on industrial instances.  Compared to Cryptominisat, STRUCTure
 performs better on random instances and much worse on nonrandom
-instances. Compared to March\_hi, STRUCTure performs worse on random
-instances, but slightly better on nonrandom instances. Even with
-extra processors STRUCTure does not perform better on champions'
-categories.
+instances. Compared to March\_hi, STRUCTure performs worse on
+random instances, but slightly better on nonrandom instances.
 
-Overall STRUCTure using 16 threads on 8 cores does not perform
-as well as sequential champions. The sequential performance (see
-Figure \ref{fig:para-1X}) is worse, but with additional cores the
-performance gap closes fast.
+Overall, even with 16 threads on 8 cores processors STRUCTure
+does not outperform sequential champions on their categories.
+The sequential performance (see Figure \ref{fig:para-1X}) is worse,
+but with additional cores the performance gap closes fast.
 
 
 \begin{figure}
