@@ -1,6 +1,62 @@
 %%%%%%%%%%%%%%%%
 % portal.acm.com
 
+@inproceedings{Moskewicz:2001:CEE:378239.379017,
+ author = {Moskewicz, Matthew W. and Madigan, Conor F. and Zhao, Ying and Zhang, Lintao and Malik, Sharad},
+ title = {Chaff: engineering an efficient SAT solver},
+ booktitle = {Proceedings of the 38th annual Design Automation Conference},
+ series = {DAC '01},
+ year = {2001},
+ isbn = {1-58113-297-2},
+ location = {Las Vegas, Nevada, United States},
+ pages = {530--535},
+ numpages = {6},
+ url = {http://doi.acm.org/10.1145/378239.379017},
+ doi = {http://doi.acm.org/10.1145/378239.379017},
+ acmid = {379017},
+ publisher = {ACM},
+ address = {New York, NY, USA},
+ keywords = {boolean satisfiability, design verification},
+}
+
+@article{Sandholm:2002:AOW:506694.506695,
+ author = {Sandholm, Tuomas},
+ title = {Algorithm for optimal winner determination in combinatorial auctions},
+ journal = {Artif. Intell.},
+ volume = {135},
+ issue = {1-2},
+ month = {February},
+ year = {2002},
+ issn = {0004-3702},
+ pages = {1--54},
+ numpages = {54},
+ url = {http://portal.acm.org/citation.cfm?id=506694.506695},
+ doi = {10.1016/S0004-3702(01)00159-X},
+ acmid = {506695},
+ publisher = {Elsevier Science Publishers Ltd.},
+ address = {Essex, UK},
+ keywords = {auction, bidding with synergies, combinatorial auction, multi-item auction, multi-object auction, multiagent systems, winner determination},
+} 
+
+@article{Strickland:2005:OPS:1075300.1075321,
+ author = {Strickland, Dawn M. and Barnes, Earl and Sokol, Joel S.},
+ title = {Optimal Protein Structure Alignment Using Maximum Cliques},
+ journal = {Oper. Res.},
+ volume = {53},
+ issue = {3},
+ month = {May},
+ year = {2005},
+ issn = {0030-364X},
+ pages = {389--402},
+ numpages = {14},
+ url = {http://portal.acm.org/citation.cfm?id=1075300.1075321},
+ doi = {10.1287/opre.1040.0189},
+ acmid = {1075321},
+ publisher = {INFORMS},
+ address = {Institute for Operations Research and the Management Sciences (INFORMS), Linthicum, Maryland, USA},
+ keywords = {Networks/graphs: applications, heuristics, Programming: integer},
+} 
+
 @article{Robinson:1965:MLB:321250.321253,
  author = {Robinson, J. A.},
  title = {A Machine-Oriented Logic Based on the Resolution Principle},
@@ -127,7 +183,7 @@
 
 @inproceedings{Prasad:1999:WAE:309847.309857,
  author = {Prasad, Mukul R. and Chong, Philip and Keutzer, Kurt},
- title = {Why is ATPG easy?},
+ title = {Why is {ATPG} easy?},
  booktitle = {Proceedings of the 36th annual ACM/IEEE Design Automation Conference},
  series = {DAC '99},
  year = {1999},
@@ -298,6 +354,15 @@
 %%%%%%%%%%%%%%%%%%%%%%%
 % citeseerx.ist.psu.edu
 
+@INPROCEEDINGS{Selman95localsearch,
+ author = {Bart Selman and Henry Kautz and Bram Cohen},
+ title = {Local Search Strategies for Satisfiability Testing},
+ booktitle = {DIMACS SERIES IN DISCRETE MATHEMATICS AND THEORETICAL COMPUTER SCIENCE},
+ year = {1995},
+ pages = {521--532},
+ publisher = {}
+}
+
 @MISC{Audemard_ageneralized,
  author = {G. Audemard and L. Bordeaux and Y. Hamadi and S. Jabbour and L. Sais},
  title = {A Generalized Framework for Conflict Analysis},
@@ -412,6 +477,12 @@
  publisher = {}
 }
 
+@MISC{Chrabakh03gradsat:a,
+ author = {Wahid Chrabakh and Rich Wolski},
+ title = {GrADSAT: A Parallel SAT Solver for the Grid},
+ year = {2003}
+}
+
 
 %%%%%%%
 % Other
@@ -458,11 +529,16 @@
  year = {2002}
 }
 
-@MISC{mine:constellation,
+@inproceedings{mine:constellation,
  author = {Jason Maassen and Frank .J. Seinstra and Henry E. Bal},
  title = {Context Aware Many-Task Computing with Ibis/Constellation},
- school = {VU University Amsterdam},
- year = {2010},
+ booktitle = {Proceedings of the 20th ACM International Symposium on
+   High-Performance Distributed Computing (HPDC 2011), Workshop on
+   Dynamic Distributed Data-Intensive Applications, Programming
+   Abstractions, and Systems (3DAPAS)},
+ address = {San Jose, CA, USA},
+ month = {June},
+ year = {2011},
 }
 
 @article{mine:miraxt,
@@ -497,16 +573,35 @@
 }
 
 @inproceedings{mine:hjb_efficient,
-  author  = {Marijn Heule and Matti Jarvisalo and Armin Biere},
-  title = {Efficient CNF Simplification based on Binary Implication Graphs},
-  booktitle = {SAT 2011},
-  publisher = {Springer},
-  year  = {2011},
-  editor  = {K.A. Sakallah and L. Simon},
-  volume  = {6695},
-  series  = {Lecture Notes in Computer Science},
-  pages = {201-215},
-  url = {www.st.ewi.tudelft.nl/~marijn/publications/unhiding.pdf},
-  project = {SAT},
-  group = {ALG}
+ author  = {Marijn Heule and Matti Jarvisalo and Armin Biere},
+ title = {Efficient CNF Simplification based on Binary Implication Graphs},
+ booktitle = {SAT 2011},
+ publisher = {Springer},
+ year  = {2011},
+ editor  = {K.A. Sakallah and L. Simon},
+ volume  = {6695},
+ series  = {Lecture Notes in Computer Science},
+ pages = {201-215},
+ url = {www.st.ewi.tudelft.nl/~marijn/publications/unhiding.pdf},
+ project = {SAT},
+ group = {ALG}
+}
+
+@MISC{mine:heule_parallel,
+ author = {Marijn Heule and Hans van Maaren},
+ title = {Parallel sat solving using bit-level operations},
+ year = {2008},
+ journal = {Journal on Satisfiability, Boolean Modeling and Computation}
+}
+
+@MISC{mine:cryptominisat,
+ author = {Mate Soos},
+ title = {Cryptominisat 2.9.0},
+ howpublished = "\url{www.msoos.org/cryptominisat2}"
+}
+
+@MISC{mine:march-hi,
+ author = {Marijn Heule},
+ title = {March-hi},
+ howpublished = "\url{www.st.ewi.tudelft.nl/sat/download.php}"
 }

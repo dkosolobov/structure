@@ -52,8 +52,8 @@ set output root."/bce-ve.eps"
 set title "Simplification procedures (".root.")"
 plot root."/bce-ve.dat" using 0:($1/60) title "bce ve" with lines lw 2 lt 1 lc 1, \
      root."/ve-bce.dat" using 0:($1/60) title "ve bce" with lines lw 2 lt 1 lc 2, \
-     root."/disable-nobce.dat" using 0:($1/60) title "ve" with lines lw 2 lt 1 lc 3, \
-     root."/disable-nove.dat" using 0:($1/60) title "bce" with lines lw 2 lt 1 lc 4, \
+     root."/disable-nobce.dat" using 0:($1/60) title "nobce ve" with lines lw 2 lt 1 lc 3, \
+     root."/disable-nove.dat" using 0:($1/60) title "bce nove" with lines lw 2 lt 1 lc 4, \
      root."/disable-nobce-nove.dat" using 0:($1/60) title "nobce nove" with lines lw 2 lt 1 lc 6
 
 set output root."/para-1X.eps"
@@ -78,3 +78,11 @@ plot root."/para-18.dat" using 0:($1/60) title "1 node" with lines lw 2 lt 1 lc 
      root."/para-28.dat" using 0:($1/60) title "2 nodes" with lines lw 2 lt 1 lc 2, \
      root."/para-48.dat" using 0:($1/60) title "4 nodes" with lines lw 2 lt 1 lc 3, \
      root."/para-88.dat" using 0:($1/60) title "8 nodes" with lines lw 2 lt 1 lc 4
+
+set output root."/compare.eps"
+set title "STRUCTure (best options) vs Others (".root.")"
+if (index == 0) set xrange [0:375]
+if (index != 0) set xrange [0:275]
+plot root."/best.dat" using 0:($1/60) title "STRUCTure" with lines lw 2 lt 1 lc 1, \
+     root."/cryptominisat.dat" using 0:($1/60) title "Cryptominisat 2.9.0" with lines lw 2 lt 1 lc 2, \
+     root."/march_hi.dat" using 0:($1/60) title "March-hi" with lines lw 2 lt 1 lc 3
