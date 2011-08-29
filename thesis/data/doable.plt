@@ -48,6 +48,11 @@ plot root."/default.dat" using 0:($1/60) title "default" with lines lw 2 lt 1 lc
      root."/disable-nosss.dat" using 0:($1/60) title "nosss" with lines lw 2 lt 1 lc 7, \
      root."/disable-nohur.dat" using 0:($1/60) title "nohur" with lines lw 2 lt 1 lc 9
 
+set output root."/steal-order.eps"
+set title "Local Steal Order (LIFO default) (".root.")"
+plot root."/default.dat" using 0:($1/60) title "LIFO" with lines lw 2 lt 1 lc 1, \
+     root."/fifo.dat" using 0:($1/60) title "FIFO" with lines lw 2 lt 1 lc 2
+
 set output root."/bce-ve.eps"
 set title "Simplification procedures (".root.")"
 plot root."/bce-ve.dat" using 0:($1/60) title "bce ve" with lines lw 2 lt 1 lc 1, \
@@ -64,14 +69,14 @@ plot root."/para-11.dat" using 0:($1/60) title "1 core" with lines lw 2 lt 1 lc 
      root."/para-18.dat" using 0:($1/60) title "8 cores" with lines lw 2 lt 1 lc 4
 
 set output root."/para-X1.eps"
-set title "Increasing Number of Nodes with 1 Core (".root.")"
+set title "Increasing Number of Nodes with 1 Core each (".root.")"
 plot root."/para-11.dat" using 0:($1/60) title "1 node" with lines lw 2 lt 1 lc 1, \
      root."/para-21.dat" using 0:($1/60) title "2 nodes" with lines lw 2 lt 1 lc 2, \
      root."/para-41.dat" using 0:($1/60) title "4 nodes" with lines lw 2 lt 1 lc 3, \
      root."/para-81.dat" using 0:($1/60) title "8 nodes" with lines lw 2 lt 1 lc 4
 
 set output root."/para-X8.eps"
-set title "Increasing Number of Nodes with 8 Cores (".root.")"
+set title "Increasing Number of Nodes with 8 Cores each (".root.")"
 if (index == 0) set xrange [0:260]
 if (index != 0) set xrange [0:160]
 plot root."/para-18.dat" using 0:($1/60) title "1 node" with lines lw 2 lt 1 lc 1, \

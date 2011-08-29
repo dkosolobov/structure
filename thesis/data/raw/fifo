@@ -1,0 +1,678 @@
+SAT09/APPLICATIONS/diagnosis/UCG-15-5p0.cnf 0 timedout None
+SAT07/industrial/anbulagan/hard-unsat/dated-5-15-u.cnf 0 timedout None
+SAT09/APPLICATIONS/diagnosis/ACG-10-5p0.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_L200_coli.sat.cnf 0 timedout None
+SAT09/APPLICATIONS/diagnosis/UR-10-5p1.cnf 0 timedout None
+SAT09/APPLICATIONS/diagnosis/UR-10-5p0.cnf 0 timedout None
+SAT09/APPLICATIONS/diagnosis/UTI-15-10p0.cnf 0 timedout None
+SAT09/APPLICATIONS/crypto/desgen/gss-17-s100.cnf 0 timedout None
+SAT07/industrial/anbulagan/medium-unsat/total-5-13-u.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_L70_coli.sat.cnf 0 timedout None
+SAT09/APPLICATIONS/crypto/desgen/gss-15-s100.cnf 0 timedout None
+SAT09/APPLICATIONS/crypto/desgen/gss-20-s100.cnf 0 timedout None
+SAT09/APPLICATIONS/diagnosis/UTI-15-5p1.cnf 0 timedout None
+SAT09/APPLICATIONS/c32sat/post-c32s-col400-16.cnf 0 timedout None
+SAT07/industrial/anbulagan/medium-sat/partial-5-15-s.cnf 0 timedout None
+SAT09/APPLICATIONS/satComp09_BioInstances/ndhf_xits_22_SAT.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_L100_coli.sat.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_l45_lambda.cnf 0 timedout None
+SAT09/APPLICATIONS/crypto/desgen/gss-14-s100.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_L80_coli.sat.cnf 0 timedout None
+SAT09/APPLICATIONS/satComp09_BioInstances/rbcl_xits_06_UNSAT.cnf 0 timedout None
+SAT07/industrial/grieu/vmpc_30.cnf 0 timedout None
+SAT09/APPLICATIONS/bitverif/countbitswegner/countbitswegner064.cnf 0 timedout None
+SAT09/APPLICATIONS/aprove09/AProVE09-15.cnf 0 timedout None
+SAT09/APPLICATIONS/bitverif/minand/minand128.cnf 0 timedout None
+SAT09/APPLICATIONS/bitverif/minandmaxor/minandmaxor032.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_l40_lambda.cnf 0 timedout None
+SAT09/APPLICATIONS/aprove09/AProVE09-06.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_l48_lambda.cnf 0 timedout None
+SAT09/APPLICATIONS/aprove09/AProVE09-20.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_l41_lambda.cnf 0 timedout None
+SAT09/APPLICATIONS/c32sat/post-c32s-gcdm16-23.cnf 0 timedout None
+SAT09/APPLICATIONS/c32sat/post-c32s-gcdm16-22.cnf 0 timedout None
+SAT09/APPLICATIONS/bitverif/smulo/smulo016.cnf 0 timedout None
+SAT09/APPLICATIONS/satComp09_BioInstances/ndhf_xits_21_SAT.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_l42_lambda.cnf 0 timedout None
+SAT09/APPLICATIONS/bitverif/minxorminand/minxorminand064.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_l46_lambda.cnf 0 timedout None
+SAT09/APPLICATIONS/crypto/md5gen/gus-md5-09.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_L60_coli.sat.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_l44_lambda.cnf 0 timedout None
+SAT09/APPLICATIONS/c32sat/post-cbmc-aes-ele-noholes.cnf 0 timedout None
+SAT09/APPLICATIONS/bitverif/minxorminand/minxorminand032.cnf 0 timedout None
+SAT09/APPLICATIONS/diagnosis/UTI-15-10p1.cnf 0 timedout None
+SAT09/APPLICATIONS/satComp09_BioInstances/rbcl_xits_07_UNSAT.cnf 0 timedout None
+SAT09/APPLICATIONS/crypto/desgen/gss-16-s100.cnf 0 timedout None
+SAT07/industrial/anbulagan/medium-unsat/total-5-11-u.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_L150_coli.sat.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_l47_lambda.cnf 0 timedout None
+SAT09/APPLICATIONS/crypto/desgen/gss-13-s100.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/all/em_7_3_6_all.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/all/em_14_7_3_all.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/all/em_7_4_9_all.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/all/em_11_3_4_all.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/all/em_12_2_4_all.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/explicit/em_12_2_4_exp.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/explicit/em_7_3_6_exp.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/explicit/em_7_4_8_exp.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/explicit/em_7_4_9_exp.cnf 0 timedout None
+SAT07/industrial/anbulagan/medium-sat/partial-5-13-s.cnf 0 timedout None
+SAT09/APPLICATIONS/diagnosis/UCG-10-5p0.cnf 0 timedout None
+SAT09/APPLICATIONS/diagnosis/UTI-20-5p1.cnf 0 timedout None
+SAT09/APPLICATIONS/diagnosis/UR-15-5p0.cnf 0 timedout None
+SAT09/APPLICATIONS/diagnosis/UTI-10-10p0.cnf 0 timedout None
+SAT09/APPLICATIONS/satComp09_BioInstances/ndhf_xits_20_SAT.cnf 0 timedout None
+SAT09/APPLICATIONS/satComp09_BioInstances/rpoc_xits_07_UNSAT.cnf 0 timedout None
+SAT09/APPLICATIONS/satComp09_BioInstances/rbcl_xits_14_SAT.cnf 0 timedout None
+SAT09/APPLICATIONS/crypto/md5gen/gus-md5-07.cnf 0 timedout None
+SAT09/APPLICATIONS/bitverif/minor/minor064.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_l43_lambda.cnf 0 timedout None
+SAT09/APPLICATIONS/bitverif/maxand/maxand064.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_L90_coli.sat.cnf 0 timedout None
+SATRACES/schup-l2s-guid-1-k56.cnf 0 timedout None
+SAT07/industrial/palacios/uts/uts-l06-ipc5-h31-unknown.cnf 0 timedout None
+SAT07/industrial/vliw_sat_4.0/9vliw_m_9stages_iq3_C1_bug5.cnf 0 timedout None
+SATRACES/simon-s03-w08-15.cnf 0 timedout None
+SATRACES/manol-pipe-f9b.cnf 0 timedout None
+SATRACES/simon-s02b-dp11u10.cnf 0 timedout None
+SATRACES/manol-pipe-c7bidw_i.cnf 0 timedout None
+SATRACES/manol-pipe-g10id.cnf 0 timedout None
+SATRACES/schup-l2s-motst-2-k315.cnf 0 timedout None
+SATRACES/mizh-sha0-36-4.cnf 0 timedout None
+SATRACES/simon-s03-fifo8-300.cnf 0 timedout None
+SATRACES/manol-pipe-g10nid.cnf 0 timedout None
+SATRACES/mizh-sha0-35-3.cnf 0 timedout None
+SATRACES/velev-engi-uns-1.0-4nd.cnf 0 timedout None
+SAT07/industrial/palacios/uts/uts-l05-ipc5-h26-unsat.cnf 0 timedout None
+SATRACES/manol-pipe-c10nid_i.cnf 0 timedout None
+SATRACES/schup-l2s-bc56s-1-k391.cnf 0 timedout None
+SATRACES/mizh-sha0-36-2.cnf 0 timedout None
+SATRACES/mizh-md5-47-3.cnf 0 timedout None
+SATRACES/mizh-md5-48-5.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/explicit/em_11_3_4_exp.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/explicit/em_9_3_5_exp.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/explicit/em_8_4_5_exp.cnf 0 timedout None
+SATRACES/manol-pipe-c10nidw.cnf 0 timedout None
+SATRACES/mizh-md5-47-4.cnf 0 timedout None
+SAT09/CRAFTED/ramseycube/Q32inK08.cnf 0 timedout None
+SATRACES/manol-pipe-c7nidw.cnf 0 timedout None
+SAT07/industrial/palacios/uts/uts-l05-ipc5-h27-unknown.cnf 0 timedout None
+SAT07/industrial/palacios/uts/uts-l06-ipc5-h28-unknown.cnf 0 timedout None
+SATRACES/velev-pipe-o-uns-1.1-6.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/compact/em_7_4_9_cmp.cnf 0 timedout None
+SAT09/APPLICATIONS/bitverif/icbrt/icbrt1_32.cnf 0 UNSATISFIABLE 39.1863333333 1.25349328573
+SAT07/industrial/palacios/uts/uts-l06-ipc5-h35-unknown.cnf 0 timedout None
+SAT07/industrial/grieu/vmpc_24.cnf 0 SATISFIABLE 38.131 8.8584169772
+SAT09/APPLICATIONS/edgematching/compact/em_8_4_5_cmp.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/all/em_7_4_8_all.cnf 0 timedout None
+SAT09/APPLICATIONS/crypto/md5gen/gus-md5-05.cnf 0 UNSATISFIABLE 71.426 8.84632001871
+SAT07/industrial/grieu/vmpc_26.cnf 0 SATISFIABLE 53.0383333333 10.9646233559
+SAT07/industrial/grieu/vmpc_25.cnf 0 SATISFIABLE 92.473 16.0472687449
+SAT09/CRAFTED/parity-games/instance_n6_i6_pp_ci_ce.cnf 0 timedout None
+SATRACES/aloul-chnl11-13.cnf 0 timedout None
+SAT09/CRAFTED/modcircuits/mod3block_3vars_9gates_restr.cnf 0 timedout None
+SAT09/CRAFTED/parity-games/instance_n7_i7_pp_ci_ce.cnf 0 timedout None
+SAT09/CRAFTED/rbsat/random/forced/rbsat-v945c61409gyes4.cnf 0 timedout None
+SAT09/CRAFTED/rbsat/random/forced/rbsat-v760c43649gyes6.cnf 0 timedout None
+SAT07/industrial/palacios/uts/uts-l06-ipc5-h33-unknown.cnf 0 timedout None
+SAT09/CRAFTED/parity-games/instance_n6_i7_pp.cnf 0 timedout None
+SAT09/CRAFTED/rbsat/random/forced/rbsat-v945c61409gyes9.cnf 0 timedout None
+SAT09/CRAFTED/parity-games/instance_n6_i7_pp_ci_ce.cnf 0 timedout None
+SAT09/CRAFTED/modcircuits/mod4block_2vars_11gates_u2_autoenc.cnf 0 timedout None
+SAT09/CRAFTED/modcircuits/mod3_4vars_6gates.cnf 0 timedout None
+SATRACES/velev-pipe-sat-1.0-b7.cnf 0 timedout None
+SAT09/CRAFTED/ramseycube/Q32inK11.cnf 0 timedout None
+SAT09/CRAFTED/parity-games/instance_n7_i8_pp.cnf 0 timedout None
+SAT09/CRAFTED/parity-games/instance_n7_i7_pp.cnf 0 timedout None
+SATRACES/velev-pipe-sat-1.0-b10.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/fbcolors/em_7_3_6_fbc.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/fbcolors/em_7_4_9_fbc.cnf 0 timedout None
+SAT09/APPLICATIONS/edgematching/all/em_8_4_5_all.cnf 0 timedout None
+SATRACES/velev-live-uns-2.0-ebuf.cnf 0 timedout None
+SAT09/CRAFTED/ramseycube/Q3inK11.cnf 0 timedout None
+SAT09/CRAFTED/ramseycube/Q32inK09.cnf 0 UNSATISFIABLE 24.9393333333 0.355674250632
+SATRACES/manol-pipe-c6nidw_i.cnf 0 timedout None
+SATRACES/hoons-vbmc-lucky7.cnf 0 timedout None
+SAT09/CRAFTED/rbsat/random/unforced/rbsat-v760c43649g10.cnf 0 timedout None
+SAT07/industrial/palacios/medium/blocks-4-ipc5-h22-unknown.cnf 0 timedout None
+SAT09/CRAFTED/modcircuits/mod4block_2vars_10gates_u2_autoenc.cnf 0 timedout None
+SAT09/CRAFTED/rbsat/crafted/forced/rbsat-v760c43649gyes1.cnf 0 timedout None
+SAT09/CRAFTED/ramseycube/Q3inK09.cnf 0 SATISFIABLE 5.28833333333 0.389944596559
+SAT07/industrial/vliw_sat_4.0/9vliw_m_9stages_iq3_C1_bug8.cnf 0 timedout None
+SAT07/industrial/jarvisalo/eq.atree.braun.8.unsat.cnf 0 UNSATISFIABLE 8.77133333333 0.609862316362
+SAT09/CRAFTED/ramseycube/Q3inK12.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_2_L324_coli.cnf 0 UNSATISFIABLE 106.829 0.784036476929
+SAT07/industrial/jarvisalo/eq.atree.braun.9.unsat.cnf 0 UNSATISFIABLE 68.0816666667 12.3067573778
+SAT07/crafted/Difficult/contest-02-03-04/contest02-Mat26.sat05-457.reshuffled-07.cnf 0 timedout None
+SAT09/APPLICATIONS/bitverif/countbitsrotate/countbitsrotate016.cnf 0 UNSATISFIABLE 129.586 21.1618039405
+SAT07/crafted/Difficult/contest-02-03-04/contest04-connm-ue-csp-sat-n600-d0.02-s1676244754.sat05-535.reshuffled-07.cnf 0 timedout None
+SAT07/industrial/grieu/vmpc_28.cnf 0 SATISFIABLE 204.019666667 48.6818867789
+SAT09/CRAFTED/rbsat/random/unforced/rbsat-v760c43649g4.cnf 0 timedout None
+SATRACES/goldb-heqc-alu4mul.cnf 0 timedout None
+SAT09/CRAFTED/parity-games/instance_n5_i6_pp.cnf 0 timedout None
+SAT07/crafted/Difficult/contest-02-03-04/contest04-connm-ue-csp-sat-n800-d0.04-s362703357.sat05-548.reshuffled-07.cnf 0 timedout None
+SATRACES/manol-pipe-g7nidw.cnf 0 timedout None
+SAT09/CRAFTED/parity-games/instance_n6_i6_pp.cnf 0 timedout None
+SAT09/APPLICATIONS/bitverif/countbitssrl/countbitssrl016.cnf 0 UNSATISFIABLE 232.533333333 15.8631647788
+SAT09/CRAFTED/modcircuits/mod5block_1var_7gates.cnf 0 timedout None
+SAT09/CRAFTED/sgen/unsat/sgen1-unsat-85-100.cnf 0 timedout None
+SAT09/CRAFTED/sgen/sat/sgen1-sat-180-100.cnf 0 timedout None
+SAT09/CRAFTED/rbsat/random/forced/rbsat-v760c43649gyes4.cnf 0 timedout None
+SAT09/CRAFTED/sgen/sat/sgen1-sat-220-100.cnf 0 timedout None
+SAT07/crafted/Difficult/contest-02-03-04/contest04-connm-ue-csp-sat-n600-d0.02-s1676244754.sat05-535.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/jarvisalo/mod2-rand3bip-sat-280-1.sat05-2263.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/jarvisalo/mod2-rand3bip-sat-280-3.sat05-2265.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/jarvisalo/mod2-rand3bip-sat-270-1.sat05-2248.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/QG/QG6-dead-dnd002.sat05-2713.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/QG/QG6-gensys-brn007.sat05-2684.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/QG/QG6-gensys-ukn003.sat05-2726.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/jarvisalo/mod2-rand3bip-sat-270-2.sat05-2249.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/sabharwal/gt-ordering-unsat-gt-060.sat05-1312.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Hard/contest05/phnf/phnf-size10-exclusive-gigamax.used-as.sat04-984.sat05-4194.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/QG/QG6-gensys-icl008.sat05-2720.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/sabharwal/grid-pebbling-sat-grid-pbl-0300.sat05-1341.sat05-1341.reshuffled-07.cnf 0 timedout None
+SAT09/CRAFTED/sgi/sgi-difficult7.cnf 0 SATISFIABLE 8.83433333333 3.51144019073
+SAT09/CRAFTED/rbsat/random/forced/rbsat-v760c43649gyes1.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/sabharwal/gt-ordering-sat-gt-040.sat05-1297.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/others/linvrinv5.sat05-564.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/others/sgp_6-6-10.sat05-2670.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Hard/contest05/others/mod2c-rand3bip-sat-220-2.sat05-2489.reshuffled-07.cnf 0 timedout None
+SAT09/APPLICATIONS/crypto/md5gen/gus-md5-04.cnf 0 UNSATISFIABLE 26.4006666667 0.456587302625
+SAT07/crafted/Hard/contest05/QG/QG7-dead-dnd005.sat05-3111.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest-02-03-04/contest04-connm-ue-csp-sat-n800-d0.04-s362703357.sat05-548.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/jarvisalo/mod2-rand3bip-sat-210-2.sat05-2159.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/jarvisalo/mod2-rand3bip-sat-230-2.sat05-2189.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/jarvisalo/mod2-rand3bip-sat-280-2.sat05-2264.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/jarvisalo/mod2-3cage-unsat-9-12.sat05-2587.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Hard/contest05/others/mod2c-rand3bip-sat-220-1.sat05-2488.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/jarvisalo/mod2-rand3bip-sat-220-1.sat05-2173.reshuffled-07.cnf 0 timedout None
+SATRACES/manol-pipe-c10nidw_s.cnf 0 timedout None
+SAT09/CRAFTED/rbsat/random/unforced/rbsat-v760c43649g1.cnf 0 timedout None
+SAT07/crafted/Hard/contest03/others/999999000001nw.sat05-447.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/QG/QG6-gensys-icl009.sat05-2721.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/sabharwal/gt-ordering-unsat-gt-045.sat05-1310.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/jarvisalo/mod2c-rand3bip-unsat-120-3.sat05-2340.reshuffled-07.cnf 0 timedout None
+SAT09/APPLICATIONS/crypto/md5gen/gus-md5-06.cnf 0 UNSATISFIABLE 222.163333333 3.22911496461
+SAT07/crafted/Medium/contest05/pebbling/unsat-pbl-00080.sat05-1325.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Hard/contest05/QG/QG7a-gensys-icl004.sat05-3825.reshuffled-07.cnf 0 timedout None
+SAT07/industrial/jarvisalo/eq.atree.braun.10.unsat.cnf 0 UNSATISFIABLE 182.584 15.5288797712
+SAT09/CRAFTED/sgen/unsat/sgen1-unsat-73-100.cnf 0 UNSATISFIABLE 133.021333333 26.1941673281
+SAT09/CRAFTED/ramseycube/Q32inK10.cnf 0 UNSATISFIABLE 769.427333333 24.0739558391
+SAT07/crafted/Medium/contest05/sabharwal/counting-clqcolor-unsat-set-b-clqcolor-08-06-07.sat05-1257.reshuffled-07.cnf 0 timedout None
+SATRACES/manol-pipe-c6bidw_i.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/others/QG-gensys-icl003.sat05-2715.reshuffled-07.cnf 0 timedout None
+SAT09/CRAFTED/sgen/sat/sgen1-sat-160-100.cnf 0 SATISFIABLE 172.147333333 132.492462257
+SAT07/crafted/Difficult/contest05/jarvisalo/mod2c-rand3bip-sat-210-3.sat05-2475.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Hard/contest04/others/equilarge_l4.sat05-521.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/pebbling/unsat-pbl-00090.sat05-1326.reshuffled-07.cnf 0 timedout None
+SAT09/CRAFTED/rbsat/random/forced/rbsat-v760c43649gyes10.cnf 0 timedout None
+SAT09/CRAFTED/parity-games/instance_n5_i6_pp_ci_ce.cnf 0 UNSATISFIABLE 48.2006666667 2.69835071809
+SAT07/crafted/spence/medium/s89-100.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/QG/QG6-gensys-icl004.sat05-2716.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest-02-03-04/contest04-lksat-n1100-m7545-k4-l4-s310659001.sat05-524.reshuffled-07.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/520/unif-k3-r4.25-v520-c2210-S1977519792-030.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/sabharwal/counting-easier-php-012-010.sat05-1172.reshuffled-07.cnf 0 UNSATISFIABLE 125.93 18.6423192301
+SAT07/crafted/Medium/contest05/jarvisalo/mod2c-rand3bip-sat-190-3.sat05-2445.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/sabharwal/grid-pebbling-unsat-grid-pbl-0300.sat05-1350.sat05-1350.reshuffled-07.cnf 0 timedout None
+SAT09/CRAFTED/rbsat/random/unforced/rbsat-v945c61409g10.cnf 0 timedout None
+SAT07/crafted/spence/medium/s93-100.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/520/unif-k3-r4.25-v520-c2210-S1536609007-088.cnf 0 timedout None
+SAT09/CRAFTED/rbsat/random/unforced/rbsat-v760c43649g8.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/560/unif-k3-r4.25-v560-c2380-S1949086545-083.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/560/unif-k3-r4.25-v560-c2380-S786890012-057.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/520/unif-k3-r4.25-v520-c2210-S2087271472-092.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/560/unif-k3-r4.25-v560-c2380-S1876865608-086.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/520/unif-k3-r4.25-v520-c2210-S621134782-041.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/560/unif-k3-r4.25-v560-c2380-S565763763-051.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/others/QG7a-gensys-brn004.sat05-3669.reshuffled-07.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/380/unif-k3-r4.25-v380-c1615-S1912687159-077.cnf 0 SATISFIABLE 94.972 75.8698937698
+SATRACES/mizh-sha0-36-3.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/others/QG7-gensys-icl001.sat05-2926.reshuffled-07.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/520/unif-k3-r4.25-v520-c2210-S146188995-071.cnf 0 timedout None
+SAT09/CRAFTED/sgen/sat/sgen1-sat-200-100.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/QG/QG7-gensys-icl006.sat05-3132.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Hard/contest02/pyhala-braun-unsat-40-4-02.sat05-459.reshuffled-07.cnf 0 UNSATISFIABLE 645.147 17.1812090256
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/560/unif-k3-r4.25-v560-c2380-S45592023-054.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/others/QG8-gensys-ukn005.sat05-3584.reshuffled-07.cnf 0 UNSATISFIABLE 101.159666667 4.89749285252
+SAT07/crafted/Medium/contest05/jarvisalo/mod2-rand3bip-sat-250-3.sat05-2220.reshuffled-07.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/others/pmg-11-UNSAT.sat05-3939.reshuffled-07.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/380/unif-k3-r4.25-v380-c1615-S326477539-068.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/400/unif-k3-r4.25-v400-c1700-S1326039470-063.cnf 0 SATISFIABLE 110.784 63.8922957398
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/560/unif-k3-r4.25-v560-c2380-S809967194-078.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/400/unif-k3-r4.25-v400-c1700-S714125262-017.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/560/unif-k3-r4.25-v560-c2380-S889538696-070.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/540/unif-k3-r4.25-v540-c2295-S1137823545-077.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/400/unif-k3-r4.25-v400-c1700-S2032726331-082.cnf 0 timedout None
+SAT09/APPLICATIONS/aprove09/AProVE09-08.cnf 0 SATISFIABLE 25.291 8.75656263947
+SAT07/crafted/Medium/contest05/pebbling/unsat-grid-pbl-0080.sat05-1344.reshuffled-07.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/540/unif-k3-r4.25-v540-c2295-S817309453-059.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/380/unif-k3-r4.25-v380-c1615-S1804335510-002.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/others/QG7a-gensys-ukn001.sat05-3841.reshuffled-07.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/540/unif-k3-r4.25-v540-c2295-S2142680239-019.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/540/unif-k3-r4.25-v540-c2295-S449511205-064.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/540/unif-k3-r4.25-v540-c2295-S433356712-017.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/540/unif-k3-r4.25-v540-c2295-S84716411-095.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/520/unif-k3-r4.25-v520-c2210-S227954525-082.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/560/unif-k3-r4.25-v560-c2380-S1879859331-044.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/440/unif-k3-r4.25-v440-c1870-S1666821205-020.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/520/unif-k3-r4.25-v520-c2210-S247943532-069.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/400/unif-k3-r4.25-v400-c1700-S1531283922-009.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/440/unif-k3-r4.25-v440-c1870-S1263695887-042.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/480/unif-k3-r4.25-v480-c2040-S1338462531-082.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/sabharwal/sat-strips-gripper-12t23.sat05-1144.reshuffled-07.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/400/unif-k3-r4.25-v400-c1700-S172053238-003.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/440/unif-k3-r4.25-v440-c1870-S787972994-025.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/380/unif-k3-r4.25-v380-c1615-S1674394075-027.cnf 0 SATISFIABLE 222.792 118.437315401
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/480/unif-k3-r4.25-v480-c2040-S554804223-012.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/440/unif-k3-r4.25-v440-c1870-S1339293988-069.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/480/unif-k3-r4.25-v480-c2040-S1229813320-044.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/440/unif-k3-r4.25-v440-c1870-S1112524719-021.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/others/QG-gensys-brn008.sat05-2685.reshuffled-07.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/480/unif-k3-r4.25-v480-c2040-S2069223517-023.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/380/unif-k3-r4.25-v380-c1615-S1985172968-100.cnf 0 SATISFIABLE 330.612333333 219.418000393
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/520/unif-k3-r4.25-v520-c2210-S1800466054-025.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/520/unif-k3-r4.25-v520-c2210-S1161147107-031.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/480/unif-k3-r4.25-v480-c2040-S1730125812-056.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/others/QG7a-gensys-ukn005.sat05-3845.reshuffled-07.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/480/unif-k3-r4.25-v480-c2040-S1002348653-090.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/440/unif-k3-r4.25-v440-c1870-S1864638535-048.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/540/unif-k3-r4.25-v540-c2295-S900737394-048.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/440/unif-k3-r4.25-v440-c1870-S780904324-093.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/440/unif-k3-r4.25-v440-c1870-S110290755-003.cnf 0 timedout None
+SAT07/crafted/Difficult/contest05/QG/QG6-gensys-icl001.sat05-2695.reshuffled-07.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/540/unif-k3-r4.25-v540-c2295-S23858409-056.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/500/unif-k3-r4.25-v500-c2125-S2056912842-027.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1459690542-033.cnf 0 SATISFIABLE 43.6156666667 20.3840524411
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/520/unif-k3-r4.25-v520-c2210-S956671877-054.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/540/unif-k3-r4.25-v540-c2295-S1332067449-041.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/500/unif-k3-r4.25-v500-c2125-S602463346-055.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/440/unif-k3-r4.25-v440-c1870-S208461254-049.cnf 0 timedout None
+SAT07/crafted/Medium/contest05/jarvisalo/mod2-3cage-unsat-9-14.sat05-2589.reshuffled-07.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/400/unif-k3-r4.25-v400-c1700-S419666888-007.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/460/unif-k3-r4.25-v460-c1955-S1367181683-025.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/460/unif-k3-r4.25-v460-c1955-S1733990810-090.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/460/unif-k3-r4.25-v460-c1955-S2035161427-020.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/500/unif-k3-r4.25-v500-c2125-S1045096471-025.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/440/unif-k3-r4.25-v440-c1870-S725789261-031.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/460/unif-k3-r4.25-v460-c1955-S1555503917-029.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/500/unif-k3-r4.25-v500-c2125-S353643296-086.cnf 0 timedout None
+SAT09/CRAFTED/ramseycube/Q3inK10.cnf 0 SATISFIABLE 260.403 70.1841957668
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/420/unif-k3-r4.25-v420-c1785-S1880984131-087.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/380/unif-k3-r4.25-v380-c1615-S1841979702-078.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/500/unif-k3-r4.25-v500-c2125-S2025169165-076.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/480/unif-k3-r4.25-v480-c2040-S449556655-088.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/500/unif-k3-r4.25-v500-c2125-S1258122549-031.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/400/unif-k3-r4.25-v400-c1700-S418266958-049.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/560/unif-k3-r4.25-v560-c2380-S844931093-069.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/460/unif-k3-r4.25-v460-c1955-S617358728-082.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/480/unif-k3-r4.25-v480-c2040-S1528563858-100.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/460/unif-k3-r4.25-v460-c1955-S1614425450-034.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/420/unif-k3-r4.25-v420-c1785-S311671104-045.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/500/unif-k3-r4.25-v500-c2125-S349436298-004.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1448866403-060.cnf 0 SATISFIABLE 400.043666667 111.266872628
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/500/unif-k3-r4.25-v500-c2125-S658989873-070.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/420/unif-k3-r4.25-v420-c1785-S1778559297-006.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/500/unif-k3-r4.25-v500-c2125-S95953046-044.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/400/unif-k3-r4.25-v400-c1700-S142096783-019.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/560/unif-k3-r4.25-v560-c2380-S1429776379-099.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/420/unif-k3-r4.25-v420-c1785-S1624574519-076.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/380/unif-k3-r4.25-v380-c1615-S1516934767-080.cnf 0 SATISFIABLE 151.991333333 93.2203699005
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/420/unif-k3-r4.25-v420-c1785-S1139247531-051.cnf 0 timedout None
+SAT07/crafted/spence/medium/s77-100.cnf 0 UNSATISFIABLE 286.597666667 19.4410823983
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/110/unif-k5-r21.3-v110-c2343-S398733532-072.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/110/unif-k5-r21.3-v110-c2343-S1850025790-078.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/460/unif-k3-r4.25-v460-c1955-S321371087-018.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/400/unif-k3-r4.25-v400-c1700-S981523907-072.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/110/unif-k5-r21.3-v110-c2343-S986324446-009.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/540/unif-k3-r4.25-v540-c2295-S1916548023-003.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/380/unif-k3-r4.25-v380-c1615-S486002104-037.cnf 0 SATISFIABLE 663.513666667 169.60802041
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/110/unif-k5-r21.3-v110-c2343-S1767813611-042.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/90/unif-k5-r21.3-v90-c1917-S744068878-072.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/480/unif-k3-r4.25-v480-c2040-S1924575376-025.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/90/unif-k5-r21.3-v90-c1917-S1159550149-077.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/110/unif-k5-r21.3-v110-c2343-S1481888618-011.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1826927554-087.cnf 0 SATISFIABLE 73.8526666667 40.6685393863
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/420/unif-k3-r4.25-v420-c1785-S1940784272-089.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/420/unif-k3-r4.25-v420-c1785-S180439591-093.cnf 0 timedout None
+SAT07/crafted/spence/medium/s81-100.cnf 0 UNSATISFIABLE 774.102333333 12.0498660932
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S368632549-051.cnf 0 SATISFIABLE 262.294333333 187.0603741
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/460/unif-k3-r4.25-v460-c1955-S2106599808-035.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/90/unif-k5-r21.3-v90-c1917-S47926000-049.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/480/unif-k3-r4.25-v480-c2040-S957997002-040.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/120/unif-k5-r21.3-v120-c2556-S179172230-011.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1684547485-073.cnf 0 SATISFIABLE 89.3223333333 31.8249516742
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/120/unif-k5-r21.3-v120-c2556-S644655157-049.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/110/unif-k5-r21.3-v110-c2343-S884941173-092.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/100/unif-k5-r21.3-v100-c2130-S402241321-038.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/120/unif-k5-r21.3-v120-c2556-S1163324878-032.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/90/unif-k5-r21.3-v90-c1917-S824721511-001.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/420/unif-k3-r4.25-v420-c1785-S1014608490-038.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/100/unif-k5-r21.3-v100-c2130-S984347600-003.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/120/unif-k5-r21.3-v120-c2556-S1503318847-091.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/420/unif-k3-r4.25-v420-c1785-S1362286908-061.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/400/unif-k3-r4.25-v400-c1700-S1767425240-073.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/100/unif-k5-r21.3-v100-c2130-S1920888253-090.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/100/unif-k5-r21.3-v100-c2130-S971118900-053.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/110/unif-k5-r21.3-v110-c2343-S1376127278-008.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/420/unif-k3-r4.25-v420-c1785-S1460100153-095.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/120/unif-k5-r21.3-v120-c2556-S1153031014-012.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/110/unif-k5-r21.3-v110-c2343-S1492329924-074.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/65/unif-k7-r89-v65-c5785-S1223878722-065.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/65/unif-k7-r89-v65-c5785-S445910413-047.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/110/unif-k5-r21.3-v110-c2343-S638042053-051.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/65/unif-k7-r89-v65-c5785-S1645769281-097.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/65/unif-k7-r89-v65-c5785-S1146593655-045.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/100/unif-k5-r21.3-v100-c2130-S748216286-061.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/120/unif-k5-r21.3-v120-c2556-S1017443264-065.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1711406314-093.cnf 0 SATISFIABLE 180.588 59.2745893591
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/60/unif-k7-r89-v60-c5340-S326668183-079.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/120/unif-k5-r21.3-v120-c2556-S1879656894-046.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/120/unif-k5-r21.3-v120-c2556-S1422278005-004.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/500/unif-k3-r4.25-v500-c2125-S1494961823-060.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/460/unif-k3-r4.25-v460-c1955-S2067258640-036.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/60/unif-k7-r89-v60-c5340-S178043354-076.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/65/unif-k7-r89-v65-c5785-S1366769180-095.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/60/unif-k7-r89-v60-c5340-S2037556208-016.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/120/unif-k5-r21.3-v120-c2556-S357555833-073.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/60/unif-k7-r89-v60-c5340-S1514821049-021.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/120/unif-k5-r21.3-v120-c2556-S1963731659-060.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/70/unif-k7-r89-v70-c6230-S1484713995-092.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/65/unif-k7-r89-v65-c5785-S432895007-058.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/65/unif-k7-r89-v65-c5785-S709270457-007.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/60/unif-k7-r89-v60-c5340-S1639151107-094.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/70/unif-k7-r89-v70-c6230-S512486692-050.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/60/unif-k7-r89-v60-c5340-S1206040031-030.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/90/unif-k5-r21.3-v90-c1917-S852794659-023.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/380/unif-k3-r4.25-v380-c1615-S1036996799-006.cnf 0 SATISFIABLE 258.527 113.125893233
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/100/unif-k5-r21.3-v100-c2130-S1772254584-042.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/75/unif-k7-r89-v75-c6675-S819692891-023.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/70/unif-k7-r89-v70-c6230-S834811574-084.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/60/unif-k7-r89-v60-c5340-S746386799-050.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/460/unif-k3-r4.25-v460-c1955-S1546885609-031.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S1293537826-039.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/100/unif-k5-r21.3-v100-c2130-S1707873242-085.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/75/unif-k7-r89-v75-c6675-S1402156840-093.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/65/unif-k7-r89-v65-c5785-S400088537-049.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/75/unif-k7-r89-v75-c6675-S803029538-050.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/70/unif-k7-r89-v70-c6230-S603077945-019.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S722433227-030.cnf 0 SATISFIABLE 525.610333333 375.608462125
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/75/unif-k7-r89-v75-c6675-S839983432-073.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/520/unif-k3-r4.25-v520-c2210-S486178562-011.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/90/unif-k5-r21.3-v90-c1917-S1040456712-073.cnf 0 SATISFIABLE 442.841 365.893292871
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/70/unif-k7-r89-v70-c6230-S1794178048-059.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/520/unif-k3-r4.25-v520-c2210-S1540921235-015.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/520/unif-k3-r4.25-v520-c2210-S1089910525-056.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/70/unif-k7-r89-v70-c6230-S1718226278-096.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/70/unif-k7-r89-v70-c6230-S1354285755-030.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/65/unif-k7-r89-v65-c5785-S2060380282-019.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/100/unif-k5-r21.3-v100-c2130-S393518083-009.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/520/unif-k3-r4.25-v520-c2210-S1048138627-064.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/75/unif-k7-r89-v75-c6675-S1988754311-026.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/520/unif-k3-r4.25-v520-c2210-S1897376969-026.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/110/unif-k5-r21.3-v110-c2343-S1771223975-021.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/560/unif-k3-r4.25-v560-c2380-S1750991629-037.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/560/unif-k3-r4.25-v560-c2380-S28271012-055.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/560/unif-k3-r4.25-v560-c2380-S2061874746-039.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/75/unif-k7-r89-v75-c6675-S51205200-028.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/60/unif-k7-r89-v60-c5340-S1096716652-027.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/520/unif-k3-r4.25-v520-c2210-S1331813943-033.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/70/unif-k7-r89-v70-c6230-S284173264-081.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/560/unif-k3-r4.25-v560-c2380-S179568577-034.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/100/unif-k5-r21.3-v100-c2130-S282405510-004.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/70/unif-k7-r89-v70-c6230-S754967851-033.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/380/unif-k3-r4.25-v380-c1615-S999404609-010.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/60/unif-k7-r89-v60-c5340-S1858385213-060.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/100/unif-k5-r21.3-v100-c2130-S308012126-046.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/380/unif-k3-r4.25-v380-c1615-S260616787-042.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/380/unif-k3-r4.25-v380-c1615-S928666993-098.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S144043535-002.cnf 0 SATISFIABLE 181.991666667 72.2286114383
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/60/unif-k7-r89-v60-c5340-S1828800850-025.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/520/unif-k3-r4.25-v520-c2210-S1602291491-023.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/560/unif-k3-r4.25-v560-c2380-S517464300-073.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/560/unif-k3-r4.25-v560-c2380-S374947955-075.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/400/unif-k3-r4.25-v400-c1700-S816613570-013.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/400/unif-k3-r4.25-v400-c1700-S387386125-069.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/75/unif-k7-r89-v75-c6675-S803323266-025.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/400/unif-k3-r4.25-v400-c1700-S1553390498-064.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/520/unif-k3-r4.25-v520-c2210-S149116968-021.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/75/unif-k7-r89-v75-c6675-S342542912-045.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/520/unif-k3-r4.25-v520-c2210-S159251645-087.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/65/unif-k7-r89-v65-c5785-S1895787950-064.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/560/unif-k3-r4.25-v560-c2380-S688769362-007.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/540/unif-k3-r4.25-v540-c2295-S2037268960-098.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/400/unif-k3-r4.25-v400-c1700-S131938947-014.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/400/unif-k3-r4.25-v400-c1700-S2104277852-078.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/400/unif-k3-r4.25-v400-c1700-S1375576340-029.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/400/unif-k3-r4.25-v400-c1700-S1039370030-037.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/380/unif-k3-r4.25-v380-c1615-S1580204273-012.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/380/unif-k3-r4.25-v380-c1615-S502087726-095.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/380/unif-k3-r4.25-v380-c1615-S1694258328-099.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/540/unif-k3-r4.25-v540-c2295-S638051453-097.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/540/unif-k3-r4.25-v540-c2295-S853819067-006.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/380/unif-k3-r4.25-v380-c1615-S1983754128-073.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/560/unif-k3-r4.25-v560-c2380-S975048338-088.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/440/unif-k3-r4.25-v440-c1870-S1035441377-058.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/540/unif-k3-r4.25-v540-c2295-S1457384322-029.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/440/unif-k3-r4.25-v440-c1870-S393462637-097.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/380/unif-k3-r4.25-v380-c1615-S1041106011-094.cnf 0 SATISFIABLE 656.095333333 134.274301326
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/440/unif-k3-r4.25-v440-c1870-S492033085-065.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/480/unif-k3-r4.25-v480-c2040-S583379276-046.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/540/unif-k3-r4.25-v540-c2295-S1250067652-054.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/560/unif-k3-r4.25-v560-c2380-S1154116462-097.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/75/unif-k7-r89-v75-c6675-S1640054673-078.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/440/unif-k3-r4.25-v440-c1870-S1563412474-059.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/440/unif-k3-r4.25-v440-c1870-S1350958473-082.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/480/unif-k3-r4.25-v480-c2040-S915600698-006.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/380/unif-k3-r4.25-v380-c1615-S1807135406-059.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/440/unif-k3-r4.25-v440-c1870-S1353993612-015.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/400/unif-k3-r4.25-v400-c1700-S104085281-076.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/560/unif-k3-r4.25-v560-c2380-S820736259-091.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/440/unif-k3-r4.25-v440-c1870-S332478069-041.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/480/unif-k3-r4.25-v480-c2040-S1175850950-017.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/540/unif-k3-r4.25-v540-c2295-S1606932551-072.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/440/unif-k3-r4.25-v440-c1870-S287522321-032.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/90/unif-k5-r21.3-v90-c1917-S1931398869-036.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/400/unif-k3-r4.25-v400-c1700-S125259973-020.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/440/unif-k3-r4.25-v440-c1870-S444219303-098.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/90/unif-k5-r21.3-v90-c1917-S2007547542-039.cnf 0 SATISFIABLE 457.598666667 24.6181641409
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/380/unif-k3-r4.25-v380-c1615-S2043187304-036.cnf 0 UNSATISFIABLE 529.521666667 26.9631678933
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/540/unif-k3-r4.25-v540-c2295-S1598052044-078.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/480/unif-k3-r4.25-v480-c2040-S457856978-061.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/SATISFIABLE/360/unif-k3-r4.25-v360-c1530-S2032263657-035.cnf 0 SATISFIABLE 29.5453333333 4.2913548709
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/440/unif-k3-r4.25-v440-c1870-S1775841359-070.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/500/unif-k3-r4.25-v500-c2125-S1213077873-067.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/480/unif-k3-r4.25-v480-c2040-S1524836866-036.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/500/unif-k3-r4.25-v500-c2125-S799705985-049.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/500/unif-k3-r4.25-v500-c2125-S1826325374-100.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/90/unif-k5-r21.3-v90-c1917-S2139292994-055.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/500/unif-k3-r4.25-v500-c2125-S1803805764-016.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/460/unif-k3-r4.25-v460-c1955-S1746008863-010.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/480/unif-k3-r4.25-v480-c2040-S285229208-001.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/460/unif-k3-r4.25-v460-c1955-S729526068-046.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/480/unif-k3-r4.25-v480-c2040-S926047226-039.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/520/unif-k3-r4.25-v520-c2210-S697681291-080.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/420/unif-k3-r4.25-v420-c1785-S531507935-068.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/540/unif-k3-r4.25-v540-c2295-S1077410718-040.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/460/unif-k3-r4.25-v460-c1955-S1249441590-066.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/540/unif-k3-r4.25-v540-c2295-S1404929091-050.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/75/unif-k7-r89-v75-c6675-S72273909-010.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/500/unif-k3-r4.25-v500-c2125-S1339364096-048.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/420/unif-k3-r4.25-v420-c1785-S2096960818-049.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/480/unif-k3-r4.25-v480-c2040-S1628763900-004.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/460/unif-k3-r4.25-v460-c1955-S1892788676-021.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/420/unif-k3-r4.25-v420-c1785-S1136141672-041.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/420/unif-k3-r4.25-v420-c1785-S1528023000-027.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/110/unif-k5-r21.3-v110-c2343-S2119656249-086.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/420/unif-k3-r4.25-v420-c1785-S572248576-042.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/110/unif-k5-r21.3-v110-c2343-S102181364-052.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/SATISFIABLE/90/unif-k5-r21.3-v90-c1917-S1568932519-011.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/420/unif-k3-r4.25-v420-c1785-S565564805-059.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/110/unif-k5-r21.3-v110-c2343-S1971658345-089.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/110/unif-k5-r21.3-v110-c2343-S632066493-060.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/420/unif-k3-r4.25-v420-c1785-S1394036608-091.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/380/unif-k3-r4.25-v380-c1615-S1700363952-014.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/SATISFIABLE/70/unif-k7-r89-v70-c6230-S1723021362-073.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/110/unif-k5-r21.3-v110-c2343-S257485978-084.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/110/unif-k5-r21.3-v110-c2343-S1736056721-032.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/460/unif-k3-r4.25-v460-c1955-S356738975-073.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/460/unif-k3-r4.25-v460-c1955-S1377066099-004.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/90/unif-k5-r21.3-v90-c1917-S785082413-028.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/90/unif-k5-r21.3-v90-c1917-S712437980-063.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/480/unif-k3-r4.25-v480-c2040-S1007745655-097.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/110/unif-k5-r21.3-v110-c2343-S1251522734-073.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/400/unif-k3-r4.25-v400-c1700-S418505498-026.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/500/unif-k3-r4.25-v500-c2125-S645163129-012.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/120/unif-k5-r21.3-v120-c2556-S2083778933-085.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/500/unif-k3-r4.25-v500-c2125-S1731702106-010.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/120/unif-k5-r21.3-v120-c2556-S80067159-015.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/540/unif-k3-r4.25-v540-c2295-S1564075794-028.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/90/unif-k5-r21.3-v90-c1917-S1916972979-060.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/120/unif-k5-r21.3-v120-c2556-S267191961-079.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/500/unif-k3-r4.25-v500-c2125-S900957093-043.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/460/unif-k3-r4.25-v460-c1955-S1810287895-075.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/110/unif-k5-r21.3-v110-c2343-S745855171-090.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/90/unif-k5-r21.3-v90-c1917-S1410489780-030.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/100/unif-k5-r21.3-v100-c2130-S207294319-099.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/460/unif-k3-r4.25-v460-c1955-S190880026-038.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/90/unif-k5-r21.3-v90-c1917-S1331382449-070.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/100/unif-k5-r21.3-v100-c2130-S1221988902-087.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/420/unif-k3-r4.25-v420-c1785-S1854680784-082.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/120/unif-k5-r21.3-v120-c2556-S1723900160-044.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/500/unif-k3-r4.25-v500-c2125-S287307030-088.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/100/unif-k5-r21.3-v100-c2130-S367498571-066.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S253750560-086.cnf 0 UNSATISFIABLE 485.978 13.3022758601
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/90/unif-k5-r21.3-v90-c1917-S1305875336-097.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/120/unif-k5-r21.3-v120-c2556-S1086008090-058.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/90/unif-k5-r21.3-v90-c1917-S559732886-091.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/110/unif-k5-r21.3-v110-c2343-S914952752-019.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S680239195-053.cnf 0 UNSATISFIABLE 418.274666667 6.06697711315
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S2025517367-061.cnf 0 UNSATISFIABLE 879.155333333 19.5603834319
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/420/unif-k3-r4.25-v420-c1785-S121765931-081.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/90/unif-k5-r21.3-v90-c1917-S291433416-025.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/120/unif-k5-r21.3-v120-c2556-S515665970-021.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/420/unif-k3-r4.25-v420-c1785-S596342014-039.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/100/unif-k5-r21.3-v100-c2130-S1629955917-055.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/90/unif-k5-r21.3-v90-c1917-S845966893-046.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/500/unif-k3-r4.25-v500-c2125-S1735544520-075.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/120/unif-k5-r21.3-v120-c2556-S578339356-013.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/65/unif-k7-r89-v65-c5785-S1551099861-042.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/60/unif-k7-r89-v60-c5340-S108799362-035.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/65/unif-k7-r89-v65-c5785-S1610649331-094.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/100/unif-k5-r21.3-v100-c2130-S1211704640-033.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/100/unif-k5-r21.3-v100-c2130-S1420449214-092.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/65/unif-k7-r89-v65-c5785-S1796956909-029.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/60/unif-k7-r89-v60-c5340-S2099753268-053.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/60/unif-k7-r89-v60-c5340-S1318210982-002.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/65/unif-k7-r89-v65-c5785-S857870897-089.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/120/unif-k5-r21.3-v120-c2556-S1070443005-075.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/70/unif-k7-r89-v70-c6230-S358640743-023.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/60/unif-k7-r89-v60-c5340-S703461330-034.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/60/unif-k7-r89-v60-c5340-S1559668863-058.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/480/unif-k3-r4.25-v480-c2040-S2034442711-054.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/460/unif-k3-r4.25-v460-c1955-S1159067237-017.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/100/unif-k5-r21.3-v100-c2130-S1050568800-025.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/65/unif-k7-r89-v65-c5785-S1171422074-087.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/75/unif-k7-r89-v75-c6675-S1299934729-015.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/90/unif-k5-r21.3-v90-c1917-S122462268-047.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1028159446-096.cnf 0 UNSATISFIABLE 539.905333333 4.04329862001
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/75/unif-k7-r89-v75-c6675-S1525918493-008.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S404185236-001.cnf 0 UNSATISFIABLE 600.100333333 42.4168055644
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/75/unif-k7-r89-v75-c6675-S2142489608-055.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/75/unif-k7-r89-v75-c6675-S905029262-097.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/75/unif-k7-r89-v75-c6675-S1718100253-004.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/75/unif-k7-r89-v75-c6675-S1394630553-009.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/65/unif-k7-r89-v65-c5785-S1266438269-016.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/70/unif-k7-r89-v70-c6230-S184801254-020.cnf 0 timedout None
+SAT09/CRAFTED/parity-games/instance_n2_i2_pp_ci_ce.cnf 0 timedout None
+SAT09/APPLICATIONS/aprove09/AProVE09-12.cnf 0 SATISFIABLE 12.891 0.680953258373
+SATRACES/cmu-bmc-barrel6.cnf 0 UNSATISFIABLE 3.67133333333 0.59766705747
+SAT09/APPLICATIONS/aprove09/AProVE09-11.cnf 0 SATISFIABLE 20.3576666667 5.92538759202
+SAT09/APPLICATIONS/aprove09/AProVE09-05.cnf 0 SATISFIABLE 36.2093333333 3.04524579456
+SAT09/APPLICATIONS/aprove09/AProVE09-25.cnf 0 SATISFIABLE 26.4683333333 10.7014610494
+SAT09/APPLICATIONS/aprove09/AProVE09-19.cnf 0 SATISFIABLE 60.6583333333 18.9124802187
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S305156909-031.cnf 0 UNSATISFIABLE 543.523666667 16.1228862777
+SAT09/CRAFTED/parity-games/instance_n2_i3_pp.cnf 0 UNSATISFIABLE 0.0756666666667 0.0117357775232
+SAT09/CRAFTED/parity-games/instance_n4_i4_pp_ci_ce.cnf 0 SATISFIABLE 2.06333333333 0.0340277342222
+SAT09/CRAFTED/parity-games/instance_n4_i4_pp.cnf 0 SATISFIABLE 2.69666666667 0.161901044491
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/65/unif-k7-r89-v65-c5785-S2142794689-088.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/75/unif-k7-r89-v75-c6675-S400162545-095.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/65/unif-k7-r89-v65-c5785-S254828838-055.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/110/unif-k5-r21.3-v110-c2343-S2083487609-068.cnf 0 timedout None
+SAT09/APPLICATIONS/aprove09/AProVE09-17.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/60/unif-k7-r89-v60-c5340-S197260469-019.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_l37_lambda.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/70/unif-k7-r89-v70-c6230-S1758422766-080.cnf 0 timedout None
+SAT09/APPLICATIONS/aprove09/AProVE09-22.cnf 0 SATISFIABLE 7.40633333333 0.209467130348
+SAT09/CRAFTED/sgi/satsgi-n18himBHm21-p0-q167.cnf 0 SATISFIABLE 3.911 1.03497403613
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/60/unif-k7-r89-v60-c5340-S2065372010-022.cnf 0 timedout None
+SAT09/APPLICATIONS/aprove09/AProVE09-24.cnf 0 timedout None
+SAT07/industrial/babic/xinetd/xinetd_vc56703.cnf 0 UNSATISFIABLE 0.665666666667 0.0202919345408
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/100/unif-k5-r21.3-v100-c2130-S1357790788-074.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/65/unif-k7-r89-v65-c5785-S599916448-096.cnf 0 timedout None
+SAT09/CRAFTED/sgen/sat/sgen1-sat-140-100.cnf 0 SATISFIABLE 60.3443333333 2.45934910372
+SAT09/APPLICATIONS/bioinfo/q_query_3_l38_lambda.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1906521511-089.cnf 0 UNSATISFIABLE 457.624666667 45.5080329895
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S23373420-028.cnf 0 UNSATISFIABLE 535.334 82.9818773771
+SAT09/CRAFTED/sgi/sgi-difficult4.cnf 0 SATISFIABLE 2.83133333333 0.591087484206
+SAT07/industrial/babic/hsatv17/hsat_vc11813.cnf 0 UNSATISFIABLE 37.497 0.314492978618
+SAT09/CRAFTED/modcircuits/owp_4vars_5gates.cnf 0 UNSATISFIABLE 6.94366666667 1.40651918978
+SAT09/CRAFTED/parity-games/instance_n2_i2_pp.cnf 0 UNSATISFIABLE 0.09 0.005770083766
+SAT07/crafted/spence/medium/s61-100.cnf 0 UNSATISFIABLE 16.9016666667 3.95595985861
+SAT09/CRAFTED/sgi/satsgi-n19himBHm22-p0-q181.cnf 0 SATISFIABLE 7.58633333333 1.79493303188
+SAT09/APPLICATIONS/aprove09/AProVE09-13.cnf 0 SATISFIABLE 6.02633333333 0.632200749364
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/65/unif-k7-r89-v65-c5785-S1818347447-078.cnf 0 timedout None
+SAT09/CRAFTED/parity-games/instance_n3_i3_pp.cnf 0 SATISFIABLE 1.105 0.126622000546
+SAT07/crafted/spence/medium/s57-100.cnf 0 UNSATISFIABLE 7.79866666667 1.46495496545
+SAT09/CRAFTED/ramseycube/Q3inK08.cnf 0 SATISFIABLE 0.646 0.108857960052
+SATRACES/een-tip-sat-texas-tp-5e.cnf 0 SATISFIABLE 4.196 0.0178205574174
+SAT09/CRAFTED/sgen/unsat/sgen1-unsat-61-100.cnf 0 UNSATISFIABLE 20.8503333333 2.98984097993
+SAT09/CRAFTED/parity-games/instance_n3_i3_pp_ci_ce.cnf 0 SATISFIABLE 1.02033333333 0.119437958356
+SAT09/CRAFTED/sgi/satsgi-n17himBHm20-p0-q146.cnf 0 SATISFIABLE 2.69 1.02794603801
+SATRACES/cmu-bmc-longmult15.cnf 0 UNSATISFIABLE 65.7483333333 4.95739090095
+SAT09/APPLICATIONS/aprove09/AProVE09-07.cnf 0 SATISFIABLE 29.8106666667 3.82014724856
+SAT07/crafted/spence/medium/s69-100.cnf 0 UNSATISFIABLE 60.822 7.30464527462
+SAT07/industrial/babic/hsatv17/hsat_vc11803.cnf 0 UNSATISFIABLE 30.955 0.684239964405
+SAT09/CRAFTED/parity-games/instance_n3_i4_pp_ci_ce.cnf 0 UNSATISFIABLE 1.38233333333 0.0428352890172
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/70/unif-k7-r89-v70-c6230-S289069074-070.cnf 0 timedout None
+SAT09/CRAFTED/parity-games/instance_n4_i5_pp.cnf 0 UNSATISFIABLE 12.2373333333 3.08888501131
+SAT09/APPLICATIONS/aprove09/AProVE09-10.cnf 0 timedout None
+SAT09/APPLICATIONS/aprove09/AProVE09-03.cnf 0 SATISFIABLE 110.64 4.21571179082
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/70/unif-k7-r89-v70-c6230-S2141146009-040.cnf 0 timedout None
+SAT07/crafted/spence/medium/s65-100.cnf 0 UNSATISFIABLE 32.3056666667 6.18226285925
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/120/unif-k5-r21.3-v120-c2556-S1481598919-023.cnf 0 timedout None
+SAT09/APPLICATIONS/aprove09/AProVE09-21.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/70/unif-k7-r89-v70-c6230-S2125310989-062.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S367138237-029.cnf 0 UNSATISFIABLE 758.337 33.525820581
+SAT09/CRAFTED/sgi/satsgi-n22himBHm25-p0-q229.cnf 0 SATISFIABLE 92.9543333333 66.3548580704
+SAT09/CRAFTED/parity-games/instance_n5_i5_pp.cnf 0 SATISFIABLE 207.514666667 55.8608742856
+SAT09/APPLICATIONS/satComp09_BioInstances/rpoc_xits_17_SAT.cnf 0 timedout None
+SATRACES/een-tip-uns-nusmv-t5.B.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/460/unif-k3-r4.25-v460-c1955-S2007898659-069.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/70/unif-k7-r89-v70-c6230-S884764237-004.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/70/unif-k7-r89-v70-c6230-S2028777924-038.cnf 0 timedout None
+SATRACES/manol-pipe-c9.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/70/unif-k7-r89-v70-c6230-S1482824652-097.cnf 0 timedout None
+SAT09/APPLICATIONS/bitverif/minor/minor032.cnf 0 timedout None
+SAT09/APPLICATIONS/bioinfo/q_query_3_l39_lambda.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/60/unif-k7-r89-v60-c5340-S528193823-041.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/60/unif-k7-r89-v60-c5340-S1703611043-077.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/100/unif-k5-r21.3-v100-c2130-S35186747-095.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/75/unif-k7-r89-v75-c6675-S2058039218-006.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/70/unif-k7-r89-v70-c6230-S1900558626-069.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/60/unif-k7-r89-v60-c5340-S1772751287-054.cnf 0 timedout None
+SATRACES/manol-pipe-g6bi.cnf 0 timedout None
+SAT09/CRAFTED/sgi/satsgi-n22himBHm24-p0-q209.cnf 0 SATISFIABLE 231.253 38.1043457343
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/120/unif-k5-r21.3-v120-c2556-S918173205-035.cnf 0 timedout None
+SAT09/CRAFTED/sgi/satsgi-n23himBHm26-p0-q248.cnf 0 SATISFIABLE 241.223 130.27821856
+SAT09/RANDOM/MEDIUM/5SAT/UNKNOWN/100/unif-k5-r21.3-v100-c2130-S1698591437-083.cnf 0 timedout None
+SATRACES/schup-l2s-abp4-1-k31.cnf 0 timedout None
+SAT09/CRAFTED/sgi/satsgi-n25himBHm27-p0-q251.cnf 0 timedout None
+SAT09/CRAFTED/sgi/satsgi-n28himBHm30-p0-q333.cnf 0 timedout None
+SAT09/CRAFTED/sgi/satsgi-n23himBHm25-p0-q219.cnf 0 SATISFIABLE 330.825666667 137.945387344
+SAT09/CRAFTED/sgi/satsgi-n25himBHm29-p0-q290.cnf 0 timedout None
+SAT09/APPLICATIONS/aprove09/AProVE09-01.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/3SAT/UNKNOWN/360/unif-k3-r4.25-v360-c1530-S1369720750-015.cnf 0 UNSATISFIABLE 528.497666667 54.3167404152
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/75/unif-k7-r89-v75-c6675-S1736708510-089.cnf 0 timedout None
+SAT09/RANDOM/MEDIUM/7SAT/UNKNOWN/75/unif-k7-r89-v75-c6675-S2073320038-053.cnf 0 timedout None
+SAT09/CRAFTED/sgi/satsgi-n23himBHm27-p0-q251.cnf 0 timedout None
