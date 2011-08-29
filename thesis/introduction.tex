@@ -2,8 +2,8 @@
 
 \section{Background and Motivation}
 
-The Boolean satisfiability (SAT) problem asks for a satisfying
-assignment for a given Boolean formula or determine that no such
+The Boolean satisfiability (SAT) problem requires either for a satisfying
+assignment for a given Boolean formula or to determine that no such
 assignment exists and the formula is inconsistent.  SAT has
 applications in Computer Aided Design, planning, routing,
 software testing, synthesis, theorem proving and computational
@@ -38,7 +38,7 @@ the problem of finding a satisfying assignment for a CNF formula
 where all clauses have at most $k$ literals.  The example above
 was expressed in the CNF.
 
-SAT is the first and one of the simplest NP-complete problem
+SAT is the first and one of the simplest NP-complete problems
 \cite{Cook:1971:CTP:800157.805047}. It is known that $2$-SAT
 is in P \cite{karp}, while for $k \ge 3$ only exponential time
 algorithms are known, such as Sch\"{o}ning's algorithm which runs in
@@ -62,23 +62,24 @@ While state of the art sequential solvers are fast, there have
 been no recent algorithmic improvements which have provided major
 speed-ups. On the other hand, new applications challenge modern SAT
 solvers with more complex problems.  The lack of performance increase
-is accentuated by the recent architecture shift from uni-core to
+is emphasized by the recent architecture shift from uni-core to
 multi-cores systems. This is caused by the thermal wall: increasing
 frequency leads to higher power consumption and more generated
 heat. While Moore's law continues, processor manufactures use the
-extra transistors to build multi-core chips (while individual cores
-may become slower).  Therefore, SAT solvers need to adapt to this
-new paradigm.
+extra transistors to build multi-core chips (and at the same time
+individual cores may become slower).  Therefore, SAT solvers need
+to adapt to this new paradigm.
 
 In this thesis we introduce STRUCTure, a distributed SAT solver
-developed at VU University Amsterdam using Constellation, a
-distributed computing framework. In STRUCTure there is an initiator
-which starts the solving procedure, but except that the solving
-is completely decentralized.  SAT solvers are made of two parts:
-reasoning procedures and searching.  Our solver aims at parallelizing
-the search and not the reasoning techniques.  This simplifies some
-algorithms such as Pure Literal Rule (see \ref{ssec:pl}) which are
-inherently sequential \cite{Johannsen:2005:CPL:1166822.1166834}.
+developed at VU University Amsterdam using Constellation,
+a distributed computing framework. In STRUCTure there is an
+initiator which starts the solving procedure, but apart from that
+the solving is completely decentralized.  SAT solvers are made of
+two parts: reasoning procedures and searching.  Our solver aims
+at parallelizing the search and not the reasoning techniques.
+This simplifies the implementation of some algorithms such as Pure
+Literal Rule (see Section \ref{ssec:pl}) which are inherently sequential
+\cite{Johannsen:2005:CPL:1166822.1166834}.
 
 \emph{Scaling-out} is the ability to do tasks faster when
 more processing units are added to the distributed process
@@ -88,7 +89,7 @@ out:
   \item increasing number of CPUs and/or cores per node; or
   \item adding multiple nodes to the distributed process.
 \end{inparaenum} Each has different implications for the development
-of a parallel and distributed SAT solver which will investigate in
+of a parallel and distributed SAT solver which will be investigated in
 Chapter \ref{chap:results}.
 
 
@@ -98,26 +99,28 @@ This thesis brings several contributions to SAT solving. First
 we implement a completely decentralized distributed search
 algorithm based on the divide-and-conquer paradigm (see Section
 \ref{ssec:searching-tree}).  Our solver is built on top of
-Constellation which provides work balancing and seemingless
+Constellation which provides work balancing and effortless
 distributed computation.  Next, we show how clause learning can be
 easily performed in a distributed environment by doing the learn
 during searching, but using the learned clauses after search is
 interrupted (see Section \ref{ssec:learning}).  Finally, a new
 algorithm for Hyper-Unit and Hyper-Binary Resolutions (see Section
-\ref{ssec:hbr}) is provided in appendix \ref{chap:algorithms}.
+\ref{ssec:hbr}) is provided in Appendix \ref{chap:algorithms}.
 
 
 \section{Outline}
 
-Chapter \ref{chap:related}, \emph{\nameref{chap:related}}, presents other
+The rest of this thesis is described as follows:  Chapter
+\ref{chap:related}, \emph{\nameref{chap:related}}, presents other
 approaches to parallel and general sat solving. STRUCTure is compared
 with other SAT solvers and the main differences are discussed.
 
-Chapter \ref{chap:sat}, \emph{\nameref{chap:sat}}, formalizes the SAT
-problem and explains common simplification and reasonings techniques.
-Next, chapter \emph{\nameref{chap:architecture}} describes in detail
-the design of STRUCTure. Constellation, a scalable distributed
-programming framework, is also presented here.
+Chapter \ref{chap:sat}, \emph{\nameref{chap:sat}}, formalizes
+the SAT problem and explains common simplification and
+reasonings techniques.  Next, Chapter \ref{chap:architecture},
+\emph{\nameref{chap:architecture}}, describes in detail the design
+of STRUCTure. Constellation, a scalable distributed programming
+framework, is also described briefly here.
 
 In Chapter \ref{chap:results}, \emph{\nameref{chap:results}}, STRUCTure is
 run with SAT instances from SAT Competition 2009. Simplification
@@ -126,7 +129,7 @@ evaluated. Moreover, the scalability of STRUCTure is tested using
 different combinations of number of nodes and number of cores
 per node.
 
-The following chapter, \ref{chap:future}, lists some ideas that can
-improve STRUCTure's performance and make it competitive with respect
-to the state of art solvers. Finally, in chapter \ref{chap:conclusions}
-some conclusions are drawn.
+Chapter \ref{chap:future} lists some ideas that can improve
+STRUCTure's performance and make it competitive with respect to the
+state of the art solvers. Finally, in Chapter \ref{chap:conclusions}
+thesis's conclusions are drawn.

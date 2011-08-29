@@ -2,9 +2,9 @@
 
 The problem of Boolean satisfiability (SAT), though NP-complete,
 has many real-life applications in planning, designing, synthesis
-and routing. Due to the widespread success of the SAT problem
-it is important to solve it very fast even on large and complex
-applications.
+and routing. Due to the widespread success of the SAT problem it
+is important to have efficient solvers that can handle large and
+complex applications.
 
 In this thesis we introduce STRUCTure, a new parallel and distributed
 SAT solver built to take advantage of the multi-cores processors
@@ -16,10 +16,10 @@ distribution which makes scalability easy.
 
 STRUCTure performs many reasoning and simplification procedures
 before and during the search. Branch selection heuristics
-are vital for a small searching space. STRUCTure has a unique
+are vital for a small search space. STRUCTure has a unique
 built-in distributed clause learning system required to solve some
 problems. To remove the need for synchronization, clauses are learned
-while searching, but incorporated after the search is restarted.
+while searching, but only incorporated after the search is restarted.
 
 Our solver has been tested on the DAS-4 cluster at VU University
 Amsterdam. Good scalability has been observed in
@@ -31,12 +31,8 @@ Amsterdam. Good scalability has been observed in
 STRUCTure performs slightly better in a parallel environment than in
 a distributed environment.  Similar to look-ahead solvers, our solver
 performs and scales better on random instances than on industrial
-applications. Compared to awards winning solvers STRUCTure performs
+applications. Compared to award winning solvers STRUCTure performs
 worse overall, but there is room for improvement considering that
 STRUCTure is still in its infancy.
-
-We show that a scalable SAT solver can be built based on the
-divide-and-conquer paradigm using a framework designed to parallelize
-such algorithms.
 
 \end{abstract}

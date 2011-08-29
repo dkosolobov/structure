@@ -1,7 +1,7 @@
 \chapter{Future Work}
 \label{chap:future}
 
-While STRUCTure has most common simplification techniques included
+While STRUCTure has most common simplification techniques included,
 it needs more work to become a competitive solver. This chapter
 lists some ideas for future work that will improve STRUCTure's
 performance and scalability.
@@ -10,7 +10,7 @@ The simplest idea to improve performance is to \emph{reduce the data
 replication overhead}. In Figure \ref{fig:architecture} every spawned
 activity takes as input a formula and outputs a smaller instance or a
 solution. All internal data structures are build when the activity is
-initalized and discarded when the activity finalizes. However, it is
+initialized and discarded when the activity has ended. However, it is
 possible to reuse some of these data structures to reduce overhead.
 
 Next, STRUCTure should exploit the idle threads available
@@ -24,11 +24,14 @@ Another thing to investigate is a better branch selection heuristic.
 Currently, STRUCTure uses one branch selection algorithm for all
 problem types, but, as we have seen in Chapter \ref{chap:results},
 simplification procedures have different performance impact on
-random and nonrandom instances.
+random and nonrandom instances. Several branching heuristics 
+are compared in \cite{Marques-silva99theimpact}
 
-Restarting could also benefit from a randomized model for
-generations time to live instead of our simple increasing heuristic
-\cite{Gomes:1998:BCS:295240.295710}.
+Restarting could also benefit from a randomized model for generations
+time to live instead of our simple time increasing heuristic. In
+\cite{Huang:2007:ERE:1625275.1625649} the author compares several
+models for restarting policies based on the number of conflicts
+found.
 
 Finally, the effect of different combinations of parameters and
 flags needs to be investigated. In Chapter \ref{chap:results}

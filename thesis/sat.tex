@@ -82,7 +82,7 @@ F = \{ \{u, v, t\}, \{\neg u, \neg v)\}\}
 \label{sec:solving-sat}
 
 This section describes DPLL, a general algorithm for SAT solving
-which is the basis of most modern sat solvers.
+which is the basis of most modern SAT solvers.
 
 \subsection{Boolean Constraint Propagation}
 \label{ssec:bcp}
@@ -128,7 +128,7 @@ and similarly $UP(F, u) \equiv UP(F \cup \{\{ u \}\})$. Example:
 Most SAT solvers are based on the original algorithm from
 \cite{Davis:1962:MPT:368273.368557}, also known as DPLL, for deciding
 the satisfiability of logic formula.  The algorithm is described
-by pseudo-code \ref{alg:dpll} and has four important steps:
+by Algorithm \ref{alg:dpll} and has four important steps:
 \begin{inparaenum}[1)]
   \item verify formula;
   \item simplify formula;
@@ -136,7 +136,7 @@ by pseudo-code \ref{alg:dpll} and has four important steps:
   \item recurse.
 \end{inparaenum}
 
-Modern SAT solvers differ from DP in applying
+Modern SAT solvers differ from DPLL in applying
 stronger simplification procedures or using better
 decisions heuristics. Another important step introduced in
 \cite{Marques-silva99grasp:a} is restarting the search at regular
@@ -159,7 +159,7 @@ from conflicts.
     \ENDIF
 
     // 2. Simplify formula
-    \STATE $F \gets BCP(F)$ // See section \ref{ssec:bcp}
+    \STATE $F \gets BCP(F)$ // See Section \ref{ssec:bcp}
 
     // 3. Decide
     \STATE $u \gets decide(F)$
@@ -175,7 +175,7 @@ from conflicts.
 
 \section{Additional Reasoning Procedures}
 
-This sections explains additional reasoning procedures used in
+This section explains additional reasoning procedures used in
 STRUCTure during the simplification step besides the Boolean
 Constraint Propagation from the original DPLL algorithm.
 
@@ -183,7 +183,7 @@ Constraint Propagation from the original DPLL algorithm.
 \label{ssec:pl}
 
 \emph{Pure Literal Rule} was first described in
-\cite{Davis:1962:MPT:368273.368557} and it was and used to
+\cite{Davis:1962:MPT:368273.368557} and it was used to
 improve the DPLL algorithm. Broder et al. have shown that
 PL alone can solve some class of random $k$-SAT formulas
 \cite{Broder:1993:SMS:313559.313794}.  The Pure Literal Rule is
@@ -204,7 +204,7 @@ the pure literal rule on $F$ until a fixed point.
 \subsection{Boolean Resolution Operator}
 \label{ssec:resolution}
 
-Many reasonings procedures discussed in the next sections are based
+Many reasoning procedures discussed in the next sections are based
 on \emph{resolution operator} \cite{Robinson:1965:MLB:321250.321253}
 which derives an implied clause, named \emph{resolvent}, from
 a pair of clauses containing a literal of opposite polarities,
@@ -259,12 +259,12 @@ implication graph $\I_F$ all literals in the same strongly connected
 component\footnote{A component of a directed graph is \emph{strongly
 connected} if every node in the component can be reached from every
 other node in the same component.} are equivalent. The component
-can be be collapsed into a single literal and all literals can be
+can be collapsed into a single literal and all literals can be
 renamed to the new literal.
 
 \begin{myprop}
   If $u \leftrightsquigarrow v$ then every occurrence of $v$ can be replaced
-  with $v$. More generally, in the implication graph each strongly
+  with $u$. More generally, in the implication graph each strongly
   connected component can be collapsed to a single literal and, in
   the formula every literal from the component can be replaced with
   the new literal.
@@ -375,7 +375,7 @@ new binary.
 
 \cite{Bacchus03effectivepreprocessing} shows that HUR and HBR
 are closely related to Boolean constraint propagation.  Indeed,
-propagation of literal $u$ results in literals $v_1, \ldots, v_n$
+propagation of literal $u$ results in literals $v_1, \ldots, v_n$,
 so clause $(v_1 \lor \dots \lor v_n)$ is reduced to the empty
 clause and, respectively, clause $(v_1 \lor \dots \lor v_n \lor
 t)$ is reduced to unit clause $\{ t \}$. From the former we obtain
@@ -432,7 +432,7 @@ the larger clause.
 \subsection{XOR Gates Extraction}
 \label{ssec:xor-extraction}
 
-Many encoded circuits have XOR and XNOR gates which are equation
+Many encoded circuits have XOR and XNOR gates which are equations
 in $\mathbb{Z}_2$ (see Table \ref{tbl:xor-formula}). The method
 frequently used to encode an X(N)OR gate into CNF clauses is described
 in \cite{Roy_restoringcircuit}.
@@ -457,7 +457,7 @@ clauses requires $2^n$ clauses of size $n + 1$, one literal for
 each input and output.  Every clause contains an odd number of
 negations resulting in $2^n$ different combinations. Encoding an
 XNOR gate is similar, except that clauses will contain an even
-number of negations.  Example of encodings are given in table
+number of negations.  Example of encodings are given in Table
 \ref{tbl:xor-encoding}.  Decoding X(N)OR gates shorten the formula
 considerably. 32 clauses of 6 literals each will be replaced by a
 single gate of 6 variables.
@@ -573,10 +573,11 @@ of industrial applications if it is applied only on variables for
 which the formula has a limited increase in size.
 
 Variable elimination is based on the Boolean resolution operator
-(\ref{ssec:resolution}). If $S_u$ is the set of clauses in $F$
-containing literal $u$ and, similarly, $S_{\neg u}$ is the set of clauses in $F$
-containing literal ${\neg u}$ then $F$ is substituted for
-$F \setminus S_u \setminus S_{\neg u} \cup S_u \otimes_{u} S_{\neg u}$.
+(see Section \ref{ssec:resolution}). If $S_u$ is the set of clauses
+in $F$ containing literal $u$ and, similarly, $S_{\neg u}$ is
+the set of clauses in $F$ containing literal ${\neg u}$ then $F$
+is substituted for $F \setminus S_u \setminus S_{\neg u} \cup S_u
+\otimes_{u} S_{\neg u}$.
 
 In STRUCTure variables selected for elimination are chosen such that
 the number of literals in all clauses $S_u \otimes_{u} S_{\neg u}$
@@ -599,10 +600,10 @@ simplification of CNF circuit encodings.
 \end{mydef}
 
 In \cite{Jarvisalo_blockedclause} the authors suggest that VE might
-improve on BCE (see subsection \ref{ssec:bce}), but we found no
+improve on BCE (see Section \ref{ssec:bce}), but we found no
 significant difference in performance when the order is reversed
-(see appendix \ref{chap:bce-ve}).
+(see Appendix \ref{chap:bce-ve}).
 
 STRUCTure performs a stronger version of BCE in which the blocked clause
 is first extended with literals hidden by the blocking literal
-(see subsection \ref{ssec:hla}) \cite{Heule_coveredclause}.
+(see Section \ref{ssec:hla}) \cite{Heule_coveredclause}.
